@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#101820" />
+    <meta name="description" content="適合球類及卡牌遊戲的靈活計分板" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="分分計" />
+    <title>分分計｜靈活計分板</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="分分計首頁">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span>
+            <strong>分分計</strong>
+            <small>SCORE ANYTHING</small>
+          </span>
+        </a>
+
+        <div class="top-actions">
+          <span class="connection-badge" id="connectionBadge" role="status">
+            <span></span><span id="connectionLabel">離線可用</span>
+          </span>
+          <button class="icon-button" id="undoButton" type="button" aria-label="撤銷上一步" title="撤銷上一步" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5v-4M5.5 7.5A8 8 0 1 1 4 15"/></svg>
+          </button>
+          <button class="icon-button" id="settingsButton" type="button" aria-label="計分設定" title="計分設定">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.96 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H3v-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V3h4v.08A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9 1.7 1.7 0 0 0 21 10v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="match-heading" aria-labelledby="matchTitle">
+          <div>
+            <p class="eyebrow"><span class="live-dot"></span><span id="roundLabel">第 1 局</span></p>
+            <h1 id="matchTitle">今晚開波</h1>
+          </div>
+          <div class="heading-meta">
+            <span id="playerCountLabel">2 隊</span>
+            <span class="meta-divider"></span>
+            <span id="modeLabel">勝方 +1</span>
+          </div>
+        </section>
+
+        <section class="timer-bar" aria-label="比賽計時器">
+          <div class="timer-status">
+            <span class="timer-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6M12 2v3"/></svg>
+            </span>
+            <div>
+              <span class="timer-label">比賽時間</span>
+              <strong id="timerDisplay">00:00</strong>
+            </div>
+          </div>
+          <div class="timer-actions">
+            <button class="timer-reset" id="timerResetButton" type="button">重設</button>
+            <button class="timer-toggle" id="timerToggleButton" type="button" aria-pressed="false">
+              <span class="timer-toggle-icon" aria-hidden="true">▶</span>
+              <span id="timerToggleLabel">開始計時</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="score-grid" id="scoreGrid" aria-label="計分區"></section>
+
+        <section class="match-controls" aria-label="本局控制">
+          <button class="secondary-button" id="resetRoundButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 9A8 8 0 1 1 4 15"/></svg>
+            重設本局
+          </button>
+          <button class="primary-button" id="finishRoundButton" type="button">
+            完成本局
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </section>
+
+        <section class="round-history" aria-labelledby="historyTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SCORE SHEET</p>
+              <h2 id="historyTitle">比分紀錄</h2>
+            </div>
+            <button class="text-button" id="clearHistoryButton" type="button">清除紀錄</button>
+          </div>
+          <div id="historyContent"></div>
+        </section>
+      </main>
+
+      <footer>
+        <span>分分計</span>
+        <span>所有分數只儲存在這部裝置</span>
+      </footer>
+    </div>
+
+    <div class="modal-backdrop is-open" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+      <div class="modal setup-modal">
+        <div class="modal-accent" aria-hidden="true"></div>
+        <button class="modal-close" id="setupCloseButton" type="button" aria-label="關閉設定">×</button>
+        <div class="modal-header">
+          <p class="eyebrow">NEW SCOREBOARD</p>
+          <h2 id="setupTitle">今次點樣計？</h2>
+          <p>揀一個玩法開始，之後隨時可以改名或加減人數。</p>
+        </div>
+
+        <form id="setupForm">
+          <fieldset>
+            <legend>快速選擇</legend>
+            <div class="preset-grid">
+              <label class="preset-card">
+                <input type="radio" name="preset" value="sports" checked />
+                <span class="preset-icon">球</span>
+                <span><strong>兩隊對賽</strong><small>排球・籃球・羽毛球</small></span>
+                <span class="radio-dot"></span>
+              </label>
+              <label class="preset-card">
+                <input type="radio" name="preset" value="cards" />
+                <span class="preset-icon">牌</span>
+                <span><strong>四人計分</strong><small>啤牌・桌遊・麻雀</small></span>
+                <span class="radio-dot"></span>
+              </label>
+              <label class="preset-card">
+                <input type="radio" name="preset" value="custom" />
+                <span class="preset-icon">自</span>
+                <span><strong>自訂人數</strong><small>2 至 8 人／隊</small></span>
+                <span class="radio-dot"></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="form-row">
+            <label class="field-label" for="setupName">活動名稱</label>
+            <input class="text-input" id="setupName" name="title" type="text" maxlength="30" value="今晚開波" placeholder="例如：星期五排球" />
+          </div>
+
+          <div class="form-row participant-count-row" id="participantCountRow" hidden>
+            <span class="field-label">人數／隊數</span>
+            <div class="stepper" aria-label="選擇人數">
+              <button type="button" id="countMinus" aria-label="減少人數">−</button>
+              <output id="countOutput">3</output>
+              <button type="button" id="countPlus" aria-label="增加人數">+</button>
+            </div>
+          </div>
+
+          <button class="primary-button wide" type="submit">建立計分板 <span>→</span></button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true">
+      <div class="modal settings-modal">
+        <button class="modal-close" data-close="settingsModal" type="button" aria-label="關閉設定">×</button>
+        <div class="modal-header compact">
+          <p class="eyebrow">SETTINGS</p>
+          <h2 id="settingsTitle">計分設定</h2>
+        </div>
+        <form id="settingsForm">
+          <div class="form-row">
+            <label class="field-label" for="settingsName">活動名稱</label>
+            <input class="text-input" id="settingsName" name="title" type="text" maxlength="30" />
+          </div>
+
+          <fieldset>
+            <legend>參加者</legend>
+            <div class="participant-editor" id="participantEditor"></div>
+            <button class="outline-button wide" id="addParticipantButton" type="button">＋ 加一位／一隊</button>
+          </fieldset>
+
+          <fieldset>
+            <legend>完成一局後，總分點計？</legend>
+            <div class="segmented-control">
+              <label><input type="radio" name="totalMode" value="winner" /><span>勝方 +1</span></label>
+              <label><input type="radio" name="totalMode" value="cumulative" /><span>累加本局</span></label>
+              <label><input type="radio" name="totalMode" value="manual" /><span>只手動</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>勝負規則</legend>
+            <div class="segmented-control two">
+              <label><input type="radio" name="winnerRule" value="highest" /><span>最高分勝</span></label>
+              <label><input type="radio" name="winnerRule" value="lowest" /><span>最低分勝</span></label>
+            </div>
+          </fieldset>
+
+          <button class="primary-button wide" type="submit">儲存設定</button>
+          <button class="danger-button wide" id="newScoreboardButton" type="button">開全新計分板</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="confirmModal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage" aria-hidden="true">
+      <div class="modal confirm-modal">
+        <span class="confirm-icon" id="confirmIcon">?</span>
+        <h2 id="confirmTitle">確定嗎？</h2>
+        <p id="confirmMessage"></p>
+        <div class="confirm-actions">
+          <button class="secondary-button" id="confirmCancel" type="button">取消</button>
+          <button class="primary-button" id="confirmAccept" type="button">確定</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <template id="scoreCardTemplate">
+      <article class="score-card">
+        <div class="card-topline"></div>
+        <div class="card-header">
+          <div class="player-identity">
+            <span class="player-index"></span>
+            <button class="player-name" type="button" title="更改名稱"></button>
+          </div>
+          <div class="total-score">
+            <span>總分</span>
+            <div>
+              <button class="total-minus" type="button" aria-label="總分減一">−</button>
+              <strong></strong>
+              <button class="total-plus" type="button" aria-label="總分加一">＋</button>
+            </div>
+          </div>
+        </div>
+        <button class="score-display" type="button">
+          <span class="score-label">本局</span>
+          <span class="score-number">0</span>
+          <span class="score-tap-hint">按一下 ＋1</span>
+        </button>
+        <div class="score-actions">
+          <button class="minus-button" type="button" aria-label="減一分">按錯？減 1 分</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

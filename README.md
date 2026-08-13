@@ -1,0 +1,35 @@
+# 分分計
+
+一個適合球類、卡牌及桌遊的靈活計分 Web App。
+
+## 使用方法
+
+直接打開 `index.html`，或在這個資料夾執行：
+
+```bash
+python3 -m http.server 4173
+```
+
+然後前往 `http://localhost:4173`。
+
+## 功能
+
+- 兩隊對賽、四人卡牌及 2–8 個自訂計分格
+- 每位參加者都有本局分數與總分
+- 直接點按大分數位置加 1 分，亦可減分及手動調整總分
+- 可開始、暫停及重設的比賽計時器
+- 完局時可選「勝方 +1」、「累加本局」或「只手動」
+- 支援最高分勝或最低分勝
+- 比分紀錄、撤銷、重設及自動儲存
+- 手機、平板及電腦自適應版面
+
+所有資料只會保存在瀏覽器的本機儲存空間，不會上傳。
+
+## GitHub Pages 與離線使用
+
+1. 將整個資料夾推送到公開 GitHub repository。
+2. 在 repository 的 **Settings → Pages**，選擇 **Deploy from a branch**。
+3. 選擇 `main` branch 及 `/ (root)`，然後儲存。
+4. 使用者第一次需要有網絡開啟 GitHub Pages 網址；完成載入後即可離線使用。
+
+網站已包含 Service Worker、Web App Manifest 及安裝圖示。在 iPhone／iPad 可使用 Safari 的「加入主畫面」，Android 或桌面 Chrome 可選擇「安裝應用程式」。每部裝置的比分分開儲存，不會互相同步。
