@@ -11,6 +11,9 @@ let pendingConfirmAction = null;
 let toastTimer = null;
 let settingsParticipantsDraft = [];
 let timerTicker = null;
+let lockedScrollPosition = 0;
+let activeScoreGesture = null;
+let suppressScoreClick = false;
 
 const elements = {
   scoreGrid: $("#scoreGrid"),
@@ -311,11 +314,26 @@ async function registerOfflineSupport() {
   }
 }
 
+function lockPageScroll() {
+  if (document.body.classList.contains("modal-open")) return;
+  lockedScrollPosition = window.scrollY;
+  document.body.style.top = `-${lockedScrollPosition}px`;
+  document.body.classList.add("modal-open");
+}
+
+function unlockPageScroll() {
+  if (!document.body.classList.contains("modal-open")) return;
+  document.body.classList.remove("modal-open");
+  document.body.style.top = "";
+  window.scrollTo(0, lockedScrollPosition);
+}
+
 function openModal(id) {
   const modal = document.getElementById(id);
   modal.classList.add("is-open");
   modal.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
+  lockPageScroll();
+  modal.scrollTop = 0;
   setTimeout(() => $("input, button:not(.modal-close)", modal)?.focus(), 30);
 }
 
@@ -323,7 +341,7 @@ function closeModal(id) {
   const modal = document.getElementById(id);
   modal.classList.remove("is-open");
   modal.setAttribute("aria-hidden", "true");
-  if (!$(".modal-backdrop.is-open")) document.body.style.overflow = "";
+  if (!$(".modal-backdrop.is-open")) unlockPageScroll();
 }
 
 function openConfirm({ title, message, acceptText = "確定", icon = "?", action }) {
@@ -386,11 +404,47 @@ function updateSetupFromPreset() {
   if (preset === "custom" && ["今晚開波", "今晚開枱"].includes(nameInput.value)) nameInput.value = "自訂比賽";
 }
 
+elements.scoreGrid.addEventListener("pointerdown", (event) => {
+  if (!event.target.closest(".score-display")) return;
+  suppressScoreClick = false;
+  activeScoreGesture = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    moved: false,
+  };
+});
+
+elements.scoreGrid.addEventListener("pointermove", (event) => {
+  if (!activeScoreGesture || activeScoreGesture.pointerId !== event.pointerId) return;
+  const horizontalDistance = Math.abs(event.clientX - activeScoreGesture.startX);
+  const verticalDistance = Math.abs(event.clientY - activeScoreGesture.startY);
+  if (horizontalDistance > 10 || verticalDistance > 10) activeScoreGesture.moved = true;
+});
+
+elements.scoreGrid.addEventListener("pointerup", (event) => {
+  if (!activeScoreGesture || activeScoreGesture.pointerId !== event.pointerId) return;
+  suppressScoreClick = activeScoreGesture.moved;
+  activeScoreGesture = null;
+});
+
+elements.scoreGrid.addEventListener("pointercancel", () => {
+  activeScoreGesture = null;
+  suppressScoreClick = true;
+});
+
 elements.scoreGrid.addEventListener("click", (event) => {
   const card = event.target.closest(".score-card");
   if (!card) return;
   const id = card.dataset.id;
-  if (event.target.closest(".score-display")) changeScore(id, 1);
+  if (event.target.closest(".score-display")) {
+    if (suppressScoreClick) {
+      event.preventDefault();
+      suppressScoreClick = false;
+      return;
+    }
+    changeScore(id, 1);
+  }
   if (event.target.closest(".minus-button")) changeScore(id, -1);
   if (event.target.closest(".total-plus")) changeScore(id, 1, true);
   if (event.target.closest(".total-minus")) changeScore(id, -1, true);
@@ -577,7 +631,7 @@ if (state) {
   render();
 } else {
   $("#setupCloseButton").hidden = true;
-  document.body.style.overflow = "hidden";
+  lockPageScroll();
   state = freshState("sports", "今晚開波");
   render();
   clearStoredState();

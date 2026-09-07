@@ -17,12 +17,14 @@
 html {
   min-height: 100%;
   background: var(--paper);
+  scroll-padding-top: calc(92px + env(safe-area-inset-top));
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--ink);
   background:
     radial-gradient(circle at 90% 8%, rgba(201, 245, 88, 0.18), transparent 24rem),
@@ -32,6 +34,12 @@ body {
   background-size: auto, 28px 28px, 28px 28px, auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "Noto Sans TC", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+body.modal-open {
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
 }
 
 button,
@@ -57,16 +65,36 @@ button,
 .app-shell {
   width: min(1440px, 100%);
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding: 0 clamp(18px, 4vw, 60px);
+  padding-top: env(safe-area-inset-top);
+  padding-right: max(clamp(18px, 4vw, 60px), env(safe-area-inset-right));
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: max(clamp(18px, 4vw, 60px), env(safe-area-inset-left));
 }
 
 .topbar {
+  position: sticky;
+  z-index: 40;
+  top: env(safe-area-inset-top);
   height: 92px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.topbar::before {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: env(safe-area-inset-top);
+  background: var(--paper);
+  content: "";
 }
 
 .brand {
@@ -508,6 +536,9 @@ p {
   background: transparent;
   color: inherit;
   cursor: pointer;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
   transition: background 160ms ease;
 }
 
@@ -774,6 +805,10 @@ footer span:first-child {
   padding: 24px;
   background: rgba(16, 24, 32, 0.72);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 .modal-backdrop.is-open {
@@ -787,11 +822,15 @@ footer span:first-child {
   position: relative;
   width: min(640px, 100%);
   max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
   overflow-y: auto;
   padding: clamp(28px, 5vw, 48px);
   border-radius: 26px;
   background: var(--paper-bright);
   box-shadow: 0 32px 80px rgba(0, 0, 0, 0.3);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
   animation: modal-in 230ms ease;
 }
 
@@ -1150,7 +1189,13 @@ legend,
 }
 
 @media (max-width: 640px) {
-  .app-shell { padding: 0 14px; }
+  html { scroll-padding-top: calc(72px + env(safe-area-inset-top)); }
+  .app-shell {
+    padding-top: env(safe-area-inset-top);
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
   .topbar { height: 72px; }
   .brand-mark { width: 38px; height: 38px; }
   .connection-badge { display: none; }
@@ -1174,8 +1219,19 @@ legend,
   .round-history { padding: 28px 20px; }
   .history-table { min-width: 500px; }
   #historyContent { overflow-x: auto; }
-  .modal-backdrop { align-items: flex-start; padding: 10px; }
-  .modal { max-height: calc(100vh - 20px); padding: 30px 20px; border-radius: 20px; }
+  .modal-backdrop {
+    align-items: flex-start;
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+  .modal {
+    max-height: calc(100vh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 30px 20px max(34px, env(safe-area-inset-bottom));
+    border-radius: 20px;
+  }
   .modal-close { top: 12px; right: 12px; }
   .preset-grid { grid-template-columns: 1fr; }
   .preset-card { flex-direction: row; align-items: center; }

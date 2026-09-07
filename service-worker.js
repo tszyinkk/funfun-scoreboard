@@ -1,4 +1,4 @@
-const CACHE_NAME = "funfun-scoreboard-v3";
+const CACHE_NAME = "funfun-scoreboard-v6";
 const APP_SHELL = [
   "./",
   "./index.html",
