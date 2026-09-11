@@ -1332,6 +1332,57 @@ legend,
 .mahjong-entry .field-label { margin-bottom: 0; }
 .mahjong-entry .text-input { margin-top: 8px; }
 
+.mahjong-pattern-fieldset {
+  margin: 18px 0 0;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+}
+
+.mahjong-pattern-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mahjong-pattern-choice {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #faf9f4;
+  cursor: pointer;
+}
+
+.mahjong-pattern-choice:has(input:checked) {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--lime) 18%, white);
+}
+
+.mahjong-pattern-choice input { width: 16px; height: 16px; accent-color: var(--ink); }
+.mahjong-pattern-choice span { overflow: hidden; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.mahjong-pattern-choice strong { color: var(--ink-soft); font-size: 10px; white-space: nowrap; }
+
+.mahjong-pattern-settings { margin-top: 22px; }
+.mahjong-pattern-settings > .field-label { margin-bottom: 9px; }
+
+.mahjong-pattern-editor { display: grid; gap: 7px; }
+
+.mahjong-pattern-setting-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 82px 20px;
+  align-items: center;
+  gap: 8px;
+}
+
+.mahjong-pattern-setting-row .text-input { height: 42px; padding: 0 10px; font-size: 14px; }
+.pattern-enabled { justify-content: center; margin: 0; }
+.pattern-enabled input { width: 18px; height: 18px; accent-color: var(--ink); }
+.mahjong-pattern-setting-row > span { color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+
 .mahjong-preview {
   margin: 16px 0;
   padding: 13px 15px;
@@ -1432,6 +1483,8 @@ legend,
   .touch-arena { min-height: 300px; }
   .mahjong-entry-grid,
   .settings-grid { grid-template-columns: 1fr; }
+  .mahjong-pattern-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mahjong-pattern-setting-row { grid-template-columns: 34px minmax(0, 1fr) 70px 18px; gap: 5px; }
   .mahjong-entry { padding: 14px; }
   .mahjong-history-title { align-items: flex-start; flex-direction: column; gap: 4px; }
 }

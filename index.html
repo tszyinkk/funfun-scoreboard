@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=7" />
+    <link rel="stylesheet" href="style.css?v=8" />
   </head>
   <body>
     <div class="app-shell">
@@ -117,8 +117,8 @@
               <label class="field-label" id="mahjongDiscarderField">出銃者
                 <select class="text-input" id="mahjongDiscarder" name="discarder"></select>
               </label>
-              <label class="field-label">牌面番數
-                <input class="text-input" id="mahjongHandFan" name="handFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
+              <label class="field-label">手動加番
+                <input class="text-input" id="mahjongHandFan" name="handFan" type="number" min="0" max="99" value="0" inputmode="numeric" />
               </label>
               <label class="field-label">今局莊家
                 <select class="text-input" id="mahjongDealer" name="dealer"></select>
@@ -130,6 +130,10 @@
                 <input class="text-input" id="mahjongNote" name="note" type="text" maxlength="40" placeholder="例如：清一色、自摸" />
               </label>
             </div>
+            <fieldset class="mahjong-pattern-fieldset">
+              <legend>食咩牌型？（可多選）</legend>
+              <div class="mahjong-pattern-choices" id="mahjongPatternChoices"></div>
+            </fieldset>
             <p class="mahjong-preview" id="mahjongPreview">輸入番數後會顯示今局計算結果。</p>
             <button class="primary-button wide" type="submit">記錄呢局麻雀</button>
           </form>
@@ -303,6 +307,10 @@
                 </select>
               </label>
             </div>
+            <div class="mahjong-pattern-settings">
+              <p class="field-label">牌型番種及分值</p>
+              <div class="mahjong-pattern-editor" id="mahjongPatternEditor"></div>
+            </div>
             <p class="settings-help">預設採用常見香港牌做法：3 番起糊、每番乘 2、自摸另加 1 番；實際賠法以你設定為準。</p>
           </fieldset>
 
@@ -362,6 +370,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=7" defer></script>
+    <script src="app.js?v=8" defer></script>
   </body>
 </html>

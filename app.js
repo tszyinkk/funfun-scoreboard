@@ -49,6 +49,8 @@ const elements = {
   mahjongDealer: $("#mahjongDealer"),
   mahjongWinType: $("#mahjongWinType"),
   mahjongDiscarderField: $("#mahjongDiscarderField"),
+  mahjongPatternChoices: $("#mahjongPatternChoices"),
+  mahjongPatternEditor: $("#mahjongPatternEditor"),
   mahjongPreview: $("#mahjongPreview"),
 };
 
@@ -74,6 +76,31 @@ function defaultMahjongRules() {
     selfDrawMultiplier: 1,
     discardMultiplier: 2,
     ronPaymentMode: "discarder",
+    patterns: [
+      { id: "chicken", label: "雞糊", fan: 0, enabled: true },
+      { id: "pinghu", label: "平糊", fan: 1, enabled: true },
+      { id: "no-flower", label: "無花", fan: 1, enabled: true },
+      { id: "proper-flower", label: "正花", fan: 1, enabled: true },
+      { id: "concealed", label: "門前清", fan: 1, enabled: true },
+      { id: "dragon-pung", label: "番牌（三元牌）", fan: 1, enabled: true },
+      { id: "wind-pung", label: "風牌", fan: 1, enabled: true },
+      { id: "one-flower-set", label: "一台花", fan: 2, enabled: true },
+      { id: "kong-draw", label: "槓上開花", fan: 2, enabled: true },
+      { id: "last-tile", label: "海底撈月", fan: 2, enabled: true },
+      { id: "seven-flowers", label: "花糊", fan: 3, enabled: true },
+      { id: "all-pungs", label: "對對糊", fan: 3, enabled: true },
+      { id: "half-flush", label: "混一色", fan: 3, enabled: true },
+      { id: "terminals-honors", label: "花幺", fan: 4, enabled: true },
+      { id: "small-dragons", label: "小三元", fan: 5, enabled: true },
+      { id: "small-winds", label: "小四喜", fan: 6, enabled: true },
+      { id: "full-flush", label: "清一色", fan: 7, enabled: true },
+      { id: "all-honors", label: "字一色", fan: 10, enabled: true },
+      { id: "big-dragons", label: "大三元", fan: 8, enabled: true },
+      { id: "big-winds", label: "大四喜", fan: 13, enabled: true },
+      { id: "thirteen-orphans", label: "十三么", fan: 13, enabled: true },
+      { id: "nine-gates", label: "九子連環", fan: 13, enabled: true },
+      { id: "four-kongs", label: "十八羅漢／四槓子", fan: 13, enabled: true },
+    ],
   };
 }
 
@@ -84,6 +111,17 @@ function sanitizeMahjongRules(rules = {}) {
     if (!Number.isFinite(value)) return defaults[key];
     return Math.min(max, Math.max(min, value));
   };
+  const suppliedPatterns = Array.isArray(rules.patterns) ? rules.patterns : [];
+  const patterns = defaults.patterns.map((defaultPattern) => {
+    const supplied = suppliedPatterns.find((pattern) => pattern?.id === defaultPattern.id);
+    const fan = Number(supplied?.fan);
+    return {
+      ...defaultPattern,
+      label: String(supplied?.label || defaultPattern.label).slice(0, 24),
+      fan: Number.isFinite(fan) ? Math.min(99, Math.max(0, Math.round(fan))) : defaultPattern.fan,
+      enabled: supplied?.enabled !== false,
+    };
+  });
   return {
     minimumFan: Math.round(number("minimumFan", 0, 99)),
     basePoints: number("basePoints", 0, 999999),
@@ -97,6 +135,7 @@ function sanitizeMahjongRules(rules = {}) {
     selfDrawMultiplier: number("selfDrawMultiplier", 0, 20),
     discardMultiplier: number("discardMultiplier", 0, 20),
     ronPaymentMode: rules.ronPaymentMode === "all" ? "all" : "discarder",
+    patterns,
   };
 }
 
@@ -216,6 +255,7 @@ function renderScoreCards() {
     const card = $(".score-card", fragment);
     card.style.setProperty("--player-color", player.color);
     card.dataset.id = player.id;
+    $(".total-score", card).hidden = state.kind === "mahjong";
     $(".player-index", card).textContent = String(index + 1).padStart(2, "0");
     $(".player-name", card).textContent = player.name;
     $(".score-number", card).textContent = player.score;
@@ -326,11 +366,12 @@ function formatPoints(value) {
   return `${rounded > 0 ? "+" : ""}${rounded}`;
 }
 
-function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, flowers }) {
+function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, patternFan = 0, flowers }) {
   const rules = state.mahjong;
   const cleanHandFan = Math.max(0, Math.round(Number(handFan) || 0));
+  const cleanPatternFan = Math.max(0, Math.round(Number(patternFan) || 0));
   const cleanFlowers = Math.max(0, Math.round(Number(flowers) || 0));
-  const bonusFan = (winType === "self" ? rules.selfDrawFan : 0) + cleanFlowers * rules.flowerFan;
+  const bonusFan = cleanPatternFan + (winType === "self" ? rules.selfDrawFan : 0) + cleanFlowers * rules.flowerFan;
   let fan = cleanHandFan + bonusFan;
   if (rules.maxFan > 0) fan = Math.min(rules.maxFan, fan);
   if (fan < rules.minimumFan) return { valid: false, fan, bonusFan, reason: `未夠 ${rules.minimumFan} 番起糊` };
@@ -363,13 +404,14 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     });
   }
 
-  return { valid: true, fan, bonusFan, points, net, winner, discarder };
+  return { valid: true, fan, bonusFan, patternFan: cleanPatternFan, points, net, winner, discarder };
 }
 
 function renderMahjongEntry() {
   const winnerValue = elements.mahjongWinner.value;
   const discarderValue = elements.mahjongDiscarder.value;
   const dealerValue = elements.mahjongDealer.value;
+  const selectedPatternIds = new Set($$("input[name='patterns']:checked", elements.mahjongPatternChoices).map((input) => input.value));
   [elements.mahjongWinner, elements.mahjongDiscarder, elements.mahjongDealer].forEach((select) => {
     select.replaceChildren();
     state.participants.forEach((player) => {
@@ -385,6 +427,22 @@ function renderMahjongEntry() {
   if (!elements.mahjongDealer.value && state.participants[0]) elements.mahjongDealer.value = state.participants[0].id;
   if (elements.mahjongWinner.value === elements.mahjongDiscarder.value && state.participants[1]) elements.mahjongDiscarder.value = state.participants[1].id;
   elements.mahjongDiscarderField.hidden = elements.mahjongWinType.value !== "discard";
+  elements.mahjongPatternChoices.replaceChildren();
+  state.mahjong.patterns.filter((pattern) => pattern.enabled).forEach((pattern) => {
+    const label = document.createElement("label");
+    label.className = "mahjong-pattern-choice";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.name = "patterns";
+    input.value = pattern.id;
+    input.checked = selectedPatternIds.has(pattern.id);
+    const text = document.createElement("span");
+    text.textContent = pattern.label;
+    const fan = document.createElement("strong");
+    fan.textContent = `${pattern.fan} 番`;
+    label.append(input, text, fan);
+    elements.mahjongPatternChoices.appendChild(label);
+  });
   $("#mahjongRuleBadge").textContent = `${state.mahjong.minimumFan} 番起糊・${state.mahjong.fanStep} 倍番`;
   updateMahjongPreview();
 }
@@ -392,12 +450,15 @@ function renderMahjongEntry() {
 function updateMahjongPreview() {
   if (!state || state.kind !== "mahjong") return;
   const formData = new FormData(elements.mahjongEntryForm);
+  const patternIds = formData.getAll("patterns");
+  const patternFan = state.mahjong.patterns.filter((pattern) => patternIds.includes(pattern.id)).reduce((sum, pattern) => sum + pattern.fan, 0);
   const result = calculateMahjongHand({
     winnerId: formData.get("winner"),
     winType: formData.get("winType"),
     discarderId: formData.get("discarder"),
     dealerId: formData.get("dealer"),
     handFan: formData.get("handFan"),
+    patternFan,
     flowers: formData.get("flowers"),
   });
   if (!result.valid) {
@@ -409,7 +470,9 @@ function updateMahjongPreview() {
   const winnerLine = `${result.winner.name} +${Math.round(result.net[result.winner.id])}`;
   const payLine = state.participants.filter((player) => player.id !== result.winner.id && result.net[player.id] < 0)
     .map((player) => `${player.name} ${formatPoints(result.net[player.id])}`).join("・");
-  elements.mahjongPreview.textContent = `${result.fan} 番｜底分 ${Math.round(result.points)}｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
+  const patternNames = state.mahjong.patterns.filter((pattern) => patternIds.includes(pattern.id)).map((pattern) => pattern.label);
+  const patternLine = patternNames.length ? `${patternNames.join("＋")}｜` : "";
+  elements.mahjongPreview.textContent = `${patternLine}${result.fan} 番｜底分 ${Math.round(result.points)}｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
 }
 
 function renderMahjongHistory() {
@@ -427,7 +490,8 @@ function renderMahjongHistory() {
     title.innerHTML = `<strong>第 ${round.number} 局</strong><span>${round.winType === "self" ? "自摸" : "出銃"}・${round.fan} 番・${Math.round(round.points)} 分</span>`;
     const detail = document.createElement("p");
     const netLine = (round.net || []).map((entry) => `${entry.name} ${formatPoints(entry.amount)}`).join("　");
-    detail.textContent = `${round.winnerName}${round.note ? `｜${round.note}` : ""}　${netLine}`;
+    const patternLine = round.patternNames?.length ? `｜${round.patternNames.join("＋")}` : "";
+    detail.textContent = `${round.winnerName}${patternLine}${round.note ? `｜${round.note}` : ""}　${netLine}`;
     item.append(title, detail);
     list.appendChild(item);
   });
@@ -443,6 +507,7 @@ function recordMahjongHand(event) {
     discarderId: formData.get("discarder"),
     dealerId: formData.get("dealer"),
     handFan: formData.get("handFan"),
+    patternFan: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).reduce((sum, pattern) => sum + pattern.fan, 0),
     flowers: formData.get("flowers"),
   };
   const result = calculateMahjongHand(payload);
@@ -460,6 +525,7 @@ function recordMahjongHand(event) {
     winType: payload.winType,
     fan: result.fan,
     points: result.points,
+    patternNames: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).map((pattern) => pattern.label),
     note: String(formData.get("note") || "").trim().slice(0, 40),
     net: state.participants.map((player) => ({ id: player.id, name: player.name, amount: Math.round(result.net[player.id] || 0) })),
     createdAt: new Date().toISOString(),
@@ -701,6 +767,7 @@ function openSettings() {
   Object.entries(ruleFields).forEach(([name, value]) => { $(`[name="${name}"]`, $("#settingsForm")).value = value; });
   $("[name='mahjongRonPaymentMode']", $("#settingsForm")).value = rules.ronPaymentMode;
   renderParticipantEditor();
+  renderMahjongPatternEditor();
   updateSettingsModeFields();
   openModal("settingsModal");
 }
@@ -711,6 +778,45 @@ function updateSettingsModeFields() {
   $("#winnerRuleFields").hidden = special;
   $("#mahjongSettingsFields").hidden = state?.kind !== "mahjong";
   $("#addParticipantButton").hidden = state?.kind === "mahjong";
+}
+
+function renderMahjongPatternEditor() {
+  const editor = elements.mahjongPatternEditor;
+  if (!editor) return;
+  editor.replaceChildren();
+  (state?.mahjong?.patterns || []).forEach((pattern) => {
+    const row = document.createElement("div");
+    row.className = "mahjong-pattern-setting-row";
+    row.dataset.id = pattern.id;
+    const enabledLabel = document.createElement("label");
+    enabledLabel.className = "checkbox-line pattern-enabled";
+    const enabled = document.createElement("input");
+    enabled.type = "checkbox";
+    enabled.name = `patternEnabled-${pattern.id}`;
+    enabled.checked = pattern.enabled;
+    enabled.setAttribute("aria-label", `啟用${pattern.label}`);
+    enabledLabel.append(enabled);
+    const labelInput = document.createElement("input");
+    labelInput.className = "text-input pattern-label-input";
+    labelInput.type = "text";
+    labelInput.name = `patternLabel-${pattern.id}`;
+    labelInput.maxLength = 24;
+    labelInput.value = pattern.label;
+    labelInput.setAttribute("aria-label", `${pattern.label}名稱`);
+    const fanInput = document.createElement("input");
+    fanInput.className = "text-input pattern-fan-input";
+    fanInput.type = "number";
+    fanInput.name = `patternFan-${pattern.id}`;
+    fanInput.min = "0";
+    fanInput.max = "99";
+    fanInput.inputMode = "numeric";
+    fanInput.value = pattern.fan;
+    fanInput.setAttribute("aria-label", `${pattern.label}番數`);
+    const fanText = document.createElement("span");
+    fanText.textContent = "番";
+    row.append(enabledLabel, labelInput, fanInput, fanText);
+    editor.appendChild(row);
+  });
 }
 
 function renderParticipantEditor() {
@@ -969,6 +1075,12 @@ $("#settingsForm").addEventListener("submit", (event) => {
       selfDrawMultiplier: form.get("mahjongSelfDrawMultiplier"),
       discardMultiplier: form.get("mahjongDiscardMultiplier"),
       ronPaymentMode: form.get("mahjongRonPaymentMode"),
+      patterns: state.mahjong.patterns.map((pattern) => ({
+        id: pattern.id,
+        label: form.get(`patternLabel-${pattern.id}`),
+        fan: form.get(`patternFan-${pattern.id}`),
+        enabled: form.get(`patternEnabled-${pattern.id}`) === "on",
+      })),
     });
   } else if (state.kind !== "chooser") {
     state.kind = state.participants.length === 2 ? state.kind : "custom";
