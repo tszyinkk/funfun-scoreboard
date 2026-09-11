@@ -95,21 +95,31 @@ function defaultMahjongRules() {
       { id: "dragon-pung", label: "番牌（三元牌）", fan: 1, enabled: true },
       { id: "seat-wind", label: "門風（自己位）", fan: 1, enabled: true },
       { id: "prevailing-wind", label: "圈風（大圈）", fan: 1, enabled: true },
+      { id: "rob-kong", label: "搶槓", fan: 1, enabled: true },
       { id: "one-flower-set", label: "一台花", fan: 2, enabled: true },
       { id: "kong-draw", label: "槓上開花", fan: 2, enabled: true },
       { id: "last-tile", label: "海底撈月", fan: 2, enabled: true },
       { id: "seven-flowers", label: "花糊", fan: 3, enabled: true },
+      { id: "seven-pairs", label: "七對子", fan: 3, enabled: true },
       { id: "all-pungs", label: "對對糊", fan: 3, enabled: true },
       { id: "half-flush", label: "混一色", fan: 3, enabled: true },
-      { id: "terminals-honors", label: "花幺", fan: 4, enabled: true },
+      { id: "human-hand", label: "人糊", fan: 3, enabled: true },
+      { id: "terminals-honors", label: "花么九", fan: 4, enabled: true },
       { id: "small-dragons", label: "小三元", fan: 5, enabled: true },
       { id: "small-winds", label: "小四喜", fan: 6, enabled: true },
       { id: "full-flush", label: "清一色", fan: 7, enabled: true },
-      { id: "all-honors", label: "字一色", fan: 10, enabled: true },
       { id: "big-dragons", label: "大三元", fan: 8, enabled: true },
+      { id: "big-flower", label: "大花糊／八仙過海", fan: 8, enabled: true },
+      { id: "concealed-pungs", label: "坎坎糊（四暗刻）", fan: 8, enabled: true },
+      { id: "kong-on-kong", label: "槓上槓自摸", fan: 8, enabled: true },
+      { id: "mixed-terminals", label: "混么九", fan: 9, enabled: true },
+      { id: "all-honors", label: "字一色", fan: 10, enabled: true },
+      { id: "pure-terminals", label: "清么九", fan: 10, enabled: true },
+      { id: "nine-gates", label: "九子連環／九蓮寶燈", fan: 10, enabled: true },
       { id: "big-winds", label: "大四喜", fan: 13, enabled: true },
       { id: "thirteen-orphans", label: "十三么", fan: 13, enabled: true },
-      { id: "nine-gates", label: "九子連環", fan: 13, enabled: true },
+      { id: "heavenly-hand", label: "天糊", fan: 13, enabled: true },
+      { id: "earthly-hand", label: "地糊", fan: 13, enabled: true },
       { id: "four-kongs", label: "十八羅漢／四槓子", fan: 13, enabled: true },
     ],
   };
@@ -125,10 +135,14 @@ function sanitizeMahjongRules(rules = {}) {
   const suppliedPatterns = Array.isArray(rules.patterns) ? rules.patterns : [];
   const patterns = defaults.patterns.map((defaultPattern) => {
     const supplied = suppliedPatterns.find((pattern) => pattern?.id === defaultPattern.id);
-    const fan = Number(supplied?.fan);
+    const suppliedFan = Number(supplied?.fan);
+    const migratedLegacyNineGates = defaultPattern.id === "nine-gates"
+      && supplied?.label === "九子連環"
+      && suppliedFan === 13;
+    const fan = migratedLegacyNineGates ? defaultPattern.fan : suppliedFan;
     return {
       ...defaultPattern,
-      label: String(supplied?.label || defaultPattern.label).slice(0, 24),
+      label: String(migratedLegacyNineGates ? defaultPattern.label : supplied?.label || defaultPattern.label).slice(0, 24),
       fan: Number.isFinite(fan) ? Math.min(99, Math.max(0, Math.round(fan))) : defaultPattern.fan,
       enabled: supplied?.enabled !== false,
     };
@@ -938,9 +952,15 @@ function renderParticipantEditor() {
 
 function updateSetupFromPreset() {
   const preset = $("input[name='preset']:checked", $("#setupForm")).value;
+  const isMahjong = preset === "mahjong";
+  $("#setupTitle").textContent = isMahjong ? "香港麻雀開局設定" : "今次點樣計？";
+  $("#setupDescription").textContent = isMahjong
+    ? "先揀大圈及封頂番數，之後可以再喺設定修改牌型番數。"
+    : "揀一個玩法開始，之後隨時可以改名或加減人數。";
+  $("#setupSubmitText").textContent = isMahjong ? "建立麻雀計分板" : "建立計分板";
   $("#participantCountRow").hidden = !["custom", "chooser"].includes(preset);
-  $("#setupMahjongWindRow").hidden = preset !== "mahjong";
-  $("#setupMahjongLimitRow").hidden = preset !== "mahjong";
+  $("#setupMahjongWindRow").hidden = !isMahjong;
+  $("#setupMahjongLimitRow").hidden = !isMahjong;
   const nameInput = $("#setupName");
   if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
   if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚開枱";

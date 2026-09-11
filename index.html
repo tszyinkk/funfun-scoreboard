@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=12" />
+    <link rel="stylesheet" href="style.css?v=14" />
   </head>
   <body>
     <div class="app-shell">
@@ -226,7 +226,7 @@
         <div class="modal-header">
           <p class="eyebrow">NEW SCOREBOARD</p>
           <h2 id="setupTitle">今次點樣計？</h2>
-          <p>揀一個玩法開始，之後隨時可以改名或加減人數。</p>
+          <p id="setupDescription">揀一個玩法開始，之後隨時可以改名或加減人數。</p>
         </div>
 
         <form id="setupForm">
@@ -302,7 +302,7 @@
             </div>
           </div>
 
-          <button class="primary-button wide" type="submit">建立計分板 <span>→</span></button>
+          <button class="primary-button wide" type="submit"><span id="setupSubmitText">建立計分板</span> <span>→</span></button>
         </form>
       </div>
     </div>
@@ -390,7 +390,7 @@
               <p class="field-label">牌型番種及分值</p>
               <div class="mahjong-pattern-editor" id="mahjongPatternEditor"></div>
             </div>
-            <p class="settings-help">預設採用常見香港牌做法：3 番起糊、每番乘 2、自摸另加 1 番；實際賠法以你設定為準。</p>
+            <p class="settings-help">預設採用常見清章做法：3 番起糊、每番乘 2、自摸另加 1 番；海底、槓上自摸、花糊等各枱可能不同，全部可自行改。</p>
           </fieldset>
 
           <fieldset id="winnerRuleFields">
@@ -449,6 +449,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=12" defer></script>
+    <script src="app.js?v=14" defer></script>
   </body>
 </html>
