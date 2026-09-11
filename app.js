@@ -460,14 +460,15 @@ function formatPoints(value) {
   return `${rounded > 0 ? "+" : ""}${rounded}`;
 }
 
-function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, patternFan = 0, patternIncludesSelfDraw = false, flowers }) {
+function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, patternFan = 0, patternIncludesSelfDraw = false, flowers, fanAdjustment = 0 }) {
   const rules = state.mahjong;
   const cleanHandFan = Math.max(0, Math.round(Number(handFan) || 0));
   const cleanPatternFan = Math.max(0, Math.round(Number(patternFan) || 0));
   const cleanFlowers = Math.max(0, Math.round(Number(flowers) || 0));
+  const cleanFanAdjustment = Math.round(Number(fanAdjustment) || 0);
   const selfDrawBonus = winType === "self" && !patternIncludesSelfDraw ? rules.selfDrawFan : 0;
   const bonusFan = cleanPatternFan + selfDrawBonus + cleanFlowers * rules.flowerFan;
-  let fan = cleanHandFan + bonusFan;
+  let fan = Math.max(0, cleanHandFan + bonusFan + cleanFanAdjustment);
   if (rules.maxFan > 0) fan = Math.min(rules.maxFan, fan);
   if (fan < rules.minimumFan) return { valid: false, fan, bonusFan, reason: `未夠 ${rules.minimumFan} 番起糊` };
 
@@ -609,6 +610,7 @@ function recordMahjongHand(event) {
     patternFan: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).reduce((sum, pattern) => sum + pattern.fan, 0),
     patternIncludesSelfDraw: state.mahjong.patterns.some((pattern) => formData.getAll("patterns").includes(pattern.id) && pattern.selfDrawIncluded),
     flowers: formData.get("flowers"),
+    fanAdjustment: 0,
   };
   const result = calculateMahjongHand(payload);
   if (!result.valid) return showToast(result.reason || "請檢查番數設定");
@@ -628,11 +630,47 @@ function recordMahjongHand(event) {
     patternNames: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).map((pattern) => pattern.label),
     note: String(formData.get("note") || "").trim().slice(0, 40),
     net: state.participants.map((player) => ({ id: player.id, name: player.name, amount: Math.round(result.net[player.id] || 0) })),
+    mahjong: { ...payload },
     createdAt: new Date().toISOString(),
   });
   state.round += 1;
   render();
   showToast(`第 ${state.round - 1} 局已記錄：${result.fan} 番`);
+}
+
+function adjustMahjongFan(delta) {
+  if (!state || state.kind !== "mahjong") return;
+  const latest = state.history[state.history.length - 1];
+  if (!latest?.mahjong) {
+    const input = $("#mahjongHandFan");
+    const currentFan = Math.max(0, Math.round(Number(input.value) || 0));
+    const nextFan = Math.max(0, currentFan + delta);
+    if (nextFan === currentFan) return showToast("手動加番已經係 0");
+    input.value = nextFan;
+    updateMahjongPreview();
+    return showToast(`手動加番：${nextFan} 番`);
+  }
+
+  const currentAdjustment = Math.round(Number(latest.mahjong.fanAdjustment) || 0);
+  const nextAdjustment = currentAdjustment + delta;
+  const result = calculateMahjongHand({ ...latest.mahjong, fanAdjustment: nextAdjustment });
+  if (!result.valid) return showToast(result.reason || "呢局不能再減番");
+
+  snapshot();
+  const oldNet = Object.fromEntries((latest.net || []).map((entry) => [entry.id, Number(entry.amount) || 0]));
+  state.participants.forEach((player) => {
+    const previousTotal = player.total - (oldNet[player.id] || 0);
+    const nextAmount = Math.round(result.net[player.id] || 0);
+    player.score = nextAmount;
+    player.total = previousTotal + nextAmount;
+  });
+  latest.fan = result.fan;
+  latest.points = result.points;
+  latest.scores = state.participants.map((player) => ({ id: player.id, name: player.name, score: player.score }));
+  latest.net = state.participants.map((player) => ({ id: player.id, name: player.name, amount: Math.round(result.net[player.id] || 0) }));
+  latest.mahjong.fanAdjustment = nextAdjustment;
+  render();
+  showToast(`上一局已修正為 ${result.fan} 番`);
 }
 
 function chooserAssignedIds() {
@@ -1015,7 +1053,10 @@ elements.scoreGrid.addEventListener("click", (event) => {
     }
     changeScore(id, 1);
   }
-  if (event.target.closest(".minus-button")) changeScore(id, -1);
+  if (event.target.closest(".minus-button")) {
+    if (state.kind === "mahjong") adjustMahjongFan(-1);
+    else changeScore(id, -1);
+  }
   if (event.target.closest(".total-plus")) changeScore(id, 1, true);
   if (event.target.closest(".total-minus")) changeScore(id, -1, true);
   if (event.target.closest(".player-name")) {
