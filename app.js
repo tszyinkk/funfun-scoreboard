@@ -73,6 +73,7 @@ function participant(name, index) {
 
 function defaultMahjongRules() {
   return {
+    prevailingWind: "east",
     minimumFan: 3,
     basePoints: 1,
     fanStep: 2,
@@ -92,7 +93,8 @@ function defaultMahjongRules() {
       { id: "proper-flower", label: "正花", fan: 1, enabled: true },
       { id: "concealed", label: "門前清", fan: 1, enabled: true },
       { id: "dragon-pung", label: "番牌（三元牌）", fan: 1, enabled: true },
-      { id: "wind-pung", label: "風牌", fan: 1, enabled: true },
+      { id: "seat-wind", label: "門風（自己位）", fan: 1, enabled: true },
+      { id: "prevailing-wind", label: "圈風（大圈）", fan: 1, enabled: true },
       { id: "one-flower-set", label: "一台花", fan: 2, enabled: true },
       { id: "kong-draw", label: "槓上開花", fan: 2, enabled: true },
       { id: "last-tile", label: "海底撈月", fan: 2, enabled: true },
@@ -132,6 +134,7 @@ function sanitizeMahjongRules(rules = {}) {
     };
   });
   return {
+    prevailingWind: ["east", "south", "west", "north"].includes(rules.prevailingWind) ? rules.prevailingWind : defaults.prevailingWind,
     minimumFan: Math.round(number("minimumFan", 0, 99)),
     basePoints: number("basePoints", 0, 999999),
     fanStep: number("fanStep", 1, 10),
@@ -337,7 +340,9 @@ function renderScoreCards() {
     $(".total-score strong", card).textContent = player.total;
     $(".score-display", card).setAttribute("aria-label", `${player.name} ${state.kind === "mahjong" ? "本局淨分" : "現時"} ${player.score} 分，按一下加一分`);
     $(".score-tap-hint", card).textContent = state.kind === "mahjong" ? "可手動微調" : "按一下 ＋1";
-    $(".minus-button", card).setAttribute("aria-label", `${player.name} 減一分`);
+    const minusButton = $(".minus-button", card);
+    minusButton.textContent = state.kind === "mahjong" ? "按錯？減 1 番" : "按錯？減 1 分";
+    minusButton.setAttribute("aria-label", state.kind === "mahjong" ? `${player.name} 減一番` : `${player.name} 減一分`);
     $(".total-plus", card).setAttribute("aria-label", `${player.name} 總分加一`);
     $(".total-minus", card).setAttribute("aria-label", `${player.name} 總分減一`);
     elements.scoreGrid.appendChild(fragment);
@@ -518,7 +523,9 @@ function renderMahjongEntry() {
     label.append(input, text, fan);
     elements.mahjongPatternChoices.appendChild(label);
   });
-  $("#mahjongRuleBadge").textContent = `${state.mahjong.minimumFan} 番起糊・${state.mahjong.fanStep} 倍番`;
+  const windLabels = { east: "東圈", south: "南圈", west: "西圈", north: "北圈" };
+  const limitLabel = state.mahjong.maxFan > 0 ? `${state.mahjong.maxFan} 番封頂` : "不限番";
+  $("#mahjongRuleBadge").textContent = `${windLabels[state.mahjong.prevailingWind] || "東圈"}・${state.mahjong.minimumFan} 番起糊・${limitLabel}・${state.mahjong.fanStep} 倍番`;
   updateMahjongPreview();
 }
 
@@ -827,6 +834,7 @@ function openSettings() {
   settingsParticipantsDraft = state.participants.map((player) => ({ ...player }));
   const rules = state.mahjong || defaultMahjongRules();
   const ruleFields = {
+    mahjongPrevailingWind: rules.prevailingWind,
     mahjongMinFan: rules.minimumFan,
     mahjongBasePoints: rules.basePoints,
     mahjongFanStep: rules.fanStep,
@@ -931,6 +939,8 @@ function renderParticipantEditor() {
 function updateSetupFromPreset() {
   const preset = $("input[name='preset']:checked", $("#setupForm")).value;
   $("#participantCountRow").hidden = !["custom", "chooser"].includes(preset);
+  $("#setupMahjongWindRow").hidden = preset !== "mahjong";
+  $("#setupMahjongLimitRow").hidden = preset !== "mahjong";
   const nameInput = $("#setupName");
   if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
   if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚開枱";
@@ -1055,6 +1065,11 @@ $("#setupForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   state = freshState(form.get("preset"), form.get("title"), customCount);
+  if (state.kind === "mahjong") {
+    state.mahjong.prevailingWind = ["east", "south", "west", "north"].includes(form.get("mahjongWind")) ? form.get("mahjongWind") : "east";
+    const maxFan = Number(form.get("mahjongMaxFan"));
+    state.mahjong.maxFan = [0, 8, 10, 13].includes(maxFan) ? maxFan : 13;
+  }
   undoStack = [];
   closeModal("setupModal");
   elements.setupCloseButton.hidden = false;
@@ -1149,6 +1164,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
   state.participants = settingsParticipantsDraft.map((player) => ({ ...player }));
   if (state.kind === "mahjong") {
     state.mahjong = sanitizeMahjongRules({
+      prevailingWind: form.get("mahjongPrevailingWind"),
       minimumFan: form.get("mahjongMinFan"),
       basePoints: form.get("mahjongBasePoints"),
       fanStep: form.get("mahjongFanStep"),

@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=9" />
+    <link rel="stylesheet" href="style.css?v=12" />
   </head>
   <body>
     <div class="app-shell">
@@ -271,6 +271,28 @@
             <input class="text-input" id="setupName" name="title" type="text" maxlength="30" value="今晚開波" placeholder="例如：星期五排球" />
           </div>
 
+          <div class="form-row" id="setupMahjongWindRow" hidden>
+            <label class="field-label" for="setupMahjongWind">大圈／圈風</label>
+            <select class="text-input" id="setupMahjongWind" name="mahjongWind">
+              <option value="east">東圈</option>
+              <option value="south">南圈</option>
+              <option value="west">西圈</option>
+              <option value="north">北圈</option>
+            </select>
+            <p class="settings-help">會用作計算「圈風」番；今次開枱前先揀好。</p>
+          </div>
+
+          <div class="form-row" id="setupMahjongLimitRow" hidden>
+            <label class="field-label" for="setupMahjongLimit">打幾大／封頂番數</label>
+            <select class="text-input" id="setupMahjongLimit" name="mahjongMaxFan">
+              <option value="8">8 番（八番例牌）</option>
+              <option value="10">10 番（十番例牌）</option>
+              <option value="13" selected>13 番（十三番例牌）</option>
+              <option value="0">不限（例牌照實際番數）</option>
+            </select>
+            <p class="settings-help">清章常見 8／10 番；網上玩法亦常用 13 番。</p>
+          </div>
+
           <div class="form-row participant-count-row" id="participantCountRow" hidden>
             <span class="field-label">人數／隊數</span>
             <div class="stepper" aria-label="選擇人數">
@@ -327,6 +349,14 @@
               </label>
               <label class="field-label">封頂番數（0＝不限）
                 <input class="text-input" name="mahjongMaxFan" type="number" min="0" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label">大圈／圈風
+                <select class="text-input" name="mahjongPrevailingWind">
+                  <option value="east">東圈</option>
+                  <option value="south">南圈</option>
+                  <option value="west">西圈</option>
+                  <option value="north">北圈</option>
+                </select>
               </label>
               <label class="field-label">封頂分數（0＝不限）
                 <input class="text-input" name="mahjongMaxPoints" type="number" min="0" max="999999" inputmode="numeric" />
@@ -419,6 +449,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=9" defer></script>
+    <script src="app.js?v=12" defer></script>
   </body>
 </html>
