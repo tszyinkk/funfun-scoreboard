@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=20" />
+    <link rel="stylesheet" href="style.css?v=21" />
   </head>
   <body>
     <div class="app-shell">
@@ -293,6 +293,59 @@
             <p class="settings-help">清章常見 8／10 番；網上玩法亦常用 13 番。</p>
           </div>
 
+          <fieldset id="setupMahjongRules" hidden>
+            <legend>今局香港牌規則（開局前設定）</legend>
+            <div class="settings-grid">
+              <label class="field-label">最低起糊番數
+                <input class="text-input" name="mahjongMinFan" type="number" min="0" max="99" value="3" inputmode="numeric" />
+              </label>
+              <label class="field-label">基本分（1番）
+                <input class="text-input" name="mahjongBasePoints" type="number" min="0" max="999999" value="1" inputmode="numeric" />
+              </label>
+              <label class="field-label">倍增倍率（倍增模式）
+                <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" value="2" inputmode="decimal" />
+              </label>
+              <label class="field-label">番數轉分方式
+                <select class="text-input" name="mahjongScoringMode">
+                  <option value="doubling" selected>倍增：底分 × 倍率^(番數−1)</option>
+                  <option value="linear">線性：底分 × 番數</option>
+                </select>
+              </label>
+              <label class="field-label">封頂分數（0＝不限）
+                <input class="text-input" name="mahjongMaxPoints" type="number" min="0" max="999999" value="0" inputmode="numeric" />
+              </label>
+              <label class="field-label">自摸加番
+                <input class="text-input" name="mahjongSelfDrawFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
+              </label>
+              <label class="field-label">每隻花牌加番
+                <input class="text-input" name="mahjongFlowerFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
+              </label>
+              <label class="field-label">莊家勝出倍數
+                <input class="text-input" name="mahjongDealerWinMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+              </label>
+              <label class="field-label">莊家輸款倍數
+                <input class="text-input" name="mahjongDealerLoseMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+              </label>
+              <label class="field-label">自摸每家倍數
+                <input class="text-input" name="mahjongSelfDrawMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+              </label>
+              <label class="field-label">出銃者倍數
+                <input class="text-input" name="mahjongDiscardMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+              </label>
+              <label class="field-label">出銃時其他人付款
+                <select class="text-input" name="mahjongRonPaymentMode">
+                  <option value="discarder" selected>只由出銃者付款</option>
+                  <option value="all">三家都付款</option>
+                </select>
+              </label>
+            </div>
+            <div class="mahjong-pattern-settings">
+              <p class="field-label">牌型番種及分值</p>
+              <div class="mahjong-pattern-editor" id="setupMahjongPatternEditor"></div>
+            </div>
+            <p class="settings-help">所有牌型番數、最低起糊、封頂、倍數及付款方式都可以按今局玩法設定。</p>
+          </fieldset>
+
           <div class="form-row participant-count-row" id="participantCountRow" hidden>
             <span class="field-label">人數／隊數</span>
             <div class="stepper" aria-label="選擇人數">
@@ -455,6 +508,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=20" defer></script>
+    <script src="app.js?v=21" defer></script>
   </body>
 </html>

@@ -60,6 +60,7 @@ const elements = {
   mahjongDiscarderField: $("#mahjongDiscarderField"),
   mahjongPatternChoices: $("#mahjongPatternChoices"),
   mahjongPatternEditor: $("#mahjongPatternEditor"),
+  setupMahjongPatternEditor: $("#setupMahjongPatternEditor"),
   mahjongPreview: $("#mahjongPreview"),
 };
 
@@ -85,7 +86,7 @@ function defaultMahjongRules() {
     dealerWinMultiplier: 1,
     dealerLoseMultiplier: 1,
     selfDrawMultiplier: 1,
-    discardMultiplier: 2,
+    discardMultiplier: 1,
     ronPaymentMode: "discarder",
     patterns: [
       { id: "chicken", label: "雞糊", fan: 0, enabled: true },
@@ -279,6 +280,7 @@ function showScoreboard() {
 
 function resetSetupForm(preset = "sports") {
   $("#setupForm").reset();
+  renderMahjongPatternEditor(elements.setupMahjongPatternEditor, defaultMahjongRules().patterns);
   $("#setupName").value = preset === "chooser" ? "首家抽籤" : ["mahjong", "cards"].includes(preset) ? "今晚開枱" : preset === "custom" ? "自訂比賽" : "今晚開波";
   customCount = preset === "chooser" ? 4 : 3;
   $("#countOutput").textContent = customCount;
@@ -934,11 +936,10 @@ function updateSettingsModeFields() {
   $("#addParticipantButton").hidden = state?.kind === "mahjong";
 }
 
-function renderMahjongPatternEditor() {
-  const editor = elements.mahjongPatternEditor;
+function renderMahjongPatternEditor(editor = elements.mahjongPatternEditor, patterns = state?.mahjong?.patterns || []) {
   if (!editor) return;
   editor.replaceChildren();
-  (state?.mahjong?.patterns || []).forEach((pattern) => {
+  patterns.forEach((pattern) => {
     const row = document.createElement("div");
     row.className = "mahjong-pattern-setting-row";
     row.dataset.id = pattern.id;
@@ -1012,12 +1013,13 @@ function updateSetupFromPreset() {
   const isMahjong = preset === "mahjong";
   $("#setupTitle").textContent = isMahjong ? "香港麻雀開局設定" : "今次點樣計？";
   $("#setupDescription").textContent = isMahjong
-    ? "先揀大圈及封頂番數，之後可以再喺設定修改牌型番數。"
+    ? "開局前一次設定今局所有番數、封頂及付款方式，之後可以再喺設定修改。"
     : "揀一個玩法開始，之後隨時可以改名或加減人數。";
   $("#setupSubmitText").textContent = isMahjong ? "建立麻雀計分板" : "建立計分板";
   $("#participantCountRow").hidden = !["custom", "chooser"].includes(preset);
   $("#setupMahjongWindRow").hidden = !isMahjong;
   $("#setupMahjongLimitRow").hidden = !isMahjong;
+  $("#setupMahjongRules").hidden = !isMahjong;
   const nameInput = $("#setupName");
   if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
   if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚開枱";
@@ -1146,9 +1148,29 @@ $("#setupForm").addEventListener("submit", (event) => {
   const form = new FormData(event.currentTarget);
   state = freshState(form.get("preset"), form.get("title"), customCount);
   if (state.kind === "mahjong") {
-    state.mahjong.prevailingWind = ["east", "south", "west", "north"].includes(form.get("mahjongWind")) ? form.get("mahjongWind") : "east";
-    const maxFan = Number(form.get("mahjongMaxFan"));
-    state.mahjong.maxFan = [0, 8, 10, 13].includes(maxFan) ? maxFan : 13;
+    const defaultRules = defaultMahjongRules();
+    state.mahjong = sanitizeMahjongRules({
+      prevailingWind: form.get("mahjongWind"),
+      minimumFan: form.get("mahjongMinFan"),
+      basePoints: form.get("mahjongBasePoints"),
+      fanStep: form.get("mahjongFanStep"),
+      scoringMode: form.get("mahjongScoringMode"),
+      maxFan: form.get("mahjongMaxFan"),
+      maxPoints: form.get("mahjongMaxPoints"),
+      selfDrawFan: form.get("mahjongSelfDrawFan"),
+      flowerFan: form.get("mahjongFlowerFan"),
+      dealerWinMultiplier: form.get("mahjongDealerWinMultiplier"),
+      dealerLoseMultiplier: form.get("mahjongDealerLoseMultiplier"),
+      selfDrawMultiplier: form.get("mahjongSelfDrawMultiplier"),
+      discardMultiplier: form.get("mahjongDiscardMultiplier"),
+      ronPaymentMode: form.get("mahjongRonPaymentMode"),
+      patterns: defaultRules.patterns.map((pattern) => ({
+        id: pattern.id,
+        label: form.get(`patternLabel-${pattern.id}`),
+        fan: form.get(`patternFan-${pattern.id}`),
+        enabled: form.get(`patternEnabled-${pattern.id}`) === "on",
+      })),
+    });
   }
   undoStack = [];
   closeModal("setupModal");
