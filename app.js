@@ -472,8 +472,8 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
   const cleanFanAdjustment = Math.round(Number(fanAdjustment) || 0);
   const selfDrawBonus = winType === "self" && !patternIncludesSelfDraw ? rules.selfDrawFan : 0;
   const bonusFan = cleanPatternFan + selfDrawBonus + cleanFlowers * rules.flowerFan;
-  let fan = Math.max(0, cleanHandFan + bonusFan + cleanFanAdjustment);
-  if (rules.maxFan > 0) fan = Math.min(rules.maxFan, fan);
+  const rawFan = Math.max(0, cleanHandFan + bonusFan + cleanFanAdjustment);
+  const fan = rules.maxFan > 0 ? Math.min(rules.maxFan, rawFan) : rawFan;
   if (fan < rules.minimumFan) return { valid: false, fan, bonusFan, reason: `未夠 ${rules.minimumFan} 番起糊` };
 
   const points = rules.scoringMode === "linear"
@@ -507,7 +507,7 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     });
   }
 
-  return { valid: true, fan, bonusFan, patternFan: cleanPatternFan, points: cappedPoints, net, winner, discarder };
+  return { valid: true, fan, rawFan, cappedByLimit: fan < rawFan, bonusFan, patternFan: cleanPatternFan, points: cappedPoints, net, winner, discarder };
 }
 
 function renderMahjongEntry() {
@@ -542,7 +542,8 @@ function renderMahjongEntry() {
     const text = document.createElement("span");
     text.textContent = pattern.label;
     const fan = document.createElement("strong");
-    fan.textContent = `${pattern.fan} 番`;
+    const isCappedPattern = state.mahjong.maxFan > 0 && pattern.fan > state.mahjong.maxFan;
+    fan.textContent = isCappedPattern ? `${pattern.fan}→${state.mahjong.maxFan} 番` : `${pattern.fan} 番`;
     label.append(input, text, fan);
     elements.mahjongPatternChoices.appendChild(label);
   });
@@ -585,10 +586,11 @@ function updateMahjongPreview() {
     breakdown.push(`自摸${state.mahjong.selfDrawFan}番`);
   }
   const breakdownLine = breakdown.length ? `${breakdown.join("＋")}｜` : "";
+  const limitLine = result.cappedByLimit ? `（原計 ${result.rawFan} 番，封頂 ${result.fan} 番）` : "";
   const scoringLabel = state.mahjong.scoringMode === "linear"
     ? `底分 ${Math.round(result.points)}（${Math.round(state.mahjong.basePoints)}×${result.fan}）`
     : `底分 ${Math.round(result.points)}（${Math.round(state.mahjong.basePoints)}×${state.mahjong.fanStep}^(番−1)）`;
-  elements.mahjongPreview.textContent = `${breakdownLine}合共 ${result.fan} 番｜${scoringLabel}｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
+  elements.mahjongPreview.textContent = `${breakdownLine}合共 ${result.fan} 番${limitLine}｜${scoringLabel}｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
 }
 
 function renderMahjongHistory() {
