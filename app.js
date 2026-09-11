@@ -14,12 +14,20 @@ let timerTicker = null;
 let lockedScrollPosition = 0;
 let activeScoreGesture = null;
 let suppressScoreClick = false;
+let isHomeVisible = false;
 let chooserTouches = new Map();
 let chooserCountdownTimer = null;
 let chooserCountdown = 0;
 
 const elements = {
   scoreGrid: $("#scoreGrid"),
+  homeView: $("#homeView"),
+  homeCurrent: $("#homeCurrent"),
+  homeCurrentTitle: $("#homeCurrentTitle"),
+  homeCurrentMeta: $("#homeCurrentMeta"),
+  homeButton: $("#homeButton"),
+  homeNewButton: $("#homeNewButton"),
+  homeContinueButton: $("#homeContinueButton"),
   matchTitle: $("#matchTitle"),
   roundLabel: $("#roundLabel"),
   playerCountLabel: $("#playerCountLabel"),
@@ -33,6 +41,7 @@ const elements = {
   historyContent: $("#historyContent"),
   undoButton: $("#undoButton"),
   setupModal: $("#setupModal"),
+  setupCloseButton: $("#setupCloseButton"),
   settingsModal: $("#settingsModal"),
   confirmModal: $("#confirmModal"),
   toast: $("#toast"),
@@ -218,6 +227,68 @@ function clearStoredState() {
   }
 }
 
+function updateHome() {
+  if (!elements.homeCurrent) return;
+  elements.homeCurrent.hidden = !state;
+  if (!state) return;
+  elements.homeCurrentTitle.textContent = state.title;
+  const modeText = state.kind === "mahjong" ? "香港麻雀" : state.kind === "chooser" ? "首家抽籤" : "普通計分";
+  elements.homeCurrentMeta.textContent = `${modeText}・${state.participants.length} 人／隊・第 ${state.round} 局`;
+}
+
+function setHomeVisible(visible) {
+  isHomeVisible = visible;
+  elements.homeView.hidden = !visible;
+  $("main").hidden = visible;
+  $("footer").hidden = visible;
+  elements.homeButton.hidden = visible || !state;
+  elements.undoButton.hidden = visible;
+  $("#settingsButton").hidden = visible;
+  updateHome();
+}
+
+function showHome() {
+  if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
+  if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
+  setHomeVisible(true);
+}
+
+function showScoreboard() {
+  setHomeVisible(false);
+  render();
+}
+
+function resetSetupForm(preset = "sports") {
+  $("#setupForm").reset();
+  $("#setupName").value = preset === "chooser" ? "首家抽籤" : ["mahjong", "cards"].includes(preset) ? "今晚開枱" : preset === "custom" ? "自訂比賽" : "今晚開波";
+  customCount = preset === "chooser" ? 4 : 3;
+  $("#countOutput").textContent = customCount;
+  const presetInput = $(`input[name="preset"][value="${preset}"]`, $("#setupForm"));
+  if (presetInput) presetInput.checked = true;
+  updateSetupFromPreset();
+}
+
+function beginNewActivity(preset = "sports") {
+  const openSetup = () => {
+    clearStoredState();
+    undoStack = [];
+    state = null;
+    resetSetupForm(preset);
+    elements.setupCloseButton.hidden = true;
+    setHomeVisible(true);
+    openModal("setupModal");
+  };
+  if (state) {
+    openConfirm({
+      title: "開新活動？",
+      message: "目前活動的分數及紀錄會清除，確定要開始另一個玩法嗎？",
+      acceptText: "開新活動",
+      icon: "＋",
+      action: openSetup,
+    });
+  } else openSetup();
+}
+
 function snapshot() {
   undoStack.push(JSON.stringify(state));
   if (undoStack.length > 50) undoStack.shift();
@@ -225,7 +296,10 @@ function snapshot() {
 }
 
 function render() {
-  if (!state) return;
+  if (!state) {
+    updateHome();
+    return;
+  }
   elements.matchTitle.textContent = state.title;
   elements.roundLabel.textContent = `第 ${state.round} 局`;
   elements.playerCountLabel.textContent = state.kind === "chooser" ? `${state.participants.length} 位玩家` : `${state.participants.length} 個計分格`;
@@ -244,6 +318,7 @@ function render() {
   if (state.kind === "chooser") renderChooser();
   elements.undoButton.disabled = undoStack.length === 0;
   saveState();
+  updateHome();
 }
 
 function renderScoreCards() {
@@ -982,12 +1057,23 @@ $("#setupForm").addEventListener("submit", (event) => {
   state = freshState(form.get("preset"), form.get("title"), customCount);
   undoStack = [];
   closeModal("setupModal");
-  $("#setupCloseButton").hidden = false;
-  render();
+  elements.setupCloseButton.hidden = false;
+  showScoreboard();
   showToast("計分板準備好喇");
 });
 
 $("#settingsButton").addEventListener("click", openSettings);
+elements.homeButton.addEventListener("click", showHome);
+elements.homeNewButton.addEventListener("click", () => beginNewActivity("sports"));
+elements.homeContinueButton.addEventListener("click", showScoreboard);
+$("#homeModeGrid").addEventListener("click", (event) => {
+  const card = event.target.closest("[data-home-preset]");
+  if (card) beginNewActivity(card.dataset.homePreset);
+});
+$("#brandHome").addEventListener("click", (event) => {
+  event.preventDefault();
+  showHome();
+});
 $("#finishRoundButton").addEventListener("click", finishRound);
 elements.timerToggleButton.addEventListener("click", toggleTimer);
 $("#timerResetButton").addEventListener("click", resetTimer);
@@ -1092,24 +1178,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
 
 $("#newScoreboardButton").addEventListener("click", () => {
   closeModal("settingsModal");
-  openConfirm({
-    title: "開全新計分板？",
-    message: "目前所有分數及紀錄會被清除，這個動作無法撤銷。",
-    acceptText: "重新開始",
-    icon: "＋",
-    action: () => {
-      clearStoredState();
-      undoStack = [];
-      state = null;
-      $("#setupForm").reset();
-      $("#setupName").value = "今晚開波";
-      customCount = 3;
-      $("#countOutput").textContent = customCount;
-      updateSetupFromPreset();
-      $("#setupCloseButton").hidden = true;
-      openModal("setupModal");
-    },
-  });
+  beginNewActivity("sports");
 });
 
 $("#confirmCancel").addEventListener("click", () => {
@@ -1160,14 +1229,12 @@ state = loadState();
 if (state) {
   elements.setupModal.classList.remove("is-open");
   elements.setupModal.setAttribute("aria-hidden", "true");
-  $("#setupCloseButton").hidden = false;
-  render();
+  elements.setupCloseButton.hidden = false;
+  showScoreboard();
 } else {
-  $("#setupCloseButton").hidden = true;
-  lockPageScroll();
-  state = freshState("sports", "今晚開波");
-  render();
-  clearStoredState();
+  elements.setupCloseButton.hidden = true;
+  resetSetupForm("sports");
+  setHomeVisible(true);
 }
 
 timerTicker = window.setInterval(() => {

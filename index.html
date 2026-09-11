@@ -12,12 +12,12 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=8" />
+    <link rel="stylesheet" href="style.css?v=9" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#" aria-label="分分計首頁">
+        <a class="brand" id="brandHome" href="#" aria-label="分分計首頁">
           <span class="brand-mark" aria-hidden="true">
             <span></span><span></span><span></span>
           </span>
@@ -28,6 +28,7 @@
         </a>
 
         <div class="top-actions">
+          <button class="home-button" id="homeButton" type="button" aria-label="返回主頁">主頁</button>
           <span class="connection-badge" id="connectionBadge" role="status">
             <span></span><span id="connectionLabel">離線可用</span>
           </span>
@@ -39,6 +40,54 @@
           </button>
         </div>
       </header>
+
+      <section class="home-view" id="homeView" hidden aria-labelledby="homeTitle">
+        <div class="home-hero">
+          <div>
+            <p class="eyebrow">SCORE ANYTHING</p>
+            <h1 id="homeTitle">今晚玩咩？</h1>
+            <p>揀一個玩法，開枱即用。唔使註冊，無網絡都照計。</p>
+          </div>
+          <button class="primary-button home-new-button" id="homeNewButton" type="button">＋ 新活動</button>
+        </div>
+
+        <div class="home-current" id="homeCurrent" hidden>
+          <div>
+            <span class="home-current-label">上次活動</span>
+            <strong id="homeCurrentTitle"></strong>
+            <small id="homeCurrentMeta"></small>
+          </div>
+          <button class="secondary-button" id="homeContinueButton" type="button">繼續計分</button>
+        </div>
+
+        <div class="home-section-heading">
+          <div>
+            <span class="home-section-kicker">QUICK START</span>
+            <h2>選擇玩法</h2>
+          </div>
+          <span>所有資料只留喺本機</span>
+        </div>
+
+        <div class="home-mode-grid" id="homeModeGrid">
+          <button class="home-mode-card" type="button" data-home-preset="sports">
+            <span class="home-mode-icon home-mode-icon-orange">＋</span>
+            <span class="home-mode-copy"><strong>普通計分</strong><small>球類、桌遊、任何要加減分嘅活動</small></span>
+            <span class="home-mode-arrow">→</span>
+          </button>
+          <button class="home-mode-card" type="button" data-home-preset="mahjong">
+            <span class="home-mode-icon home-mode-icon-green">雀</span>
+            <span class="home-mode-copy"><strong>香港麻雀</strong><small>揀牌型自動計番，再加手動番數</small></span>
+            <span class="home-mode-arrow">→</span>
+          </button>
+          <button class="home-mode-card" type="button" data-home-preset="chooser">
+            <span class="home-mode-icon home-mode-icon-blue">抽</span>
+            <span class="home-mode-copy"><strong>首家抽籤</strong><small>大家一齊按住螢幕，隨機揀首家</small></span>
+            <span class="home-mode-arrow">→</span>
+          </button>
+        </div>
+
+        <div class="home-note"><span>i</span><p>你可以喺設定入面改名、改人數、改規則；安裝到主畫面後，離線都可以用。</p></div>
+      </section>
 
       <main>
         <section class="match-heading" aria-labelledby="matchTitle">
@@ -370,6 +419,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=8" defer></script>
+    <script src="app.js?v=9" defer></script>
   </body>
 </html>
