@@ -97,9 +97,9 @@ function defaultMahjongRules() {
       { id: "prevailing-wind", label: "圈風（大圈）", fan: 1, enabled: true },
       { id: "rob-kong", label: "搶槓", fan: 1, enabled: true },
       { id: "one-flower-set", label: "一台花", fan: 2, enabled: true },
-      { id: "kong-draw", label: "槓上開花", fan: 2, enabled: true },
-      { id: "last-tile", label: "海底撈月", fan: 2, enabled: true },
-      { id: "seven-flowers", label: "花糊", fan: 3, enabled: true },
+      { id: "kong-draw", label: "槓上開花", fan: 2, enabled: true, selfDrawIncluded: true },
+      { id: "last-tile", label: "海底撈月", fan: 2, enabled: true, selfDrawIncluded: true },
+      { id: "seven-flowers", label: "花糊", fan: 3, enabled: true, selfDrawIncluded: true },
       { id: "seven-pairs", label: "七對子", fan: 3, enabled: true },
       { id: "all-pungs", label: "對對糊", fan: 3, enabled: true },
       { id: "half-flush", label: "混一色", fan: 3, enabled: true },
@@ -109,18 +109,18 @@ function defaultMahjongRules() {
       { id: "small-winds", label: "小四喜", fan: 6, enabled: true },
       { id: "full-flush", label: "清一色", fan: 7, enabled: true },
       { id: "big-dragons", label: "大三元", fan: 8, enabled: true },
-      { id: "big-flower", label: "大花糊／八仙過海", fan: 8, enabled: true },
-      { id: "concealed-pungs", label: "坎坎糊（四暗刻）", fan: 8, enabled: true },
-      { id: "kong-on-kong", label: "槓上槓自摸", fan: 8, enabled: true },
+      { id: "big-flower", label: "大花糊／八仙過海", fan: 8, enabled: true, selfDrawIncluded: true },
+      { id: "concealed-pungs", label: "坎坎糊（四暗刻）", fan: 8, enabled: true, selfDrawIncluded: true },
+      { id: "kong-on-kong", label: "槓上槓自摸", fan: 8, enabled: true, selfDrawIncluded: true },
       { id: "mixed-terminals", label: "混么九", fan: 9, enabled: true },
       { id: "all-honors", label: "字一色", fan: 10, enabled: true },
       { id: "pure-terminals", label: "清么九", fan: 10, enabled: true },
       { id: "nine-gates", label: "九子連環／九蓮寶燈", fan: 10, enabled: true },
-      { id: "big-winds", label: "大四喜", fan: 13, enabled: true },
-      { id: "thirteen-orphans", label: "十三么", fan: 13, enabled: true },
-      { id: "heavenly-hand", label: "天糊", fan: 13, enabled: true },
-      { id: "earthly-hand", label: "地糊", fan: 13, enabled: true },
-      { id: "four-kongs", label: "十八羅漢／四槓子", fan: 13, enabled: true },
+      { id: "big-winds", label: "大四喜", fan: 13, enabled: true, selfDrawIncluded: true },
+      { id: "thirteen-orphans", label: "十三么", fan: 13, enabled: true, selfDrawIncluded: true },
+      { id: "heavenly-hand", label: "天糊", fan: 13, enabled: true, selfDrawIncluded: true },
+      { id: "earthly-hand", label: "地糊", fan: 13, enabled: true, selfDrawIncluded: true },
+      { id: "four-kongs", label: "十八羅漢／四槓子", fan: 13, enabled: true, selfDrawIncluded: true },
     ],
   };
 }
@@ -460,12 +460,13 @@ function formatPoints(value) {
   return `${rounded > 0 ? "+" : ""}${rounded}`;
 }
 
-function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, patternFan = 0, flowers }) {
+function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, patternFan = 0, patternIncludesSelfDraw = false, flowers }) {
   const rules = state.mahjong;
   const cleanHandFan = Math.max(0, Math.round(Number(handFan) || 0));
   const cleanPatternFan = Math.max(0, Math.round(Number(patternFan) || 0));
   const cleanFlowers = Math.max(0, Math.round(Number(flowers) || 0));
-  const bonusFan = cleanPatternFan + (winType === "self" ? rules.selfDrawFan : 0) + cleanFlowers * rules.flowerFan;
+  const selfDrawBonus = winType === "self" && !patternIncludesSelfDraw ? rules.selfDrawFan : 0;
+  const bonusFan = cleanPatternFan + selfDrawBonus + cleanFlowers * rules.flowerFan;
   let fan = cleanHandFan + bonusFan;
   if (rules.maxFan > 0) fan = Math.min(rules.maxFan, fan);
   if (fan < rules.minimumFan) return { valid: false, fan, bonusFan, reason: `未夠 ${rules.minimumFan} 番起糊` };
@@ -547,7 +548,8 @@ function updateMahjongPreview() {
   if (!state || state.kind !== "mahjong") return;
   const formData = new FormData(elements.mahjongEntryForm);
   const patternIds = formData.getAll("patterns");
-  const patternFan = state.mahjong.patterns.filter((pattern) => patternIds.includes(pattern.id)).reduce((sum, pattern) => sum + pattern.fan, 0);
+  const selectedPatterns = state.mahjong.patterns.filter((pattern) => patternIds.includes(pattern.id));
+  const patternFan = selectedPatterns.reduce((sum, pattern) => sum + pattern.fan, 0);
   const result = calculateMahjongHand({
     winnerId: formData.get("winner"),
     winType: formData.get("winType"),
@@ -555,6 +557,7 @@ function updateMahjongPreview() {
     dealerId: formData.get("dealer"),
     handFan: formData.get("handFan"),
     patternFan,
+    patternIncludesSelfDraw: selectedPatterns.some((pattern) => pattern.selfDrawIncluded),
     flowers: formData.get("flowers"),
   });
   if (!result.valid) {
@@ -604,6 +607,7 @@ function recordMahjongHand(event) {
     dealerId: formData.get("dealer"),
     handFan: formData.get("handFan"),
     patternFan: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).reduce((sum, pattern) => sum + pattern.fan, 0),
+    patternIncludesSelfDraw: state.mahjong.patterns.some((pattern) => formData.getAll("patterns").includes(pattern.id) && pattern.selfDrawIncluded),
     flowers: formData.get("flowers"),
   };
   const result = calculateMahjongHand(payload);
