@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=18" />
+    <link rel="stylesheet" href="style.css?v=19" />
   </head>
   <body>
     <div class="app-shell">
@@ -172,7 +172,7 @@
               <label class="field-label">今局莊家
                 <select class="text-input" id="mahjongDealer" name="dealer"></select>
               </label>
-              <label class="field-label">花牌數
+              <label class="field-label">花牌數（每隻加番）
                 <input class="text-input" id="mahjongFlowers" name="flowers" type="number" min="0" max="8" value="0" inputmode="numeric" />
               </label>
               <label class="field-label">備註（可留空）
@@ -344,8 +344,14 @@
               <label class="field-label">基本分（1番）
                 <input class="text-input" name="mahjongBasePoints" type="number" min="0" max="999999" inputmode="numeric" />
               </label>
-              <label class="field-label">每番倍數
+              <label class="field-label">倍增倍率（倍增模式）
                 <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">番數轉分方式
+                <select class="text-input" name="mahjongScoringMode">
+                  <option value="doubling">倍增：底分 × 倍率^(番數−1)</option>
+                  <option value="linear">線性：底分 × 番數</option>
+                </select>
               </label>
               <label class="field-label">封頂番數（0＝不限）
                 <input class="text-input" name="mahjongMaxFan" type="number" min="0" max="99" inputmode="numeric" />
@@ -390,7 +396,7 @@
               <p class="field-label">牌型番種及分值</p>
               <div class="mahjong-pattern-editor" id="mahjongPatternEditor"></div>
             </div>
-            <p class="settings-help">預設採用常見清章做法：3 番起糊、每番乘 2、自摸另加 1 番；海底、槓上自摸、花糊等各枱可能不同，全部可自行改。牌型本身已包括自摸時，程式不會重複加番。</p>
+            <p class="settings-help">預設採用常見清章做法：3 番起糊、每番乘 2、自摸另加 1 番。你可以將「番數轉分方式」改成線性，倍增並非必需；花牌數、自摸加番及每個牌型番數亦全部可以自行改。牌型本身已包括自摸時，程式不會重複加番。</p>
           </fieldset>
 
           <fieldset id="winnerRuleFields">
@@ -449,6 +455,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=18" defer></script>
+    <script src="app.js?v=19" defer></script>
   </body>
 </html>

@@ -77,6 +77,7 @@ function defaultMahjongRules() {
     minimumFan: 3,
     basePoints: 1,
     fanStep: 2,
+    scoringMode: "doubling",
     maxFan: 13,
     maxPoints: 0,
     selfDrawFan: 1,
@@ -152,6 +153,7 @@ function sanitizeMahjongRules(rules = {}) {
     minimumFan: Math.round(number("minimumFan", 0, 99)),
     basePoints: number("basePoints", 0, 999999),
     fanStep: number("fanStep", 1, 10),
+    scoringMode: rules.scoringMode === "linear" ? "linear" : "doubling",
     maxFan: Math.round(number("maxFan", 0, 99)),
     maxPoints: number("maxPoints", 0, 999999),
     selfDrawFan: Math.round(number("selfDrawFan", 0, 99)),
@@ -472,8 +474,11 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
   if (rules.maxFan > 0) fan = Math.min(rules.maxFan, fan);
   if (fan < rules.minimumFan) return { valid: false, fan, bonusFan, reason: `未夠 ${rules.minimumFan} 番起糊` };
 
-  let points = rules.basePoints * Math.pow(rules.fanStep, Math.max(0, fan - 1));
-  if (rules.maxPoints > 0) points = Math.min(rules.maxPoints, points);
+  const points = rules.scoringMode === "linear"
+    ? rules.basePoints * fan
+    : rules.basePoints * Math.pow(rules.fanStep, Math.max(0, fan - 1));
+  let cappedPoints = points;
+  if (rules.maxPoints > 0) cappedPoints = Math.min(rules.maxPoints, points);
   const winner = state.participants.find((player) => player.id === winnerId);
   const discarder = state.participants.find((player) => player.id === discarderId);
   if (!winner) return { valid: false, reason: "請選擇食糊者" };
@@ -485,7 +490,7 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     state.participants.forEach((player) => {
       if (player.id === winner.id) return;
       const dealerMultiplier = player.id === dealerId ? rules.dealerLoseMultiplier : 1;
-      const payment = points * rules.selfDrawMultiplier * dealerWinMultiplier * dealerMultiplier;
+      const payment = cappedPoints * rules.selfDrawMultiplier * dealerWinMultiplier * dealerMultiplier;
       net[player.id] -= payment;
       net[winner.id] += payment;
     });
@@ -494,13 +499,13 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     payers.forEach((player) => {
       const dealerMultiplier = player.id === dealerId ? rules.dealerLoseMultiplier : 1;
       const discardMultiplier = player.id === discarder.id ? rules.discardMultiplier : rules.selfDrawMultiplier;
-      const payment = points * discardMultiplier * dealerWinMultiplier * dealerMultiplier;
+      const payment = cappedPoints * discardMultiplier * dealerWinMultiplier * dealerMultiplier;
       net[player.id] -= payment;
       net[winner.id] += payment;
     });
   }
 
-  return { valid: true, fan, bonusFan, patternFan: cleanPatternFan, points, net, winner, discarder };
+  return { valid: true, fan, bonusFan, patternFan: cleanPatternFan, points: cappedPoints, net, winner, discarder };
 }
 
 function renderMahjongEntry() {
@@ -541,7 +546,8 @@ function renderMahjongEntry() {
   });
   const windLabels = { east: "東圈", south: "南圈", west: "西圈", north: "北圈" };
   const limitLabel = state.mahjong.maxFan > 0 ? `${state.mahjong.maxFan} 番封頂` : "不限番";
-  $("#mahjongRuleBadge").textContent = `${windLabels[state.mahjong.prevailingWind] || "東圈"}・${state.mahjong.minimumFan} 番起糊・${limitLabel}・${state.mahjong.fanStep} 倍番`;
+  const scoringLabel = state.mahjong.scoringMode === "linear" ? "線性計分" : `${state.mahjong.fanStep} 倍增`;
+  $("#mahjongRuleBadge").textContent = `${windLabels[state.mahjong.prevailingWind] || "東圈"}・${state.mahjong.minimumFan} 番起糊・${limitLabel}・${scoringLabel}`;
   updateMahjongPreview();
 }
 
@@ -570,9 +576,17 @@ function updateMahjongPreview() {
   const winnerLine = `${result.winner.name} +${Math.round(result.net[result.winner.id])}`;
   const payLine = state.participants.filter((player) => player.id !== result.winner.id && result.net[player.id] < 0)
     .map((player) => `${player.name} ${formatPoints(result.net[player.id])}`).join("・");
-  const patternNames = state.mahjong.patterns.filter((pattern) => patternIds.includes(pattern.id)).map((pattern) => pattern.label);
-  const patternLine = patternNames.length ? `${patternNames.join("＋")}｜` : "";
-  elements.mahjongPreview.textContent = `${patternLine}${result.fan} 番｜底分 ${Math.round(result.points)}｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
+  const breakdown = selectedPatterns.map((pattern) => `${pattern.label}${pattern.fan}番`);
+  const flowers = Math.max(0, Math.round(Number(formData.get("flowers")) || 0));
+  if (flowers > 0 && state.mahjong.flowerFan > 0) breakdown.push(`花牌${flowers}×${state.mahjong.flowerFan}番`);
+  if (formData.get("winType") === "self" && !selectedPatterns.some((pattern) => pattern.selfDrawIncluded) && state.mahjong.selfDrawFan > 0) {
+    breakdown.push(`自摸${state.mahjong.selfDrawFan}番`);
+  }
+  const breakdownLine = breakdown.length ? `${breakdown.join("＋")}｜` : "";
+  const scoringLabel = state.mahjong.scoringMode === "linear"
+    ? `底分 ${Math.round(result.points)}（${Math.round(state.mahjong.basePoints)}×${result.fan}）`
+    : `底分 ${Math.round(result.points)}（${Math.round(state.mahjong.basePoints)}×${state.mahjong.fanStep}^(番−1)）`;
+  elements.mahjongPreview.textContent = `${breakdownLine}合共 ${result.fan} 番｜${scoringLabel}｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
 }
 
 function renderMahjongHistory() {
@@ -894,6 +908,7 @@ function openSettings() {
     mahjongMinFan: rules.minimumFan,
     mahjongBasePoints: rules.basePoints,
     mahjongFanStep: rules.fanStep,
+    mahjongScoringMode: rules.scoringMode,
     mahjongMaxFan: rules.maxFan,
     mahjongMaxPoints: rules.maxPoints,
     mahjongSelfDrawFan: rules.selfDrawFan,
@@ -1233,6 +1248,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
       minimumFan: form.get("mahjongMinFan"),
       basePoints: form.get("mahjongBasePoints"),
       fanStep: form.get("mahjongFanStep"),
+      scoringMode: form.get("mahjongScoringMode"),
       maxFan: form.get("mahjongMaxFan"),
       maxPoints: form.get("mahjongMaxPoints"),
       selfDrawFan: form.get("mahjongSelfDrawFan"),
