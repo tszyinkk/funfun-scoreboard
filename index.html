@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=7" />
   </head>
   <body>
     <div class="app-shell">
@@ -53,7 +53,7 @@
           </div>
         </section>
 
-        <section class="timer-bar" aria-label="比賽計時器">
+        <section class="timer-bar" id="timerBar" aria-label="比賽計時器">
           <div class="timer-status">
             <span class="timer-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6M12 2v3"/></svg>
@@ -72,9 +72,72 @@
           </div>
         </section>
 
+        <section class="chooser-panel" id="chooserPanel" hidden aria-labelledby="chooserTitle">
+          <div class="special-heading">
+            <div>
+              <p class="eyebrow">FIRST PLAYER CHOOSER</p>
+              <h2 id="chooserTitle">一齊放手指，抽出首家</h2>
+              <p>每個人將一隻手指放在下面範圍內，等齊人後會自動隨機揀一位。</p>
+            </div>
+            <span class="chooser-status" id="chooserStatus">等待大家按住</span>
+          </div>
+          <div class="touch-arena" id="touchArena" aria-label="首家抽籤觸控區">
+            <div class="touch-arena-center">
+              <span class="touch-arena-icon">✦</span>
+              <strong>所有人按住螢幕</strong>
+              <small>放手前會先倒數</small>
+            </div>
+            <div class="touch-points" id="touchPoints" aria-hidden="true"></div>
+          </div>
+          <div class="chooser-players" id="chooserPlayers"></div>
+          <div class="chooser-result" id="chooserResult" aria-live="polite" hidden></div>
+          <button class="primary-button wide" id="chooserResetButton" type="button">重新抽一次</button>
+        </section>
+
+        <section class="mahjong-panel" id="mahjongPanel" hidden aria-labelledby="mahjongTitle">
+          <div class="special-heading">
+            <div>
+              <p class="eyebrow">HONG KONG MAHJONG</p>
+              <h2 id="mahjongTitle">香港牌計番</h2>
+              <p>每局輸入番數及食糊方式，分數會按你設定的規則自動分配。</p>
+            </div>
+            <span class="mahjong-rule-badge" id="mahjongRuleBadge">3 番起糊</span>
+          </div>
+          <form class="mahjong-entry" id="mahjongEntryForm">
+            <div class="mahjong-entry-grid">
+              <label class="field-label">食糊者
+                <select class="text-input" id="mahjongWinner" name="winner"></select>
+              </label>
+              <label class="field-label">食糊方式
+                <select class="text-input" id="mahjongWinType" name="winType">
+                  <option value="self">自摸</option>
+                  <option value="discard">出銃</option>
+                </select>
+              </label>
+              <label class="field-label" id="mahjongDiscarderField">出銃者
+                <select class="text-input" id="mahjongDiscarder" name="discarder"></select>
+              </label>
+              <label class="field-label">牌面番數
+                <input class="text-input" id="mahjongHandFan" name="handFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
+              </label>
+              <label class="field-label">今局莊家
+                <select class="text-input" id="mahjongDealer" name="dealer"></select>
+              </label>
+              <label class="field-label">花牌數
+                <input class="text-input" id="mahjongFlowers" name="flowers" type="number" min="0" max="8" value="0" inputmode="numeric" />
+              </label>
+              <label class="field-label">備註（可留空）
+                <input class="text-input" id="mahjongNote" name="note" type="text" maxlength="40" placeholder="例如：清一色、自摸" />
+              </label>
+            </div>
+            <p class="mahjong-preview" id="mahjongPreview">輸入番數後會顯示今局計算結果。</p>
+            <button class="primary-button wide" type="submit">記錄呢局麻雀</button>
+          </form>
+        </section>
+
         <section class="score-grid" id="scoreGrid" aria-label="計分區"></section>
 
-        <section class="match-controls" aria-label="本局控制">
+        <section class="match-controls" id="matchControls" aria-label="本局控制">
           <button class="secondary-button" id="resetRoundButton" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 9A8 8 0 1 1 4 15"/></svg>
             重設本局
@@ -85,7 +148,7 @@
           </button>
         </section>
 
-        <section class="round-history" aria-labelledby="historyTitle">
+        <section class="round-history" id="roundHistory" aria-labelledby="historyTitle">
           <div class="section-heading">
             <div>
               <p class="eyebrow">SCORE SHEET</p>
@@ -127,6 +190,18 @@
                 <input type="radio" name="preset" value="cards" />
                 <span class="preset-icon">牌</span>
                 <span><strong>四人計分</strong><small>啤牌・桌遊・麻雀</small></span>
+                <span class="radio-dot"></span>
+              </label>
+              <label class="preset-card">
+                <input type="radio" name="preset" value="mahjong" />
+                <span class="preset-icon">雀</span>
+                <span><strong>香港麻雀</strong><small>自訂番數及賠法</small></span>
+                <span class="radio-dot"></span>
+              </label>
+              <label class="preset-card">
+                <input type="radio" name="preset" value="chooser" />
+                <span class="preset-icon">抽</span>
+                <span><strong>首家抽籤</strong><small>多人同時按住螢幕</small></span>
                 <span class="radio-dot"></span>
               </label>
               <label class="preset-card">
@@ -176,7 +251,7 @@
             <button class="outline-button wide" id="addParticipantButton" type="button">＋ 加一位／一隊</button>
           </fieldset>
 
-          <fieldset>
+          <fieldset id="standardSettingsFields">
             <legend>完成一局後，總分點計？</legend>
             <div class="segmented-control">
               <label><input type="radio" name="totalMode" value="winner" /><span>勝方 +1</span></label>
@@ -185,7 +260,53 @@
             </div>
           </fieldset>
 
-          <fieldset>
+          <fieldset id="mahjongSettingsFields" hidden>
+            <legend>香港牌規則（全部可以自己改）</legend>
+            <div class="settings-grid">
+              <label class="field-label">最低起糊番數
+                <input class="text-input" name="mahjongMinFan" type="number" min="0" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label">基本分（1番）
+                <input class="text-input" name="mahjongBasePoints" type="number" min="0" max="999999" inputmode="numeric" />
+              </label>
+              <label class="field-label">每番倍數
+                <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">封頂番數（0＝不限）
+                <input class="text-input" name="mahjongMaxFan" type="number" min="0" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label">封頂分數（0＝不限）
+                <input class="text-input" name="mahjongMaxPoints" type="number" min="0" max="999999" inputmode="numeric" />
+              </label>
+              <label class="field-label">自摸加番
+                <input class="text-input" name="mahjongSelfDrawFan" type="number" min="0" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label">每隻花牌加番
+                <input class="text-input" name="mahjongFlowerFan" type="number" min="0" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label">莊家勝出倍數
+                <input class="text-input" name="mahjongDealerWinMultiplier" type="number" min="0" max="20" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">莊家輸款倍數
+                <input class="text-input" name="mahjongDealerLoseMultiplier" type="number" min="0" max="20" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">自摸每家倍數
+                <input class="text-input" name="mahjongSelfDrawMultiplier" type="number" min="0" max="20" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">出銃者倍數
+                <input class="text-input" name="mahjongDiscardMultiplier" type="number" min="0" max="20" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">出銃時其他人付款
+                <select class="text-input" name="mahjongRonPaymentMode">
+                  <option value="discarder">只由出銃者付款</option>
+                  <option value="all">三家都付款</option>
+                </select>
+              </label>
+            </div>
+            <p class="settings-help">預設採用常見香港牌做法：3 番起糊、每番乘 2、自摸另加 1 番；實際賠法以你設定為準。</p>
+          </fieldset>
+
+          <fieldset id="winnerRuleFields">
             <legend>勝負規則</legend>
             <div class="segmented-control two">
               <label><input type="radio" name="winnerRule" value="highest" /><span>最高分勝</span></label>
@@ -241,6 +362,6 @@
       </article>
     </template>
 
-    <script src="app.js" defer></script>
+    <script src="app.js?v=7" defer></script>
   </body>
 </html>
