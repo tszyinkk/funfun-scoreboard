@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=32" />
+    <link rel="stylesheet" href="style.css?v=33" />
   </head>
   <body>
     <div class="app-shell">
@@ -28,7 +28,10 @@
         </a>
 
         <div class="top-actions">
-          <button class="home-button" id="homeButton" type="button" aria-label="返回主頁">主頁</button>
+          <button class="home-button" id="homeButton" type="button" aria-label="返回主頁" title="返回主頁">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z" /></svg>
+            <span class="home-button-label">主頁</span>
+          </button>
           <span class="connection-badge" id="connectionBadge" role="status">
             <span></span><span id="connectionLabel">離線可用</span>
           </span>
@@ -130,8 +133,11 @@
             </div>
           </div>
           <div class="timer-actions">
-            <button class="timer-reset" id="timerResetButton" type="button">重設</button>
-            <button class="timer-toggle" id="timerToggleButton" type="button" aria-pressed="false">
+            <button class="timer-reset" id="timerResetButton" type="button" aria-label="重設計時器" title="重設計時器">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 9A8 8 0 1 1 4 15" /></svg>
+              <span class="landscape-control-label">重設</span>
+            </button>
+            <button class="timer-toggle" id="timerToggleButton" type="button" aria-label="開始計時" title="開始計時" aria-pressed="false">
               <span class="timer-toggle-icon" aria-hidden="true">▶</span>
               <span id="timerToggleLabel">開始計時</span>
             </button>
@@ -207,13 +213,13 @@
         <section class="score-grid" id="scoreGrid" aria-label="計分區"></section>
 
         <section class="match-controls" id="matchControls" aria-label="本局控制">
-          <button class="secondary-button" id="resetRoundButton" type="button">
+          <button class="secondary-button" id="resetRoundButton" type="button" aria-label="重設本局" title="重設本局">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 9A8 8 0 1 1 4 15"/></svg>
-            重設本局
+            <span class="landscape-control-label">重設本局</span>
           </button>
-          <button class="primary-button" id="finishRoundButton" type="button">
-            完成本局
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          <button class="primary-button" id="finishRoundButton" type="button" aria-label="完成並結束本局" title="完成並結束本局">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
+            <span class="landscape-control-label">完成本局</span>
           </button>
         </section>
 
@@ -285,6 +291,18 @@
           <div class="form-row">
             <label class="field-label" for="setupName">活動名稱</label>
             <input class="text-input" id="setupName" name="title" type="text" maxlength="30" value="今晚開波" placeholder="例如：星期五排球" />
+          </div>
+
+          <div class="form-row" id="setupTeamNamesRow" hidden>
+            <span class="field-label">兩隊名稱</span>
+            <div class="team-name-grid">
+              <label class="team-name-field"><span>主隊</span>
+                <input class="text-input" id="setupHomeTeamName" name="homeTeamName" type="text" maxlength="18" value="主隊" placeholder="主隊名稱" />
+              </label>
+              <label class="team-name-field"><span>客隊</span>
+                <input class="text-input" id="setupAwayTeamName" name="awayTeamName" type="text" maxlength="18" value="客隊" placeholder="客隊名稱" />
+              </label>
+            </div>
           </div>
 
           <div class="form-row" id="setupMahjongWindRow" hidden>
@@ -524,6 +542,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=32" defer></script>
+    <script src="app.js?v=33" defer></script>
   </body>
 </html>

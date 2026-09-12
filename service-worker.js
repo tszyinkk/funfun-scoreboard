@@ -1,9 +1,9 @@
-const CACHE_NAME = "funfun-scoreboard-v32";
+const CACHE_NAME = "funfun-scoreboard-v33";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=32",
-  "./app.js?v=32",
+  "./style.css?v=33",
+  "./app.js?v=33",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",

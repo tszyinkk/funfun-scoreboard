@@ -182,13 +182,13 @@ function sanitizeMahjongRules(rules = {}) {
   };
 }
 
-function freshState(preset, title, count = 2) {
+function freshState(preset, title, count = 2, teamNames = {}) {
   const isCards = preset === "cards";
   const isMahjong = preset === "mahjong";
   const isChooser = preset === "chooser";
   const size = preset === "sports" ? 2 : isCards || isMahjong ? 4 : isChooser ? 0 : count;
   const names = preset === "sports"
-    ? ["主隊", "客隊"]
+    ? [teamNames.home, teamNames.away].map((name, index) => String(name || "").trim().slice(0, 18) || (index === 0 ? "主隊" : "客隊"))
     : Array.from({ length: size }, (_, index) => `玩家 ${index + 1}`);
 
   return {
@@ -494,7 +494,10 @@ function updateTimerDisplay() {
   if (!state?.timer) return;
   elements.timerDisplay.textContent = formatTime(currentElapsedSeconds());
   elements.timerToggleButton.setAttribute("aria-pressed", String(state.timer.running));
-  elements.timerToggleLabel.textContent = state.timer.running ? "暫停計時" : "開始計時";
+  const timerActionLabel = state.timer.running ? "暫停計時" : "開始計時";
+  elements.timerToggleButton.setAttribute("aria-label", timerActionLabel);
+  elements.timerToggleButton.title = timerActionLabel;
+  elements.timerToggleLabel.textContent = timerActionLabel;
   $(".timer-toggle-icon", elements.timerToggleButton).textContent = state.timer.running ? "Ⅱ" : "▶";
 }
 
@@ -1120,6 +1123,7 @@ function renderParticipantEditor() {
 function updateSetupFromPreset() {
   const preset = $("input[name='preset']:checked", $("#setupForm")).value;
   const isMahjong = preset === "mahjong";
+  $("#setupTeamNamesRow").hidden = preset !== "sports";
   $("#setupTitle").textContent = isMahjong ? "香港麻雀開局設定" : "今次點樣計？";
   $("#setupDescription").textContent = isMahjong
     ? "開局前一次設定今局所有番數、封頂及付款方式，之後可以再喺設定修改。"
@@ -1258,7 +1262,10 @@ $("#countPlus").addEventListener("click", () => {
 $("#setupForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
-  state = freshState(form.get("preset"), form.get("title"), customCount);
+  state = freshState(form.get("preset"), form.get("title"), customCount, {
+    home: form.get("homeTeamName"),
+    away: form.get("awayTeamName"),
+  });
   if (state.kind === "mahjong") {
     const defaultRules = defaultMahjongRules();
     state.mahjong = sanitizeMahjongRules({
