@@ -15,6 +15,7 @@ let lockedScrollPosition = 0;
 let activeScoreGesture = null;
 let suppressScoreClick = false;
 let isHomeVisible = false;
+let waitingForServiceWorkerUpdate = false;
 let chooserTouches = new Map();
 let chooserCountdownTimer = null;
 let chooserCountdown = 0;
@@ -331,6 +332,12 @@ function setHomeVisible(visible) {
   $("#settingsButton").hidden = visible;
   syncSportsLayout();
   updateHome();
+  reloadForServiceWorkerUpdateIfSafe();
+}
+
+function reloadForServiceWorkerUpdateIfSafe() {
+  if (!waitingForServiceWorkerUpdate || !isHomeVisible || $(".modal-backdrop.is-open")) return;
+  window.location.reload();
 }
 
 function showHome() {
@@ -954,9 +961,27 @@ function updateConnectionStatus() {
 
 async function registerOfflineSupport() {
   if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  let knownController = navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    const controller = navigator.serviceWorker.controller;
+    if (!knownController) {
+      knownController = controller;
+      return;
+    }
+    if (!controller || controller === knownController) return;
+    knownController = controller;
+    waitingForServiceWorkerUpdate = true;
+    if (!isHomeVisible || $(".modal-backdrop.is-open")) {
+      showToast("新版已下載；完成目前活動後返回主頁，便會自動更新");
+      return;
+    }
+    reloadForServiceWorkerUpdateIfSafe();
+  });
+
   try {
-    await navigator.serviceWorker.register("./service-worker.js", { scope: "./" });
+    const registration = await navigator.serviceWorker.register("./service-worker.js", { scope: "./", updateViaCache: "none" });
     await navigator.serviceWorker.ready;
+    if (navigator.onLine) registration.update().catch((error) => console.warn("Offline app update check failed.", error));
   } catch (error) {
     console.warn("Offline support could not be enabled.", error);
   }

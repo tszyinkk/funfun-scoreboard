@@ -1604,7 +1604,7 @@ legend,
 #sportsLandscapeLeft .score-label { color: rgba(255,255,255,.72); }
 #sportsLandscapeLeft .score-number.bump { animation-name: score-bump-dark; }
 .sports-landscape-side .score-label { font-size: clamp(11px, 1.5vw, 17px); font-weight: 950; }
-.sports-landscape-side .score-number { font-size: min(45vh, 38vw, 440px); font-weight: 900; -webkit-text-stroke: 1.25px currentColor; }
+.sports-landscape-side .score-number { font-size: min(52vh, 42vw, 480px); font-weight: 900; -webkit-text-stroke: 1.75px currentColor; }
 .sports-landscape-side .score-tap-hint { font-size: clamp(9px, 1.2vw, 13px); }
 .sports-landscape-side .score-actions { padding: 0 clamp(10px, 2vw, 24px) clamp(10px, 2vh, 20px); }
 .sports-landscape-side .score-actions button { min-height: 42px; }
