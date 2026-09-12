@@ -547,6 +547,22 @@ p {
   background: color-mix(in srgb, var(--player-color) 48%, white);
 }
 
+.score-grid .score-card:nth-child(odd) .score-display {
+  background: color-mix(in srgb, var(--player-color) 42%, var(--ink));
+  color: white;
+}
+
+.score-grid .score-card:nth-child(odd) .score-display:hover {
+  background: color-mix(in srgb, var(--player-color) 48%, var(--ink));
+}
+
+.score-grid .score-card:nth-child(odd) .score-display:active {
+  background: color-mix(in srgb, var(--player-color) 54%, var(--ink));
+}
+
+.score-grid .score-card:nth-child(odd) .score-label { color: rgba(255,255,255,.72); }
+.score-grid .score-card:nth-child(odd) .score-number.bump { animation-name: score-bump-dark; }
+
 .score-label {
   margin-bottom: -3px;
   color: var(--ink-soft);
@@ -1559,6 +1575,11 @@ legend,
 .sports-landscape-side .total-score strong { font-size: 14px; }
 .sports-landscape-side .total-score button { width: 24px; height: 24px; }
 .sports-landscape-side .score-display { flex: 1; min-height: 0; background: color-mix(in srgb, var(--player-color) 38%, white); }
+#sportsLandscapeLeft .score-display { background: color-mix(in srgb, var(--player-color) 42%, var(--ink)); color: white; }
+#sportsLandscapeLeft .score-display:hover { background: color-mix(in srgb, var(--player-color) 48%, var(--ink)); }
+#sportsLandscapeLeft .score-display:active { background: color-mix(in srgb, var(--player-color) 54%, var(--ink)); }
+#sportsLandscapeLeft .score-label { color: rgba(255,255,255,.72); }
+#sportsLandscapeLeft .score-number.bump { animation-name: score-bump-dark; }
 .sports-landscape-side .score-label { font-size: clamp(10px, 1.4vw, 16px); }
 .sports-landscape-side .score-number { font-size: min(31vh, 25vw, 360px); }
 .sports-landscape-side .score-tap-hint { font-size: clamp(9px, 1.2vw, 13px); }
@@ -1675,6 +1696,7 @@ legend,
 .chooser-active #chooserResetButton { position: relative; z-index: 2; align-self: center; min-width: 180px; min-height: 46px; margin-top: 4px; }
 
 @keyframes finger-flash { to { transform: translate(-50%, -50%) scale(1.12); filter: brightness(1.35); } }
+@keyframes score-bump-dark { 50% { transform: scale(1.09); color: white; } }
 
 @media (orientation: landscape) {
   .sports-landscape-board:not([hidden]) { display: grid; }
