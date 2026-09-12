@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=22" />
+    <link rel="stylesheet" href="style.css?v=28" />
   </head>
   <body>
     <div class="app-shell">
@@ -81,7 +81,7 @@
           </button>
           <button class="home-mode-card" type="button" data-home-preset="chooser">
             <span class="home-mode-icon home-mode-icon-blue">抽</span>
-            <span class="home-mode-copy"><strong>首家抽籤</strong><small>大家一齊按住螢幕，隨機揀首家</small></span>
+            <span class="home-mode-copy"><strong>首家抽籤</strong><small>任何位置一齊按住，隨機閃出首家</small></span>
             <span class="home-mode-arrow">→</span>
           </button>
         </div>
@@ -89,7 +89,24 @@
         <div class="home-note"><span>i</span><p>你可以喺設定入面改名、改人數、改規則；安裝到主畫面後，離線都可以用。</p></div>
       </section>
 
-      <main>
+      <section class="sports-landscape-board" id="sportsLandscapeBoard" hidden aria-label="橫向球類計分板">
+        <div class="sports-landscape-side" id="sportsLandscapeLeft"></div>
+        <aside class="sports-landscape-center" id="sportsLandscapeCenter">
+          <div class="sports-landscape-actions" id="sportsLandscapeActions"></div>
+          <div id="sportsLandscapeHeading"></div>
+          <div id="sportsLandscapeTimer"></div>
+          <div id="sportsLandscapeControls"></div>
+        </aside>
+        <div class="sports-landscape-side" id="sportsLandscapeRight"></div>
+      </section>
+
+      <section class="rotate-prompt" id="rotatePrompt" hidden aria-live="polite">
+        <span aria-hidden="true">↻</span>
+        <h1>請將手機橫放</h1>
+        <p>球類計分板會以全螢幕左右比分顯示。</p>
+      </section>
+
+      <main id="appMain">
         <section class="match-heading" aria-labelledby="matchTitle">
           <div>
             <p class="eyebrow"><span class="live-dot"></span><span id="roundLabel">第 1 局</span></p>
@@ -126,21 +143,20 @@
             <div>
               <p class="eyebrow">FIRST PLAYER CHOOSER</p>
               <h2 id="chooserTitle">一齊放手指，抽出首家</h2>
-              <p>每個人將一隻手指放在下面範圍內，按入次序會對應下方玩家；等齊人後會自動隨機揀一位。</p>
+              <p>大家喺螢幕任何位置同時按住，倒數後會隨機閃出其中一隻手指做首家。</p>
             </div>
             <span class="chooser-status" id="chooserStatus">等待大家按住</span>
           </div>
           <div class="touch-arena" id="touchArena" aria-label="首家抽籤觸控區">
             <div class="touch-arena-center">
               <span class="touch-arena-icon">✦</span>
-              <strong>所有人按住螢幕</strong>
-              <small>放手前會先倒數</small>
+              <strong>任何位置都可以按住</strong>
+              <small>按住等倒數，閃起嗰隻就係首家</small>
             </div>
             <div class="touch-points" id="touchPoints" aria-hidden="true"></div>
           </div>
-          <div class="chooser-players" id="chooserPlayers"></div>
           <div class="chooser-result" id="chooserResult" aria-live="polite" hidden></div>
-          <button class="primary-button wide" id="chooserResetButton" type="button">重新抽一次</button>
+          <button class="primary-button wide" id="chooserResetButton" type="button">再抽一次</button>
         </section>
 
         <section class="mahjong-panel" id="mahjongPanel" hidden aria-labelledby="mahjongTitle">
@@ -219,7 +235,7 @@
       </footer>
     </div>
 
-    <div class="modal-backdrop is-open" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="modal-backdrop" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle" aria-hidden="true">
       <div class="modal setup-modal">
         <div class="modal-accent" aria-hidden="true"></div>
         <button class="modal-close" id="setupCloseButton" type="button" aria-label="關閉設定">×</button>
@@ -508,6 +524,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=22" defer></script>
+    <script src="app.js?v=28" defer></script>
   </body>
 </html>

@@ -18,9 +18,24 @@ let isHomeVisible = false;
 let chooserTouches = new Map();
 let chooserCountdownTimer = null;
 let chooserCountdown = 0;
+let nextFingerNumber = 1;
 
 const elements = {
   scoreGrid: $("#scoreGrid"),
+  appMain: $("#appMain"),
+  topbar: $(".topbar"),
+  topActions: $(".top-actions"),
+  matchHeading: $(".match-heading"),
+  matchControls: $("#matchControls"),
+  roundHistory: $("#roundHistory"),
+  sportsLandscapeBoard: $("#sportsLandscapeBoard"),
+  sportsLandscapeLeft: $("#sportsLandscapeLeft"),
+  sportsLandscapeRight: $("#sportsLandscapeRight"),
+  sportsLandscapeActions: $("#sportsLandscapeActions"),
+  sportsLandscapeHeading: $("#sportsLandscapeHeading"),
+  sportsLandscapeTimer: $("#sportsLandscapeTimer"),
+  sportsLandscapeControls: $("#sportsLandscapeControls"),
+  rotatePrompt: $("#rotatePrompt"),
   homeView: $("#homeView"),
   homeCurrent: $("#homeCurrent"),
   homeCurrentTitle: $("#homeCurrentTitle"),
@@ -47,7 +62,6 @@ const elements = {
   toast: $("#toast"),
   chooserPanel: $("#chooserPanel"),
   chooserStatus: $("#chooserStatus"),
-  chooserPlayers: $("#chooserPlayers"),
   chooserResult: $("#chooserResult"),
   touchArena: $("#touchArena"),
   touchPoints: $("#touchPoints"),
@@ -172,7 +186,7 @@ function freshState(preset, title, count = 2) {
   const isCards = preset === "cards";
   const isMahjong = preset === "mahjong";
   const isChooser = preset === "chooser";
-  const size = preset === "sports" ? 2 : isCards || isMahjong ? 4 : count;
+  const size = preset === "sports" ? 2 : isCards || isMahjong ? 4 : isChooser ? 0 : count;
   const names = preset === "sports"
     ? ["主隊", "客隊"]
     : Array.from({ length: size }, (_, index) => `玩家 ${index + 1}`);
@@ -187,17 +201,19 @@ function freshState(preset, title, count = 2) {
     participants: names.map((name, index) => participant(name, index)),
     history: [],
     mahjong: defaultMahjongRules(),
-    chooser: { resultId: null, resultName: "", drawnAt: null },
+    chooser: { resultId: "", resultName: "", resultFingerNumber: 0, resultX: 0, resultY: 0, drawnAt: null },
   };
 }
 
 function sanitizeState(candidate) {
-  if (!candidate || !Array.isArray(candidate.participants) || candidate.participants.length < 2) return null;
+  if (!candidate || !Array.isArray(candidate.participants)) return null;
+  const kind = ["sports", "cards", "custom", "mahjong", "chooser"].includes(candidate.kind) ? candidate.kind : "custom";
+  if (kind !== "chooser" && candidate.participants.length < 2) return null;
   const elapsed = Math.max(0, Math.floor(Number(candidate.timer?.elapsed) || 0));
   const startedAt = Number(candidate.timer?.startedAt);
   const timerIsRunning = candidate.timer?.running === true && Number.isFinite(startedAt) && startedAt > 0;
-  const kind = ["sports", "cards", "custom", "mahjong", "chooser"].includes(candidate.kind) ? candidate.kind : "custom";
-  const participants = candidate.participants.slice(0, 8).map((item, index) => ({
+  const resultFingerNumber = Math.max(0, Math.floor(Number(candidate.chooser?.resultFingerNumber) || 0));
+  const participants = (kind === "chooser" ? [] : candidate.participants.slice(0, 8)).map((item, index) => ({
     id: String(item.id || uid()),
     name: String(item.name || `玩家 ${index + 1}`).slice(0, 18),
     color: COLORS.includes(item.color) ? item.color : COLORS[index % COLORS.length],
@@ -217,7 +233,12 @@ function sanitizeState(candidate) {
     mahjong: sanitizeMahjongRules(candidate.mahjong),
     chooser: {
       resultId: String(candidate.chooser?.resultId || ""),
-      resultName: String(candidate.chooser?.resultName || "").slice(0, 18),
+      resultName: kind === "chooser"
+        ? (resultFingerNumber ? `手指 ${resultFingerNumber}` : "")
+        : String(candidate.chooser?.resultName || "").slice(0, 18),
+      resultFingerNumber,
+      resultX: Math.min(100, Math.max(0, Number(candidate.chooser?.resultX) || 0)),
+      resultY: Math.min(100, Math.max(0, Number(candidate.chooser?.resultY) || 0)),
       drawnAt: candidate.chooser?.drawnAt || null,
     },
   };
@@ -253,7 +274,51 @@ function updateHome() {
   if (!state) return;
   elements.homeCurrentTitle.textContent = state.title;
   const modeText = state.kind === "mahjong" ? "香港麻雀" : state.kind === "chooser" ? "首家抽籤" : "普通計分";
-  elements.homeCurrentMeta.textContent = `${modeText}・${state.participants.length} 人／隊・第 ${state.round} 局`;
+  elements.homeCurrentMeta.textContent = state.kind === "chooser"
+    ? "任意位置多指觸控抽首家"
+    : `${modeText}・${state.participants.length} 人／隊・第 ${state.round} 局`;
+}
+
+function sportsLandscapeMatches() {
+  return window.matchMedia?.("(orientation: landscape)").matches === true;
+}
+
+function sportsPortraitPromptMatches() {
+  return window.matchMedia?.("(orientation: portrait) and (max-width: 850px)").matches === true;
+}
+
+function syncSportsLayout() {
+  const landscape = Boolean(state && !isHomeVisible && state.kind === "sports" && sportsLandscapeMatches());
+  const rotatePrompt = Boolean(state && !isHomeVisible && state.kind === "sports" && !landscape && sportsPortraitPromptMatches());
+  const chooserActive = Boolean(state && !isHomeVisible && state.kind === "chooser");
+  document.body.classList.toggle("sports-landscape-active", landscape);
+  document.body.classList.toggle("sports-portrait-active", rotatePrompt);
+  document.body.classList.toggle("chooser-active", chooserActive);
+  elements.sportsLandscapeBoard.hidden = !landscape;
+  elements.rotatePrompt.hidden = !rotatePrompt;
+
+  if (landscape) {
+    elements.topbar.hidden = true;
+    elements.appMain.hidden = true;
+    elements.sportsLandscapeHeading.append(elements.matchHeading);
+    elements.sportsLandscapeTimer.append(elements.timerBar);
+    elements.sportsLandscapeControls.append(elements.matchControls);
+    elements.sportsLandscapeActions.append(elements.topActions);
+  } else {
+    elements.topbar.hidden = false;
+    elements.appMain.hidden = isHomeVisible || rotatePrompt;
+    elements.topbar.append(elements.topActions);
+    elements.appMain.append(
+      elements.matchHeading,
+      elements.timerBar,
+      elements.chooserPanel,
+      elements.mahjongPanel,
+      elements.scoreGrid,
+      elements.matchControls,
+      elements.roundHistory,
+    );
+    [...elements.sportsLandscapeLeft.children, ...elements.sportsLandscapeRight.children].forEach((card) => elements.scoreGrid.append(card));
+  }
 }
 
 function setHomeVisible(visible) {
@@ -264,25 +329,63 @@ function setHomeVisible(visible) {
   elements.homeButton.hidden = visible || !state;
   elements.undoButton.hidden = visible;
   $("#settingsButton").hidden = visible;
+  syncSportsLayout();
   updateHome();
 }
 
 function showHome() {
   if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
+  try { screen.orientation?.unlock?.(); } catch { /* Orientation lock is not supported on every device. */ }
+  exitAppFullscreen();
   setHomeVisible(true);
 }
 
 function showScoreboard() {
   setHomeVisible(false);
+  if (state?.kind === "sports") requestSportsLandscape();
+  else {
+    screen.orientation?.unlock?.();
+    if (state?.kind === "chooser") requestAppFullscreen();
+  }
   render();
+}
+
+function requestSportsLandscape() {
+  const fullscreenRequest = requestAppFullscreen();
+  Promise.resolve(fullscreenRequest).then(() => {
+    try {
+      const lockRequest = screen.orientation?.lock?.("landscape");
+      lockRequest?.catch(() => {});
+    } catch {
+      // CSS shows a rotate prompt on devices that do not support orientation locking.
+    }
+  });
+}
+
+function requestAppFullscreen() {
+  try {
+    const request = document.documentElement.requestFullscreen?.();
+    return request ? request.catch(() => {}) : Promise.resolve();
+  } catch {
+    return Promise.resolve();
+  }
+}
+
+function exitAppFullscreen() {
+  try {
+    const request = document.exitFullscreen?.();
+    request?.catch(() => {});
+  } catch {
+    // Installed web apps may use display-mode fullscreen without a Fullscreen API element.
+  }
 }
 
 function resetSetupForm(preset = "sports") {
   $("#setupForm").reset();
   renderMahjongPatternEditor(elements.setupMahjongPatternEditor, defaultMahjongRules().patterns);
   $("#setupName").value = preset === "chooser" ? "首家抽籤" : ["mahjong", "cards"].includes(preset) ? "今晚開枱" : preset === "custom" ? "自訂比賽" : "今晚開波";
-  customCount = preset === "chooser" ? 4 : 3;
+  customCount = 3;
   $("#countOutput").textContent = customCount;
   const presetInput = $(`input[name="preset"][value="${preset}"]`, $("#setupForm"));
   if (presetInput) presetInput.checked = true;
@@ -321,15 +424,17 @@ function render() {
     updateHome();
     return;
   }
+  syncSportsLayout();
+  const sportsLandscape = document.body.classList.contains("sports-landscape-active");
   elements.matchTitle.textContent = state.title;
   elements.roundLabel.textContent = `第 ${state.round} 局`;
-  elements.playerCountLabel.textContent = state.kind === "chooser" ? `${state.participants.length} 位玩家` : `${state.participants.length} 個計分格`;
-  elements.modeLabel.textContent = state.kind === "mahjong" ? "香港牌計番" : state.kind === "chooser" ? "多人觸控抽籤" : ({ winner: "勝方 +1", cumulative: "累加本局", manual: "手動總分" })[state.totalMode];
+  elements.playerCountLabel.textContent = state.kind === "chooser" ? "多人手指抽籤" : `${state.participants.length} 個計分格`;
+  elements.modeLabel.textContent = state.kind === "mahjong" ? "香港牌計番" : state.kind === "chooser" ? "隨機抽首家" : ({ winner: "勝方 +1", cumulative: "累加本局", manual: "手動總分" })[state.totalMode];
   const specialMode = state.kind === "mahjong" || state.kind === "chooser";
   elements.timerBar.hidden = specialMode;
-  $("#matchControls").hidden = specialMode;
-  $("#roundHistory").hidden = state.kind === "chooser";
-  elements.scoreGrid.hidden = state.kind === "chooser";
+  elements.matchControls.hidden = specialMode;
+  elements.roundHistory.hidden = state.kind === "chooser" || sportsLandscape;
+  elements.scoreGrid.hidden = state.kind === "chooser" || sportsLandscape;
   elements.mahjongPanel.hidden = state.kind !== "mahjong";
   elements.chooserPanel.hidden = state.kind !== "chooser";
   updateTimerDisplay();
@@ -345,6 +450,9 @@ function render() {
 function renderScoreCards() {
   elements.scoreGrid.replaceChildren();
   elements.scoreGrid.dataset.count = String(state.participants.length);
+  elements.sportsLandscapeLeft.replaceChildren();
+  elements.sportsLandscapeRight.replaceChildren();
+  const landscapeTarget = document.body.classList.contains("sports-landscape-active");
 
   state.participants.forEach((player, index) => {
     const fragment = $("#scoreCardTemplate").content.cloneNode(true);
@@ -363,7 +471,8 @@ function renderScoreCards() {
     minusButton.setAttribute("aria-label", state.kind === "mahjong" ? `${player.name} 減一番` : `${player.name} 減一分`);
     $(".total-plus", card).setAttribute("aria-label", `${player.name} 總分加一`);
     $(".total-minus", card).setAttribute("aria-label", `${player.name} 總分減一`);
-    elements.scoreGrid.appendChild(fragment);
+    const target = landscapeTarget ? (index === 0 ? elements.sportsLandscapeLeft : elements.sportsLandscapeRight) : elements.scoreGrid;
+    target.appendChild(fragment);
   });
 }
 
@@ -691,45 +800,36 @@ function adjustMahjongFan(delta) {
   showToast(`上一局已修正為 ${result.fan} 番`);
 }
 
-function chooserAssignedIds() {
-  return new Set([...chooserTouches.values()].map((touch) => touch.playerId));
-}
-
 function renderChooser() {
   if (!state || state.kind !== "chooser") return;
-  const assigned = chooserAssignedIds();
-  elements.chooserPlayers.replaceChildren();
-  state.participants.forEach((player) => {
-    const chip = document.createElement("div");
-    chip.className = `chooser-player${assigned.has(player.id) ? " is-ready" : ""}`;
-    chip.style.setProperty("--player-color", player.color);
-    chip.innerHTML = `<span class="chooser-player-dot"></span><strong></strong><small>${assigned.has(player.id) ? "已按住" : "等待中"}</small>`;
-    $("strong", chip).textContent = player.name;
-    elements.chooserPlayers.appendChild(chip);
-  });
-
   elements.touchPoints.replaceChildren();
   [...chooserTouches.values()].forEach((touch) => {
-    const player = state.participants.find((entry) => entry.id === touch.playerId);
-    if (!player) return;
     const point = document.createElement("span");
-    point.className = "touch-point";
-    point.style.setProperty("--player-color", player.color);
+    point.className = `touch-point${state.chooser?.resultFingerNumber === touch.fingerNumber ? " is-selected" : ""}`;
     point.style.left = `${touch.x}%`;
     point.style.top = `${touch.y}%`;
-    point.textContent = player.name;
+    point.textContent = state.chooser?.resultFingerNumber === touch.fingerNumber ? "首家" : "☝️";
     elements.touchPoints.appendChild(point);
   });
 
   const result = state.chooser?.resultName;
+  const resultFingerStillDown = [...chooserTouches.values()].some((touch) => touch.fingerNumber === state.chooser?.resultFingerNumber);
+  if (result && !resultFingerStillDown) {
+    const selectedPoint = document.createElement("span");
+    selectedPoint.className = "touch-point is-selected";
+    selectedPoint.style.left = `${state.chooser.resultX}%`;
+    selectedPoint.style.top = `${state.chooser.resultY}%`;
+    selectedPoint.textContent = "首家";
+    elements.touchPoints.appendChild(selectedPoint);
+  }
   elements.chooserResult.hidden = !result;
-  if (result) elements.chooserResult.textContent = `✦ 今次首家：${result}`;
+  if (result) elements.chooserResult.textContent = `✦ 今次首家：手指 ${state.chooser.resultFingerNumber}`;
   if (chooserCountdown > 0) {
     elements.chooserStatus.textContent = `${chooserCountdown}…`;
   } else if (result) {
     elements.chooserStatus.textContent = "抽籤完成";
   } else {
-    elements.chooserStatus.textContent = assigned.size === state.participants.length ? "全部人已按住" : `已按 ${assigned.size}/${state.participants.length} 人`;
+    elements.chooserStatus.textContent = chooserTouches.size ? `已按住 ${chooserTouches.size} 隻手指` : "等大家喺任何位置按住";
   }
 }
 
@@ -748,11 +848,11 @@ function randomIndex(max) {
 }
 
 function startChooserCountdown() {
-  if (chooserCountdownTimer || state.chooser?.resultName) return;
+  if (chooserCountdownTimer || state.chooser?.resultName || chooserTouches.size === 0) return;
   chooserCountdown = 3;
   renderChooser();
   chooserCountdownTimer = window.setInterval(() => {
-    if (chooserTouches.size !== state.participants.length) {
+    if (chooserTouches.size === 0) {
       cancelChooserCountdown();
       renderChooser();
       return;
@@ -763,21 +863,28 @@ function startChooserCountdown() {
       return;
     }
     cancelChooserCountdown();
-    const assignedPlayers = [...chooserTouches.values()].map((touch) => state.participants.find((player) => player.id === touch.playerId)).filter(Boolean);
-    const selected = assignedPlayers[randomIndex(assignedPlayers.length)];
+    const activeTouches = [...chooserTouches.values()];
+    const selected = activeTouches[randomIndex(activeTouches.length)];
     if (!selected) return;
-    state.chooser = { resultId: selected.id, resultName: selected.name, drawnAt: new Date().toISOString() };
-    chooserTouches.clear();
+    state.chooser = {
+      resultId: "",
+      resultName: `手指 ${selected.fingerNumber}`,
+      resultFingerNumber: selected.fingerNumber,
+      resultX: selected.x,
+      resultY: selected.y,
+      drawnAt: new Date().toISOString(),
+    };
     renderChooser();
     saveState();
-    showToast(`今次由 ${selected.name} 做首家`);
-  }, 750);
+    showToast(`手指 ${selected.fingerNumber} 做首家`);
+  }, 1000);
 }
 
 function resetChooser() {
   cancelChooserCountdown();
   chooserTouches.clear();
-  state.chooser = { resultId: null, resultName: "", drawnAt: null };
+  nextFingerNumber = 1;
+  state.chooser = { resultId: "", resultName: "", resultFingerNumber: 0, resultX: 0, resultY: 0, drawnAt: null };
   renderChooser();
   saveState();
 }
@@ -1016,9 +1123,11 @@ function updateSetupFromPreset() {
   $("#setupTitle").textContent = isMahjong ? "香港麻雀開局設定" : "今次點樣計？";
   $("#setupDescription").textContent = isMahjong
     ? "開局前一次設定今局所有番數、封頂及付款方式，之後可以再喺設定修改。"
-    : "揀一個玩法開始，之後隨時可以改名或加減人數。";
-  $("#setupSubmitText").textContent = isMahjong ? "建立麻雀計分板" : "建立計分板";
-  $("#participantCountRow").hidden = !["custom", "chooser"].includes(preset);
+    : preset === "chooser"
+      ? "唔使輸入玩家名；大家喺畫面任何位置按住，就會抽出首家。"
+      : "揀一個玩法開始，之後隨時可以改名或加減人數。";
+  $("#setupSubmitText").textContent = isMahjong ? "建立麻雀計分板" : preset === "chooser" ? "開始抽首家" : "建立計分板";
+  $("#participantCountRow").hidden = preset !== "custom";
   $("#setupMahjongWindRow").hidden = !isMahjong;
   $("#setupMahjongLimitRow").hidden = !isMahjong;
   $("#setupMahjongRules").hidden = !isMahjong;
@@ -1026,12 +1135,31 @@ function updateSetupFromPreset() {
   if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
   if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚開枱";
   if (preset === "chooser" && ["今晚開波", "今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "首家抽籤";
-  if (preset === "chooser" && customCount < 4) customCount = 4;
   $("#countOutput").textContent = customCount;
   if (preset === "custom" && ["今晚開波", "今晚開枱"].includes(nameInput.value)) nameInput.value = "自訂比賽";
 }
 
-elements.scoreGrid.addEventListener("pointerdown", (event) => {
+function isInteractiveTarget(target) {
+  return Boolean(target.closest?.("button, a, input, select, textarea, [role='button']"));
+}
+
+function fingerPositionFromEvent(event) {
+  return {
+    x: Math.min(96, Math.max(4, (event.clientX / window.innerWidth) * 100)),
+    y: Math.min(92, Math.max(8, (event.clientY / window.innerHeight) * 100)),
+  };
+}
+
+document.addEventListener("pointerdown", (event) => {
+  if (state?.kind === "chooser") {
+    if (state.chooser?.resultName || isInteractiveTarget(event.target) || chooserTouches.has(event.pointerId)) return;
+    event.preventDefault();
+    chooserTouches.set(event.pointerId, { fingerNumber: nextFingerNumber++, ...fingerPositionFromEvent(event) });
+    try { elements.touchArena.setPointerCapture(event.pointerId); } catch { /* Pointer capture is optional outside the arena. */ }
+    startChooserCountdown();
+    renderChooser();
+    return;
+  }
   if (!event.target.closest(".score-display")) return;
   suppressScoreClick = false;
   activeScoreGesture = {
@@ -1042,25 +1170,45 @@ elements.scoreGrid.addEventListener("pointerdown", (event) => {
   };
 });
 
-elements.scoreGrid.addEventListener("pointermove", (event) => {
+document.addEventListener("pointermove", (event) => {
+  const finger = chooserTouches.get(event.pointerId);
+  if (state?.kind === "chooser" && finger) {
+    event.preventDefault();
+    Object.assign(finger, fingerPositionFromEvent(event));
+    renderChooser();
+    return;
+  }
   if (!activeScoreGesture || activeScoreGesture.pointerId !== event.pointerId) return;
   const horizontalDistance = Math.abs(event.clientX - activeScoreGesture.startX);
   const verticalDistance = Math.abs(event.clientY - activeScoreGesture.startY);
   if (horizontalDistance > 10 || verticalDistance > 10) activeScoreGesture.moved = true;
 });
 
-elements.scoreGrid.addEventListener("pointerup", (event) => {
+document.addEventListener("pointerup", (event) => {
+  if (chooserTouches.has(event.pointerId)) {
+    chooserTouches.delete(event.pointerId);
+    if (!chooserTouches.size && !state?.chooser?.resultName) cancelChooserCountdown();
+    renderChooser();
+    return;
+  }
   if (!activeScoreGesture || activeScoreGesture.pointerId !== event.pointerId) return;
   suppressScoreClick = activeScoreGesture.moved;
   activeScoreGesture = null;
 });
 
-elements.scoreGrid.addEventListener("pointercancel", () => {
-  activeScoreGesture = null;
-  suppressScoreClick = true;
+document.addEventListener("pointercancel", (event) => {
+  if (chooserTouches.delete(event.pointerId)) {
+    if (!chooserTouches.size && !state?.chooser?.resultName) cancelChooserCountdown();
+    renderChooser();
+    return;
+  }
+  if (activeScoreGesture) {
+    activeScoreGesture = null;
+    suppressScoreClick = true;
+  }
 });
 
-elements.scoreGrid.addEventListener("click", (event) => {
+document.addEventListener("click", (event) => {
   const card = event.target.closest(".score-card");
   if (!card) return;
   const id = card.dataset.id;
@@ -1091,44 +1239,6 @@ elements.mahjongEntryForm.addEventListener("change", (event) => {
   else updateMahjongPreview();
 });
 
-elements.touchArena.addEventListener("pointerdown", (event) => {
-  if (state?.kind !== "chooser") return;
-  event.preventDefault();
-  if (state.chooser?.resultName) resetChooser();
-  if (chooserTouches.has(event.pointerId) || chooserTouches.size >= state.participants.length) return;
-  const assigned = chooserAssignedIds();
-  const player = state.participants.find((entry) => !assigned.has(entry.id));
-  if (!player) return;
-  const rect = elements.touchArena.getBoundingClientRect();
-  chooserTouches.set(event.pointerId, {
-    playerId: player.id,
-    x: Math.min(96, Math.max(4, ((event.clientX - rect.left) / rect.width) * 100)),
-    y: Math.min(88, Math.max(12, ((event.clientY - rect.top) / rect.height) * 100)),
-  });
-  elements.touchArena.setPointerCapture?.(event.pointerId);
-  renderChooser();
-  if (chooserTouches.size === state.participants.length) startChooserCountdown();
-});
-
-elements.touchArena.addEventListener("pointermove", (event) => {
-  const touch = chooserTouches.get(event.pointerId);
-  if (!touch || state?.kind !== "chooser") return;
-  event.preventDefault();
-  const rect = elements.touchArena.getBoundingClientRect();
-  touch.x = Math.min(96, Math.max(4, ((event.clientX - rect.left) / rect.width) * 100));
-  touch.y = Math.min(88, Math.max(12, ((event.clientY - rect.top) / rect.height) * 100));
-  renderChooser();
-});
-
-function releaseChooserPointer(event) {
-  if (!chooserTouches.has(event.pointerId)) return;
-  chooserTouches.delete(event.pointerId);
-  if (chooserCountdownTimer) cancelChooserCountdown();
-  renderChooser();
-}
-
-elements.touchArena.addEventListener("pointerup", releaseChooserPointer);
-elements.touchArena.addEventListener("pointercancel", releaseChooserPointer);
 $("#chooserResetButton").addEventListener("click", resetChooser);
 
 $("#setupForm").addEventListener("change", (event) => {
@@ -1351,12 +1461,19 @@ if (state) {
   elements.setupModal.classList.remove("is-open");
   elements.setupModal.setAttribute("aria-hidden", "true");
   elements.setupCloseButton.hidden = false;
-  showScoreboard();
+  setHomeVisible(true);
 } else {
   elements.setupCloseButton.hidden = true;
   resetSetupForm("sports");
   setHomeVisible(true);
 }
+
+window.matchMedia("(orientation: landscape)").addEventListener?.("change", () => {
+  if (state) render();
+});
+window.matchMedia("(orientation: portrait) and (max-width: 850px)").addEventListener?.("change", () => {
+  if (state) render();
+});
 
 timerTicker = window.setInterval(() => {
   if (state?.timer?.running) updateTimerDisplay();
