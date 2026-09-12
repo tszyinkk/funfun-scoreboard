@@ -339,38 +339,12 @@ p {
   gap: 8px;
 }
 
-.timer-reset,
 .timer-toggle {
   min-height: 44px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
-}
-
-.timer-reset {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-  border: 1px solid var(--line);
-  background: transparent;
-}
-
-.timer-reset svg {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.timer-reset:hover {
-  border-color: var(--ink);
-  background: white;
 }
 
 .timer-toggle {
@@ -1618,10 +1592,10 @@ legend,
 .sports-landscape-side .card-topline { height: 8px; flex: 0 0 auto; }
 .sports-landscape-side .card-header { padding: clamp(10px, 2.5vh, 24px) clamp(12px, 2.5vw, 32px) 0; }
 .sports-landscape-side .player-index { width: 32px; height: 32px; font-size: 13px; }
-.sports-landscape-side .player-name { font-size: clamp(16px, 2.2vw, 30px); }
+.sports-landscape-side .player-name { font-size: clamp(19px, 3vw, 36px); font-weight: 950; }
 .sports-landscape-side .total-score { gap: 5px; padding: 4px 6px; }
-.sports-landscape-side .total-score > span { font-size: 8px; }
-.sports-landscape-side .total-score strong { font-size: 14px; }
+.sports-landscape-side .total-score > span { font-size: 9px; font-weight: 900; }
+.sports-landscape-side .total-score strong { font-size: 16px; font-weight: 950; }
 .sports-landscape-side .total-score button { width: 24px; height: 24px; }
 .sports-landscape-side .score-display { flex: 1; min-height: 0; background: color-mix(in srgb, var(--player-color) 38%, white); }
 #sportsLandscapeLeft .score-display { background: color-mix(in srgb, var(--player-color) 42%, var(--ink)); color: white; }
@@ -1629,8 +1603,8 @@ legend,
 #sportsLandscapeLeft .score-display:active { background: color-mix(in srgb, var(--player-color) 54%, var(--ink)); }
 #sportsLandscapeLeft .score-label { color: rgba(255,255,255,.72); }
 #sportsLandscapeLeft .score-number.bump { animation-name: score-bump-dark; }
-.sports-landscape-side .score-label { font-size: clamp(10px, 1.4vw, 16px); }
-.sports-landscape-side .score-number { font-size: min(31vh, 25vw, 360px); }
+.sports-landscape-side .score-label { font-size: clamp(11px, 1.5vw, 17px); font-weight: 950; }
+.sports-landscape-side .score-number { font-size: min(45vh, 38vw, 440px); font-weight: 900; -webkit-text-stroke: 1.25px currentColor; }
 .sports-landscape-side .score-tap-hint { font-size: clamp(9px, 1.2vw, 13px); }
 .sports-landscape-side .score-actions { padding: 0 clamp(10px, 2vw, 24px) clamp(10px, 2vh, 20px); }
 .sports-landscape-side .score-actions button { min-height: 42px; }
@@ -1677,12 +1651,9 @@ legend,
 .sports-landscape-center .timer-status { flex-direction: column; gap: 4px; }
 .sports-landscape-center .timer-icon { display: none; }
 .sports-landscape-center .timer-label { display: none; }
-.sports-landscape-center #timerDisplay { font-size: clamp(14px, 2vh, 22px); color: var(--ink); }
+.sports-landscape-center #timerDisplay { font-size: clamp(16px, 2.5vh, 26px); font-weight: 950; color: var(--ink); }
 .sports-landscape-center .timer-actions { display: grid; grid-template-columns: 1fr; justify-items: center; width: 100%; gap: 5px; }
-.sports-landscape-center .timer-reset,
 .sports-landscape-center .timer-toggle { display: grid; place-items: center; width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: 12px; }
-.sports-landscape-center .timer-reset { background: white; color: var(--ink); }
-.sports-landscape-center .timer-reset svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sports-landscape-center #timerToggleLabel { display: none; }
 .sports-landscape-center .timer-toggle-icon { font-size: 15px; }
 .sports-landscape-center .landscape-control-label { display: none; }
@@ -1764,7 +1735,7 @@ legend,
   .sports-landscape-actions .icon-button, .sports-landscape-actions .home-button { width: 32px; min-width: 32px; min-height: 32px; height: 32px; }
   .sports-landscape-actions .home-button svg { width: 16px; height: 16px; }
   .sports-landscape-center .timer-actions { gap: 3px; }
-  .sports-landscape-center .timer-toggle, .sports-landscape-center .timer-reset { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
+  .sports-landscape-center .timer-toggle { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
   .sports-landscape-center #matchControls { gap: 4px; }
   .sports-landscape-center #matchControls button { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
   .sports-landscape-center #matchControls svg { width: 16px; height: 16px; }
@@ -1804,7 +1775,6 @@ legend,
   .heading-meta { padding-bottom: 0; }
   .timer-bar { padding: 12px; }
   .timer-icon { width: 40px; height: 40px; }
-  .timer-reset { padding: 0 12px; }
   .timer-toggle { min-width: 104px; padding: 0 12px; }
   .score-grid,
   .score-grid[data-count="3"],
@@ -1864,7 +1834,6 @@ legend,
   .timer-bar { gap: 8px; }
   .timer-icon { display: none; }
   .timer-actions { gap: 5px; }
-  .timer-reset { padding: 0 9px; }
   .timer-toggle { min-width: 96px; padding: 0 9px; }
 }
 

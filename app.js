@@ -514,14 +514,6 @@ function toggleTimer() {
   saveState();
 }
 
-function resetTimer() {
-  state.timer.elapsed = 0;
-  state.timer.startedAt = state.timer.running ? Date.now() : null;
-  updateTimerDisplay();
-  saveState();
-  showToast("計時已重設");
-}
-
 function renderHistory() {
   if (state.kind === "mahjong") {
     renderMahjongHistory();
@@ -1312,23 +1304,6 @@ $("#brandHome").addEventListener("click", (event) => {
 });
 $("#finishRoundButton").addEventListener("click", finishRound);
 elements.timerToggleButton.addEventListener("click", toggleTimer);
-$("#timerResetButton").addEventListener("click", resetTimer);
-
-$("#resetRoundButton").addEventListener("click", () => {
-  if (state.participants.every((player) => player.score === 0)) return showToast("本局已經係 0 分");
-  openConfirm({
-    title: "重設本局分數？",
-    message: "所有人的本局分數會變回 0，總分及過往紀錄不受影響。",
-    acceptText: "重設本局",
-    icon: "↺",
-    action: () => {
-      snapshot();
-      state.participants.forEach((player) => { player.score = 0; });
-      render();
-      showToast("本局分數已重設");
-    },
-  });
-});
 
 $("#clearHistoryButton").addEventListener("click", () => {
   if (!state.history.length) return showToast("暫時未有紀錄");

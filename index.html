@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=33" />
+    <link rel="stylesheet" href="style.css?v=34" />
   </head>
   <body>
     <div class="app-shell">
@@ -133,10 +133,6 @@
             </div>
           </div>
           <div class="timer-actions">
-            <button class="timer-reset" id="timerResetButton" type="button" aria-label="重設計時器" title="重設計時器">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 9A8 8 0 1 1 4 15" /></svg>
-              <span class="landscape-control-label">重設</span>
-            </button>
             <button class="timer-toggle" id="timerToggleButton" type="button" aria-label="開始計時" title="開始計時" aria-pressed="false">
               <span class="timer-toggle-icon" aria-hidden="true">▶</span>
               <span id="timerToggleLabel">開始計時</span>
@@ -213,10 +209,6 @@
         <section class="score-grid" id="scoreGrid" aria-label="計分區"></section>
 
         <section class="match-controls" id="matchControls" aria-label="本局控制">
-          <button class="secondary-button" id="resetRoundButton" type="button" aria-label="重設本局" title="重設本局">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M5.5 9A8 8 0 1 1 4 15"/></svg>
-            <span class="landscape-control-label">重設本局</span>
-          </button>
           <button class="primary-button" id="finishRoundButton" type="button" aria-label="完成並結束本局" title="完成並結束本局">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
             <span class="landscape-control-label">完成本局</span>
@@ -542,6 +534,6 @@
       </article>
     </template>
 
-    <script src="app.js?v=33" defer></script>
+    <script src="app.js?v=34" defer></script>
   </body>
 </html>
