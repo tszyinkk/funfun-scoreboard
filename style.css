@@ -530,7 +530,7 @@ p {
   padding: 8px;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background: color-mix(in srgb, var(--player-color) 30%, white);
   color: inherit;
   cursor: pointer;
   touch-action: pan-y;
@@ -540,11 +540,11 @@ p {
 }
 
 .score-display:hover {
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--player-color) 13%, transparent));
+  background: color-mix(in srgb, var(--player-color) 38%, white);
 }
 
 .score-display:active {
-  background: color-mix(in srgb, var(--player-color) 20%, transparent);
+  background: color-mix(in srgb, var(--player-color) 48%, white);
 }
 
 .score-label {
@@ -1545,7 +1545,7 @@ legend,
   flex-direction: column;
   border: 0;
   border-radius: 20px;
-  background: #f9faf8;
+  background: color-mix(in srgb, var(--player-color) 12%, white);
   color: var(--ink);
   box-shadow: none;
 }
@@ -1558,7 +1558,7 @@ legend,
 .sports-landscape-side .total-score > span { font-size: 8px; }
 .sports-landscape-side .total-score strong { font-size: 14px; }
 .sports-landscape-side .total-score button { width: 24px; height: 24px; }
-.sports-landscape-side .score-display { flex: 1; min-height: 0; }
+.sports-landscape-side .score-display { flex: 1; min-height: 0; background: color-mix(in srgb, var(--player-color) 38%, white); }
 .sports-landscape-side .score-label { font-size: clamp(10px, 1.4vw, 16px); }
 .sports-landscape-side .score-number { font-size: min(31vh, 25vw, 360px); }
 .sports-landscape-side .score-tap-hint { font-size: clamp(9px, 1.2vw, 13px); }
@@ -1611,6 +1611,7 @@ legend,
 .sports-landscape-center .timer-toggle { width: 100%; min-width: 0; min-height: 36px; justify-content: center; padding: 0 7px; font-size: 10px; }
 .sports-landscape-center #matchControls { display: grid; grid-template-columns: 1fr; gap: 7px; padding: 0; }
 .sports-landscape-center #matchControls button { min-height: 38px; padding: 0 6px; font-size: 10px; }
+.sports-landscape-center #matchControls .secondary-button { color: var(--ink); }
 .sports-landscape-center #matchControls svg { display: none; }
 
 .rotate-prompt {
