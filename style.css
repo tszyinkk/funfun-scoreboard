@@ -1718,6 +1718,10 @@ legend,
   background: white;
 }
 .mahjong-common-scoring > strong { font-size: 15px; }
+.mahjong-common-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mahjong-common-heading strong { font-size: 15px; }
+.mahjong-common-heading span { padding: 5px 8px; border-radius: 999px; background: color-mix(in srgb, var(--lime) 28%, white); color: var(--ink); font-size: 10px; font-weight: 900; white-space: nowrap; }
+.mahjong-common-scoring > .settings-help { margin-top: -3px; }
 .mahjong-common-scoring > .outline-button { justify-self: start; min-height: 42px; }
 .mahjong-score-table {
   width: 100%;
@@ -2205,7 +2209,39 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
   height: 100dvw;
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center;
+  grid-template-columns: minmax(0, 1fr) minmax(68px, 7.5dvh) minmax(0, 1fr);
+  gap: 5px;
+  padding: 6px;
 }
+
+.sports-forced-landscape .sports-landscape-center { gap: 4px; }
+.sports-forced-landscape .sports-landscape-side .card-header { padding: 8px clamp(12px, 2.5dvh, 32px) 0; }
+.sports-forced-landscape .sports-landscape-side .player-name { font-size: clamp(19px, 3dvh, 36px); }
+.sports-forced-landscape .sports-landscape-side .score-label { font-size: clamp(11px, 1.5dvh, 17px); }
+.sports-forced-landscape .sports-landscape-side .score-number { font-size: min(52dvw, 42dvh, 480px); }
+.sports-forced-landscape .sports-landscape-side .score-tap-hint { font-size: clamp(9px, 1.2dvh, 13px); }
+.sports-forced-landscape .sports-landscape-side .score-actions { padding: 0 clamp(10px, 2dvh, 24px) 7px; }
+.sports-forced-landscape .sports-landscape-side .score-actions button { min-height: 32px; }
+.sports-forced-landscape .sports-landscape-center #timerDisplay { font-size: clamp(16px, 2.5dvw, 26px); }
+.sports-forced-landscape .sports-landscape-actions .icon-button,
+.sports-forced-landscape .sports-landscape-actions .home-button,
+.sports-forced-landscape .sports-landscape-center .timer-toggle,
+.sports-forced-landscape .sports-landscape-center #matchControls button { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
+.sports-forced-landscape .sports-landscape-actions .home-button svg,
+.sports-forced-landscape .sports-landscape-center #matchControls svg { width: 16px; height: 16px; }
+.sports-forced-landscape .sports-landscape-center .timer-actions { gap: 3px; }
+.sports-forced-landscape .sports-landscape-center #matchControls { gap: 4px; }
+.sports-forced-landscape .modal-backdrop {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: 100dvh;
+  height: 100dvw;
+  padding: 10px;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
+}
+.sports-forced-landscape .modal { max-height: calc(100dvw - 20px); }
 
 @keyframes finger-flash { to { transform: translate(-50%, -50%) scale(1.12); filter: brightness(1.35); } }
 @keyframes score-bump-dark { 50% { transform: scale(1.09); color: white; } }

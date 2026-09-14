@@ -112,7 +112,7 @@
     let dealerIdsInCycle = ids;
     const hasNextDealer = players.includes(String(nextDealerId || ""));
     const completedByRotation = hasNextDealer
-      ? String(dealerId || "") === players[players.length - 1] && String(nextDealerId) === players[0]
+      ? String(nextDealerId) !== String(dealerId || "") && players.every((id) => ids.includes(id))
       : players.every((id) => ids.includes(id));
     if (players.length > 0 && completedByRotation) {
       completedCycles += 1;

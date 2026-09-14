@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=45" />
+    <link rel="stylesheet" href="style.css?v=46" />
   </head>
   <body>
     <div class="app-shell">
@@ -392,7 +392,7 @@
           <section class="mahjong-setup" id="setupMahjongRules" hidden aria-label="香港麻雀快速設定">
             <div class="mahjong-setup-heading">
               <h3>快速設定</h3>
-              <span>三項開局設定已簡化，計分節奏亦有常用預設</span>
+              <span>揀好玩法就可以開枱，毋須理解計分公式</span>
             </div>
             <div class="mahjong-quick-grid">
               <label class="field-label">幾多番先可以食糊？
@@ -417,17 +417,18 @@
                   <input class="text-input" name="mahjongCustomHands" type="number" min="1" max="999" value="16" inputmode="numeric" />
                 </span>
               </label>
+              <label class="field-label">流局時會點？
+                <select class="text-input" name="mahjongDrawDealerAction">
+                  <option value="stay" selected>留莊（同一位繼續做莊）</option>
+                  <option value="pass">過莊（下一位做莊）</option>
+                </select>
+                <small class="settings-help">留莊會令一圈多過四鋪；過莊就照常轉下一位。</small>
+              </label>
             </div>
             <div class="mahjong-common-scoring">
-              <strong>香港常用計分</strong>
-              <label class="field-label">想用邊種計分節奏？
-                <select class="text-input" name="mahjongScoringPreset">
-                  <option value="hk-table" selected>簡易級別（預設）</option>
-                  <option value="hk-half-spicy">半辣上（香港朋友枱常見）</option>
-                  <option value="hk-full-spicy">辣辣上（每番跳一倍）</option>
-                </select>
-                <small class="settings-help" data-scoring-style-help>將相近番數分成同一級，最容易睇同計。</small>
-              </label>
+              <div class="mahjong-common-heading"><strong>香港常用計分</strong><span>✓ 已自動套用</span></div>
+              <input type="hidden" name="mahjongScoringPreset" value="hk-table" />
+              <p class="settings-help" data-scoring-style-help>番數會按以下級別自動轉成分數，玩家毋須選公式。</p>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
                 <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
                 <tbody>
@@ -436,7 +437,7 @@
                   <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
                 </tbody>
               </table>
-              <button class="outline-button" id="mahjongCommonDefaults" type="button">套用香港常用計分</button>
+              <button class="outline-button" id="mahjongCommonDefaults" type="button">重新套用香港常用計分</button>
             </div>
             <div class="mahjong-setup-preview" id="mahjongSetupPreview" aria-live="polite"></div>
             <details class="settings-advanced" id="setupMahjongAdvanced">
@@ -546,17 +547,18 @@
                   <input class="text-input" name="mahjongCustomHands" type="number" min="1" max="999" value="16" inputmode="numeric" />
                 </span>
               </label>
+              <label class="field-label">流局時會點？
+                <select class="text-input" name="mahjongDrawDealerAction">
+                  <option value="stay">留莊（同一位繼續做莊）</option>
+                  <option value="pass">過莊（下一位做莊）</option>
+                </select>
+                <small class="settings-help">留莊會令一圈多過四鋪；過莊就照常轉下一位。</small>
+              </label>
             </div>
             <div class="mahjong-common-scoring">
-              <strong>香港常用計分</strong>
-              <label class="field-label">想用邊種計分節奏？
-                <select class="text-input" name="mahjongScoringPreset">
-                  <option value="hk-table">簡易級別（預設）</option>
-                  <option value="hk-half-spicy">半辣上（香港朋友枱常見）</option>
-                  <option value="hk-full-spicy">辣辣上（每番跳一倍）</option>
-                </select>
-                <small class="settings-help" data-scoring-style-help>將相近番數分成同一級，最容易睇同計。</small>
-              </label>
+              <div class="mahjong-common-heading"><strong>香港常用計分</strong><span>✓ 已自動套用</span></div>
+              <input type="hidden" name="mahjongScoringPreset" value="hk-table" />
+              <p class="settings-help" data-scoring-style-help>番數會按以下級別自動轉成分數，玩家毋須選公式。</p>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
                 <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
                 <tbody>
@@ -565,7 +567,7 @@
                   <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
                 </tbody>
               </table>
-              <button class="outline-button" id="settingsMahjongCommonDefaults" type="button">套用香港常用計分</button>
+              <button class="outline-button" id="settingsMahjongCommonDefaults" type="button">重新套用香港常用計分</button>
             </div>
             <div class="mahjong-setup-preview" id="settingsMahjongSetupPreview" aria-live="polite"></div>
           </section>
@@ -779,9 +781,9 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=45" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=45" defer></script>
-    <script src="big-two-core.js?v=45" defer></script>
-    <script src="app.js?v=45" defer></script>
+    <script src="mahjong-core.js?v=46" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=46" defer></script>
+    <script src="big-two-core.js?v=46" defer></script>
+    <script src="app.js?v=46" defer></script>
   </body>
 </html>

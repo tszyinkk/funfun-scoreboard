@@ -218,7 +218,7 @@ const STATIC_TRANSLATIONS = {
   "玩家 3": "Player 3",
   "玩家 4": "Player 4",
   "快速設定": "Quick settings",
-  "三項開局設定已簡化，計分節奏亦有常用預設": "Three simple choices, with common scoring presets",
+  "揀好玩法就可以開枱，毋須理解計分公式": "Choose the table rules and start right away—no scoring formula needed",
   "幾多番先可以食糊？": "Minimum fan to win",
   "1 番": "1 fan",
   "3 番": "3 fan",
@@ -232,7 +232,13 @@ const STATIC_TRANSLATIONS = {
   "東圈": "East round",
   "半莊": "Half game",
   "自訂局數": "Custom hands",
+  "流局時會點？": "After a drawn hand",
+  "留莊（同一位繼續做莊）": "Dealer stays",
+  "過莊（下一位做莊）": "Dealer passes to the next player",
+  "留莊會令一圈多過四鋪；過莊就照常轉下一位。": "Keeping the dealer can make a round longer than four hands; passing moves to the next player.",
   "香港常用計分": "Common Hong Kong scoring",
+  "✓ 已自動套用": "✓ Applied automatically",
+  "番數會按以下級別自動轉成分數，玩家毋須選公式。": "Fan is converted to points using the tiers below. No formula selection is needed.",
   "想用邊種計分節奏？": "Scoring style",
   "簡易級別（預設）": "Simple tiers (default)",
   "半辣上（香港朋友枱常見）": "Half-spicy progression",
@@ -241,6 +247,7 @@ const STATIC_TRANSLATIONS = {
   "倍數": "Multiplier",
   "只建議熟悉計分規則的玩家使用。": "Recommended only for players familiar with the scoring rules.",
   "套用香港常用計分": "Use common Hong Kong scoring",
+  "重新套用香港常用計分": "Reset to common Hong Kong scoring",
   "進階設定": "Advanced settings",
   "底數（每1倍值幾多分）": "Base points (value of ×1)",
   "自訂番數計分方式": "Custom fan scoring method",
@@ -446,6 +453,7 @@ function defaultMahjongRules() {
     dealerLoseMultiplier: 1,
     selfDrawMultiplier: 1,
     discardMultiplier: 1,
+    drawDealerAction: "stay",
     ronPaymentMode: "discarder",
     patterns: [
       { id: "chicken", label: "雞糊", fan: 0, enabled: true },
@@ -522,6 +530,7 @@ function sanitizeMahjongRules(rules = {}) {
     dealerLoseMultiplier: number("dealerLoseMultiplier", 0, 20),
     selfDrawMultiplier: number("selfDrawMultiplier", 0, 20),
     discardMultiplier: number("discardMultiplier", 0, 20),
+    drawDealerAction: rules.drawDealerAction === "pass" ? "pass" : "stay",
     ronPaymentMode: rules.ronPaymentMode === "all" ? "all" : "discarder",
     patterns,
   };
@@ -949,6 +958,7 @@ function syncSportsLayout() {
     elements.sportsLandscapeTimer.append(elements.timerBar);
     elements.sportsLandscapeControls.append(elements.matchControls);
     elements.sportsLandscapeActions.append(elements.topActions);
+    elements.sportsLandscapeBoard.append(elements.toast);
   } else {
     elements.topbar.hidden = false;
     elements.appMain.hidden = isHomeVisible || rotatePrompt;
@@ -963,6 +973,7 @@ function syncSportsLayout() {
       elements.matchControls,
       elements.roundHistory,
     );
+    $(".app-shell").append(elements.toast);
     [...elements.sportsLandscapeLeft.children, ...elements.sportsLandscapeRight.children].forEach((card) => elements.scoreGrid.append(card));
   }
 }
@@ -1592,6 +1603,9 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   const basePoints = Math.max(1, Number(data.get("mahjongBasePoints")) || 1);
   const fanStep = Math.max(1, Number(data.get("mahjongFanStep")) || 2);
   const scoringMode = data.get("mahjongScoringPreset") || data.get("mahjongAdvancedScoringMode") || "hk-table";
+  const drawRule = data.get("mahjongDrawDealerAction") === "pass"
+    ? t("流局過莊", "dealer passes after a draw")
+    : t("流局留莊", "dealer stays after a draw");
   renderMahjongScoringTable(form, scoringMode);
   const fanList = [...new Set([minimumFan, Math.max(minimumFan, 4), maxFan > 0 ? maxFan : Math.max(minimumFan, 13)])]
     .filter((fan) => fan >= minimumFan && (maxFan === 0 || fan <= maxFan))
@@ -1604,8 +1618,8 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   });
   const capText = maxFan > 0 ? t(`${maxFan}番封頂`, `${maxFan} fan cap`) : t("不設上限", "no fan cap");
   preview.textContent = t(
-    `目前玩法：${minimumFan}番起糊，${capText}；例如${examples.join("、")}。`,
-    `Current rules: ${minimumFan} fan minimum, ${capText}; for example ${examples.join(", ")}.`,
+    `目前玩法：${minimumFan}番起糊，${capText}，${drawRule}；例如${examples.join("、")}。`,
+    `Current rules: ${minimumFan} fan minimum, ${capText}, ${drawRule}; for example ${examples.join(", ")}.`,
   );
   if (capHelp) capHelp.textContent = maxFan > 0
     ? t(`實際超過${maxFan}番，都會按${maxFan}番封頂。`, `Hands above ${maxFan} fan are scored at the ${maxFan}-fan cap.`)
@@ -1642,21 +1656,7 @@ function setMahjongScoringControls(form, scoringMode) {
   const mode = [...HK_SCORING_MODES, "doubling", "linear"].includes(scoringMode) ? scoringMode : "hk-table";
   const preset = $("[name='mahjongScoringPreset']", form);
   const advanced = $("[name='mahjongAdvancedScoringMode']", form);
-  if (preset) {
-    let customOption = $("option[data-advanced-mode]", preset);
-    if (HK_SCORING_MODES.includes(mode)) {
-      customOption?.remove();
-    } else {
-      if (!customOption) {
-        customOption = document.createElement("option");
-        customOption.dataset.advancedMode = "true";
-        preset.appendChild(customOption);
-      }
-      customOption.value = mode;
-      customOption.textContent = t(`進階自訂：${MAHJONG_SCORING_LABELS[mode]}`, `Advanced custom: ${mode === "doubling" ? "per-fan doubling" : "linear scoring"}`);
-    }
-    preset.value = mode;
-  }
+  if (preset) preset.value = mode;
   if (advanced) advanced.value = mode;
 }
 
@@ -1791,8 +1791,8 @@ function mahjongSettlementSummary(unfinished = false) {
   return `已完成：${cycleText}\n每位玩家目前總分：\n${scores}\n未完成輸入的牌局：${unfinished ? "有" : "無"}`;
 }
 
-function nextDealerAfterHand(dealerId, winnerId, winType) {
-  if (winType === "draw" || winnerId === dealerId) return dealerId;
+function nextDealerAfterHand(dealerId, winnerId, winType, drawDealerAction = "stay") {
+  if ((winType !== "draw" && winnerId === dealerId) || (winType === "draw" && drawDealerAction !== "pass")) return dealerId;
   const index = state.participants.findIndex((player) => player.id === dealerId);
   return state.participants[(index + 1) % state.participants.length]?.id || dealerId;
 }
@@ -1970,7 +1970,7 @@ function recordMahjongHand(event) {
     mahjong: { ...payload },
     createdAt: new Date().toISOString(),
   });
-  const nextDealerId = nextDealerAfterHand(payload.dealerId, payload.winnerId, payload.winType);
+  const nextDealerId = nextDealerAfterHand(payload.dealerId, payload.winnerId, payload.winType, state.mahjong.drawDealerAction);
   Object.assign(session, MahjongCore.advanceProgress(session, payload.dealerId, state.participants.map((player) => player.id), nextDealerId));
   session.nextDealerId = nextDealerId;
   session.draft = { touched: false, values: {} };
@@ -2380,6 +2380,7 @@ function openSettings() {
     mahjongDealerLoseMultiplier: rules.dealerLoseMultiplier,
     mahjongSelfDrawMultiplier: rules.selfDrawMultiplier,
     mahjongDiscardMultiplier: rules.discardMultiplier,
+    mahjongDrawDealerAction: rules.drawDealerAction,
     mahjongLengthMode: session.lengthMode,
     mahjongCustomHands: session.plannedHands,
   };
@@ -2775,6 +2776,7 @@ $("#setupForm").addEventListener("submit", (event) => {
       dealerLoseMultiplier: form.get("mahjongDealerLoseMultiplier"),
       selfDrawMultiplier: form.get("mahjongSelfDrawMultiplier"),
       discardMultiplier: form.get("mahjongDiscardMultiplier"),
+      drawDealerAction: form.get("mahjongDrawDealerAction"),
       ronPaymentMode: form.get("mahjongRonPaymentMode"),
       patterns: defaultRules.patterns.map((pattern) => ({
         id: pattern.id,
@@ -2952,6 +2954,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
       dealerLoseMultiplier: form.get("mahjongDealerLoseMultiplier"),
       selfDrawMultiplier: form.get("mahjongSelfDrawMultiplier"),
       discardMultiplier: form.get("mahjongDiscardMultiplier"),
+      drawDealerAction: form.get("mahjongDrawDealerAction"),
       ronPaymentMode: form.get("mahjongRonPaymentMode"),
       patterns: state.mahjong.patterns.map((pattern) => ({
         id: pattern.id,

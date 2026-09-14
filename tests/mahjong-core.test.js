@@ -64,6 +64,28 @@ test("每位玩家最少做一次莊才完成一圈，連莊會令局數增加",
   assert.deepEqual(session.dealerIdsInCycle, []);
 });
 
+test("沒有流局或連莊時，東南西北四鋪正好完成一圈", () => {
+  const players = ["east", "south", "west", "north"];
+  let session = { completedCycles: 0, handsInCycle: 0, completedHands: 0, dealerIdsInCycle: [] };
+  const nextDealers = ["south", "west", "north", "east"];
+  players.forEach((dealer, index) => {
+    session = MahjongCore.advanceProgress(session, dealer, players, nextDealers[index]);
+  });
+  assert.equal(session.completedCycles, 1);
+  assert.equal(session.completedHands, 4);
+  assert.equal(session.handsInCycle, 0);
+});
+
+test("流局留莊不會完成圈數，選擇過莊則可以完成", () => {
+  const players = ["east", "south", "west", "north"];
+  let session = { completedCycles: 0, handsInCycle: 3, completedHands: 3, dealerIdsInCycle: ["east", "south", "west"] };
+  session = MahjongCore.advanceProgress(session, "north", players, "north");
+  assert.equal(session.completedCycles, 0);
+  session = MahjongCore.advanceProgress(session, "north", players, "east");
+  assert.equal(session.completedCycles, 1);
+  assert.equal(session.completedHands, 5);
+});
+
 test("北位連莊時仍留在原本圈風，轉回東位先完成一圈", () => {
   const players = ["east", "south", "west", "north"];
   let session = { completedCycles: 0, completedHands: 0, handsInCycle: 3, dealerIdsInCycle: ["east", "south", "west"] };
