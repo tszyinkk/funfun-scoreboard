@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=44" />
+    <link rel="stylesheet" href="style.css?v=45" />
   </head>
   <body>
     <div class="app-shell">
@@ -171,7 +171,10 @@
             <div class="touch-points" id="touchPoints" aria-hidden="true"></div>
           </div>
           <div class="chooser-result" id="chooserResult" aria-live="polite" hidden></div>
-          <button class="primary-button wide" id="chooserResetButton" type="button">再抽一次</button>
+          <div class="chooser-result-actions">
+            <button class="primary-button" id="chooserResetButton" type="button">再抽一次</button>
+            <button class="outline-button chooser-home-button" id="chooserHomeButton" type="button" hidden>返回主頁</button>
+          </div>
         </section>
 
         <section class="big-two-panel" id="bigTwoPanel" hidden aria-labelledby="bigTwoTitle">
@@ -245,6 +248,11 @@
                 <input class="text-input" id="mahjongNote" name="note" type="text" maxlength="40" placeholder="例如：清一色、自摸" />
               </label>
             </div>
+            <button class="mahjong-analyzer-launch" id="mahjongOpenAnalyzerButton" type="button">
+              <span aria-hidden="true">🀄</span>
+              <span><strong>唔知幾多番？</strong><small>輸入整副牌，自動檢查牌型同建議番數</small></span>
+              <span aria-hidden="true">→</span>
+            </button>
             <fieldset class="mahjong-pattern-fieldset" id="mahjongPatternFieldset">
               <legend>食咩牌型？（可多選）</legend>
               <div class="mahjong-pattern-choices" id="mahjongPatternChoices"></div>
@@ -677,6 +685,46 @@
       </div>
     </div>
 
+    <div class="modal-backdrop mahjong-analyzer-backdrop" id="mahjongAnalyzerModal" role="dialog" aria-modal="true" aria-labelledby="mahjongAnalyzerTitle" aria-hidden="true">
+      <div class="modal mahjong-analyzer-modal">
+        <div class="modal-accent" aria-hidden="true"></div>
+        <button class="modal-close" data-close="mahjongAnalyzerModal" type="button" aria-label="關閉自動計番">×</button>
+        <div class="modal-header compact">
+          <p class="eyebrow">HAND CHECKER</p>
+          <h2 id="mahjongAnalyzerTitle">輸入整副牌，自動計番</h2>
+          <p>先加入已上、碰或槓嘅組合，再逐隻按手上牌；食糊嗰隻都要輸入。</p>
+        </div>
+        <section class="mahjong-meld-builder" aria-labelledby="mahjongMeldTitle">
+          <div class="mahjong-analyzer-section-heading">
+            <h3 id="mahjongMeldTitle">已上／碰／槓</h3>
+            <small>冇就直接輸入手上牌</small>
+          </div>
+          <div class="mahjong-meld-controls">
+            <select class="text-input" id="mahjongAnalyzerMeldType" aria-label="組合種類">
+              <option value="chow">上牌／順子</option>
+              <option value="pung">碰／刻子</option>
+              <option value="kong">槓</option>
+              <option value="concealed-kong">暗槓</option>
+            </select>
+            <select class="text-input" id="mahjongAnalyzerMeldTile" aria-label="選擇牌張"></select>
+            <button class="outline-button" id="mahjongAnalyzerAddMeld" type="button">加入</button>
+          </div>
+          <div class="mahjong-analyzer-melds" id="mahjongAnalyzerMelds"></div>
+        </section>
+        <section aria-labelledby="mahjongTilesTitle">
+          <div class="mahjong-analyzer-section-heading">
+            <h3 id="mahjongTilesTitle">手上牌＋食糊牌</h3>
+            <strong id="mahjongAnalyzerCount">0／14 隻</strong>
+          </div>
+          <div class="mahjong-selected-tiles" id="mahjongAnalyzerSelected"></div>
+          <div class="mahjong-tile-palette" id="mahjongAnalyzerPalette"></div>
+        </section>
+        <p class="mahjong-analyzer-result" id="mahjongAnalyzerResult" aria-live="polite">請輸入完整牌張。</p>
+        <p class="mahjong-analyzer-caveat">自動分析只會加入牌面可以確定嘅番型；自摸、搶槓、海底、天糊等要按實際情況自行剔選。</p>
+        <button class="primary-button wide" id="mahjongAnalyzerApply" type="button" disabled>套用建議牌型</button>
+      </div>
+    </div>
+
     <div class="modal-backdrop" id="bigTwoRoundModal" role="dialog" aria-modal="true" aria-labelledby="bigTwoRoundTitle" aria-hidden="true">
       <div class="modal big-two-round-modal">
         <div class="modal-accent" aria-hidden="true"></div>
@@ -731,8 +779,9 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=44" defer></script>
-    <script src="big-two-core.js?v=44" defer></script>
-    <script src="app.js?v=44" defer></script>
+    <script src="mahjong-core.js?v=45" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=45" defer></script>
+    <script src="big-two-core.js?v=45" defer></script>
+    <script src="app.js?v=45" defer></script>
   </body>
 </html>

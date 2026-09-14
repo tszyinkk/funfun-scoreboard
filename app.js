@@ -32,6 +32,7 @@ let chooserTouches = new Map();
 let chooserCountdownTimer = null;
 let chooserCountdown = 0;
 let nextFingerNumber = 1;
+let mahjongAnalyzerDraft = { concealed: [], melds: [], result: null };
 let gameLibrary = [];
 let activeLibraryCategory = "mahjong";
 let uiLanguage = "zh";
@@ -96,6 +97,7 @@ const elements = {
   chooserPanel: $("#chooserPanel"),
   chooserStatus: $("#chooserStatus"),
   chooserResult: $("#chooserResult"),
+  chooserHomeButton: $("#chooserHomeButton"),
   touchArena: $("#touchArena"),
   touchPoints: $("#touchPoints"),
   mahjongPanel: $("#mahjongPanel"),
@@ -112,6 +114,15 @@ const elements = {
   mahjongProgress: $("#mahjongProgress"),
   mahjongSessionBar: $("#mahjongSessionBar"),
   mahjongSettlement: $("#mahjongSettlement"),
+  mahjongAnalyzerModal: $("#mahjongAnalyzerModal"),
+  mahjongAnalyzerMeldType: $("#mahjongAnalyzerMeldType"),
+  mahjongAnalyzerMeldTile: $("#mahjongAnalyzerMeldTile"),
+  mahjongAnalyzerMelds: $("#mahjongAnalyzerMelds"),
+  mahjongAnalyzerSelected: $("#mahjongAnalyzerSelected"),
+  mahjongAnalyzerPalette: $("#mahjongAnalyzerPalette"),
+  mahjongAnalyzerCount: $("#mahjongAnalyzerCount"),
+  mahjongAnalyzerResult: $("#mahjongAnalyzerResult"),
+  mahjongAnalyzerApply: $("#mahjongAnalyzerApply"),
   bigTwoPanel: $("#bigTwoPanel"),
   bigTwoProgress: $("#bigTwoProgress"),
   bigTwoOpenRoundButton: $("#bigTwoOpenRoundButton"),
@@ -171,6 +182,8 @@ const STATIC_TRANSLATIONS = {
   "花牌數（如有花牌玩法）": "Flower tiles (if used)",
   "備註（可留空）": "Note (optional)",
   "食咩牌型？（可多選）": "Winning patterns (select all that apply)",
+  "唔知幾多番？": "Not sure how many fan?",
+  "輸入整副牌，自動檢查牌型同建議番數": "Enter the full hand to validate it and suggest patterns",
   "記錄呢局麻雀": "Save Mahjong hand",
   "輸入番數後會顯示今局計算結果。": "The score preview will appear here.",
   "自摸＝自己摸到；出銃＝食其他玩家打出的牌。": "Self-draw means drawing the winning tile yourself; discard win means winning on another player's discard.",
@@ -272,6 +285,19 @@ const STATIC_TRANSLATIONS = {
   "自動炒牌倍數": "Automatic penalty multiplier",
   "填寫剩牌數後會顯示今鋪分數。": "Enter cards left to preview this hand's scores.",
   "記錄今鋪": "Save hand",
+  "輸入整副牌，自動計番": "Enter the full hand for automatic fan checking",
+  "先加入已上、碰或槓嘅組合，再逐隻按手上牌；食糊嗰隻都要輸入。": "Add exposed chows, pungs and kongs first, then tap every concealed tile including the winning tile.",
+  "已上／碰／槓": "Exposed chows, pungs and kongs",
+  "冇就直接輸入手上牌": "Skip this if there are none",
+  "上牌／順子": "Chow / sequence",
+  "碰／刻子": "Pung / triplet",
+  "槓": "Kong",
+  "暗槓": "Concealed kong",
+  "加入": "Add",
+  "手上牌＋食糊牌": "Concealed tiles + winning tile",
+  "請輸入完整牌張。": "Enter the complete hand.",
+  "自動分析只會加入牌面可以確定嘅番型；自摸、搶槓、海底、天糊等要按實際情況自行剔選。": "Automatic analysis only adds patterns proven by the tiles. Self-draw, robbing a kong, last-tile wins and similar conditions must be selected manually.",
+  "套用建議牌型": "Apply suggested patterns",
   "總分": "Total",
   "本局": "Current",
   "按一下 ＋1": "Tap +1",
@@ -314,6 +340,50 @@ const MAHJONG_PATTERN_LABELS_EN = {
   "earthly-hand": "Earthly hand",
   "four-kongs": "Four kongs",
 };
+
+const MAHJONG_PATTERN_HELP_EN = {
+  chicken: "A valid hand with no other scoring pattern.",
+  pinghu: "All four melds are sequences, plus one pair.",
+  "no-flower": "The winning hand has no flower or season tile.",
+  "proper-flower": "A flower matching the player's seat.",
+  concealed: "No exposed chow, pung or open kong before winning.",
+  "dragon-pung": "A pung or kong of Red, Green or White Dragon.",
+  "seat-wind": "A pung or kong matching the player's seat wind.",
+  "prevailing-wind": "A pung or kong matching the current round wind.",
+  "rob-kong": "Win using a tile another player adds to a kong.",
+  "one-flower-set": "All four seasons or all four flowers.",
+  "kong-draw": "Win on the replacement tile after a kong.",
+  "last-tile": "Win on the final draw or final discard.",
+  "seven-flowers": "Declare a win after collecting seven flowers.",
+  "seven-pairs": "Seven different pairs with no exposed meld.",
+  "all-pungs": "Four pungs or kongs, plus one pair.",
+  "half-flush": "Only one numbered suit together with honours.",
+  "human-hand": "Win on another player's first-round discard.",
+  "terminals-honors": "Every group contains a 1, 9 or honour tile.",
+  "small-dragons": "Two dragon pungs or kongs and a pair of the third dragon.",
+  "small-winds": "Three wind pungs or kongs and a pair of the fourth wind.",
+  "full-flush": "Only one numbered suit and no honour tiles.",
+  "big-dragons": "Pungs or kongs of all three dragons.",
+  "big-flower": "All eight flower and season tiles.",
+  "concealed-pungs": "Four concealed pungs or kongs, plus a pair.",
+  "kong-on-kong": "Win after drawing consecutive kong replacements.",
+  "mixed-terminals": "Only terminals and honours, arranged as pungs and a pair.",
+  "all-honors": "Every tile is a wind or dragon.",
+  "pure-terminals": "Every tile is a 1 or 9.",
+  "nine-gates": "Concealed 1112345678999 in one suit, plus any tile of that suit.",
+  "big-winds": "Pungs or kongs of all four winds.",
+  "thirteen-orphans": "All 13 terminals and honours, with one duplicate.",
+  "heavenly-hand": "Dealer wins with the original dealt hand.",
+  "earthly-hand": "A non-dealer wins on the dealer's first discard.",
+  "four-kongs": "The winning hand contains four declared kongs.",
+};
+
+const MAHJONG_ANALYZER_PATTERN_IDS = new Set([
+  "chicken", "pinghu", "no-flower", "concealed", "dragon-pung", "seat-wind", "prevailing-wind",
+  "seven-pairs", "all-pungs", "half-flush", "terminals-honors", "small-dragons", "small-winds",
+  "full-flush", "big-dragons", "concealed-pungs", "mixed-terminals", "all-honors", "pure-terminals",
+  "nine-gates", "big-winds", "thirteen-orphans", "four-kongs",
+]);
 
 let staticTranslationNodes = [];
 
@@ -861,10 +931,12 @@ function sportsPortraitPromptMatches() {
 }
 
 function syncSportsLayout() {
-  const landscape = Boolean(state && !isHomeVisible && state.kind === "sports" && sportsLandscapeMatches());
-  const rotatePrompt = Boolean(state && !isHomeVisible && state.kind === "sports" && !landscape && sportsPortraitPromptMatches());
+  const forcedLandscape = Boolean(state && !isHomeVisible && state.kind === "sports" && !sportsLandscapeMatches() && sportsPortraitPromptMatches());
+  const landscape = Boolean(state && !isHomeVisible && state.kind === "sports" && (sportsLandscapeMatches() || forcedLandscape));
+  const rotatePrompt = false;
   const chooserActive = Boolean(state && !isHomeVisible && state.kind === "chooser");
   document.body.classList.toggle("sports-landscape-active", landscape);
+  document.body.classList.toggle("sports-forced-landscape", forcedLandscape);
   document.body.classList.toggle("sports-portrait-active", rotatePrompt);
   document.body.classList.toggle("chooser-active", chooserActive);
   elements.sportsLandscapeBoard.hidden = !landscape;
@@ -919,6 +991,7 @@ function showHome() {
   if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
   if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
+  if (elements.mahjongAnalyzerModal.classList.contains("is-open")) closeModal("mahjongAnalyzerModal");
   if (elements.bigTwoRoundModal.classList.contains("is-open")) closeModal("bigTwoRoundModal");
   try { screen.orientation?.unlock?.(); } catch { /* Orientation lock is not supported on every device. */ }
   exitAppFullscreen();
@@ -1203,6 +1276,151 @@ function displayMahjongPatternLabel(pattern, wind) {
   return pattern.label;
 }
 
+function mahjongAnalyzerTileName(tile) {
+  return `${tile.glyph} ${uiLanguage === "en" ? tile.en : tile.zh}`;
+}
+
+function mahjongAnalyzerUsedCounts(draft = mahjongAnalyzerDraft) {
+  return [...draft.concealed, ...draft.melds.flatMap((meld) => MahjongHandAnalyzer.meldTileIds(meld))]
+    .reduce((counts, id) => ({ ...counts, [id]: (counts[id] || 0) + 1 }), {});
+}
+
+function updateMahjongAnalyzerMeldOptions() {
+  const selectedType = elements.mahjongAnalyzerMeldType.value;
+  const type = selectedType === "concealed-kong" ? "kong" : selectedType;
+  const previous = elements.mahjongAnalyzerMeldTile.value;
+  const choices = MahjongHandAnalyzer.TILE_DEFS.filter((tile) => type !== "chow" || (tile.suit !== "honor" && tile.rank <= 7));
+  elements.mahjongAnalyzerMeldTile.replaceChildren(...choices.map((tile) => {
+    const option = document.createElement("option");
+    option.value = tile.id;
+    option.textContent = type === "chow"
+      ? `${tile.glyph}${MahjongHandAnalyzer.TILE_MAP[`${tile.suit}${tile.rank + 1}`].glyph}${MahjongHandAnalyzer.TILE_MAP[`${tile.suit}${tile.rank + 2}`].glyph} ${uiLanguage === "en" ? `${tile.rank}-${tile.rank + 2}` : `${tile.rank}${tile.rank + 1}${tile.rank + 2}${tile.suit === "m" ? "萬" : tile.suit === "s" ? "索" : "筒"}`}`
+      : mahjongAnalyzerTileName(tile);
+    return option;
+  }));
+  if (choices.some((tile) => tile.id === previous)) elements.mahjongAnalyzerMeldTile.value = previous;
+}
+
+function mahjongAnalyzerReason(result) {
+  if (result.reason === "wrong-tile-count") return t(`手上牌要有 ${result.expected} 隻，而家有 ${result.actual} 隻。`, `You need ${result.expected} concealed tiles; ${result.actual} entered.`);
+  if (result.reason === "too-many-copies") return t("同一款牌最多只可以有四隻。", "A hand cannot contain more than four copies of one tile.");
+  if (result.reason === "too-many-melds") return t("最多只可以有四組上、碰或槓。", "A hand can have at most four declared melds.");
+  if (result.reason === "invalid-meld") return t("有一組上、碰或槓輸入唔完整。", "One declared meld is invalid.");
+  if (result.reason === "not-winning-hand") return t("牌數正確，但暫時組唔成四組一對、七對子或十三么，請檢查牌張。", "The tile count is correct, but the tiles do not form four melds and a pair, Seven Pairs, or Thirteen Orphans.");
+  return t("請檢查輸入嘅牌張。", "Check the entered tiles.");
+}
+
+function renderMahjongAnalyzer() {
+  if (state?.kind !== "mahjong") return;
+  updateMahjongAnalyzerMeldOptions();
+  const usedCounts = mahjongAnalyzerUsedCounts();
+  const expected = 14 - mahjongAnalyzerDraft.melds.length * 3;
+  elements.mahjongAnalyzerCount.textContent = `${mahjongAnalyzerDraft.concealed.length}／${expected} ${t("隻", "tiles")}`;
+
+  elements.mahjongAnalyzerMelds.replaceChildren();
+  mahjongAnalyzerDraft.melds.forEach((meld, index) => {
+    const item = document.createElement("span");
+    item.className = "mahjong-analyzer-meld";
+    const ids = MahjongHandAnalyzer.meldTileIds(meld);
+    const typeName = meld.type === "kong" && meld.open === false
+      ? t("暗槓", "Concealed kong")
+      : { chow: t("上", "Chow"), pung: t("碰", "Pung"), kong: t("槓", "Kong") }[meld.type];
+    const label = document.createElement("span");
+    label.textContent = `${typeName} ${ids.map((id) => MahjongHandAnalyzer.TILE_MAP[id].glyph).join("")}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.dataset.removeAnalyzerMeld = String(index);
+    remove.setAttribute("aria-label", t(`移除${typeName}`, `Remove ${typeName}`));
+    remove.textContent = "×";
+    item.append(label, remove);
+    elements.mahjongAnalyzerMelds.appendChild(item);
+  });
+
+  elements.mahjongAnalyzerSelected.replaceChildren();
+  const selectedCounts = mahjongAnalyzerDraft.concealed.reduce((counts, id) => ({ ...counts, [id]: (counts[id] || 0) + 1 }), {});
+  const selectedTiles = MahjongHandAnalyzer.TILE_DEFS.filter((tile) => selectedCounts[tile.id]);
+  if (!selectedTiles.length) {
+    const empty = document.createElement("span");
+    empty.className = "mahjong-selected-empty";
+    empty.textContent = t("由下面逐隻按入手上牌；按已選牌可以減返。", "Tap tiles below to add them; tap a selected tile to remove one.");
+    elements.mahjongAnalyzerSelected.appendChild(empty);
+  } else {
+    selectedTiles.forEach((tile) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "mahjong-selected-tile";
+      button.dataset.removeAnalyzerTile = tile.id;
+      button.title = mahjongAnalyzerTileName(tile);
+      button.textContent = tile.glyph;
+      const count = document.createElement("small");
+      count.textContent = `×${selectedCounts[tile.id]}`;
+      button.appendChild(count);
+      elements.mahjongAnalyzerSelected.appendChild(button);
+    });
+  }
+
+  elements.mahjongAnalyzerPalette.replaceChildren(...MahjongHandAnalyzer.TILE_DEFS.map((tile) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mahjong-tile-button";
+    button.dataset.addAnalyzerTile = tile.id;
+    button.title = mahjongAnalyzerTileName(tile);
+    button.setAttribute("aria-label", mahjongAnalyzerTileName(tile));
+    button.textContent = tile.glyph;
+    button.disabled = (usedCounts[tile.id] || 0) >= 4 || mahjongAnalyzerDraft.concealed.length >= expected;
+    return button;
+  }));
+
+  const winner = state.participants.find((player) => player.id === elements.mahjongWinner.value) || state.participants[0];
+  const prevailingWind = MahjongCore.windForCycle(state.mahjongSession?.startingWind || state.mahjong.prevailingWind, state.mahjongSession?.completedCycles || 0);
+  const result = MahjongHandAnalyzer.analyzeHand({
+    concealed: mahjongAnalyzerDraft.concealed,
+    melds: mahjongAnalyzerDraft.melds,
+    seatWind: winner?.seatWind || "east",
+    prevailingWind,
+    flowers: Number($("#mahjongFlowers").value) || 0,
+  });
+  mahjongAnalyzerDraft.result = result;
+  elements.mahjongAnalyzerResult.classList.toggle("is-valid", result.valid);
+  elements.mahjongAnalyzerResult.classList.toggle("is-invalid", !result.valid && result.reason !== "wrong-tile-count");
+  if (!result.valid) {
+    elements.mahjongAnalyzerResult.textContent = mahjongAnalyzerReason(result);
+    elements.mahjongAnalyzerApply.disabled = true;
+    return;
+  }
+  const patterns = result.patterns.map((id) => state.mahjong.patterns.find((pattern) => pattern.id === id)).filter((pattern) => pattern?.enabled);
+  const fan = patterns.reduce((sum, pattern) => sum + pattern.fan, 0);
+  const names = patterns.map((pattern) => uiLanguage === "en" ? MAHJONG_PATTERN_LABELS_EN[pattern.id] || pattern.label : displayMahjongPatternLabel(pattern, prevailingWind));
+  elements.mahjongAnalyzerResult.textContent = names.length
+    ? t(`牌型成立。建議：${names.join("、")}；牌面共 ${fan} 番。`, `Valid winning hand. Suggested: ${names.join(", ")}; ${fan} fan visible from the tiles.`)
+    : t("牌型成立，但牌面未能確定有番；請再按實際食糊情況選擇番型。", "Valid winning hand, but no fan can be proven from the tiles alone. Select any situational patterns manually.");
+  elements.mahjongAnalyzerApply.disabled = patterns.length === 0;
+}
+
+function openMahjongAnalyzer() {
+  if (state?.kind !== "mahjong") return;
+  mahjongAnalyzerDraft = { concealed: [], melds: [], result: null };
+  renderMahjongAnalyzer();
+  openModal("mahjongAnalyzerModal");
+}
+
+function applyMahjongAnalyzerSuggestions() {
+  const result = mahjongAnalyzerDraft.result;
+  if (!result?.valid) return;
+  $$('input[name="patterns"]', elements.mahjongPatternChoices).forEach((input) => {
+    if (MAHJONG_ANALYZER_PATTERN_IDS.has(input.value)) input.checked = false;
+  });
+  result.patterns.forEach((id) => {
+    const input = $(`input[name="patterns"][value="${CSS.escape(id)}"]`, elements.mahjongPatternChoices);
+    if (input) input.checked = true;
+  });
+  $("#mahjongHandFan").value = "0";
+  captureMahjongDraft();
+  updateMahjongPreview();
+  closeModal("mahjongAnalyzerModal");
+  showToast(t("已套用自動分析牌型，請確認食糊情況", "Suggested patterns applied; confirm any situational bonuses"));
+}
+
 function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFan, patternFan = 0, patternIncludesSelfDraw = false, flowers, fanAdjustment = 0 }) {
   const rules = state.mahjong;
   if (winType === "draw") {
@@ -1225,12 +1443,12 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     maxPoints: rules.maxPoints,
   });
   const fan = score.fan;
-  if (!score.valid) return { valid: false, fan, bonusFan, reason: `未夠 ${rules.minimumFan} 番起糊` };
+  if (!score.valid) return { valid: false, fan, bonusFan, reason: t(`未夠 ${rules.minimumFan} 番起糊`, `At least ${rules.minimumFan} fan is required to win`) };
   const cappedPoints = score.points;
   const winner = state.participants.find((player) => player.id === winnerId);
   const discarder = state.participants.find((player) => player.id === discarderId);
-  if (!winner) return { valid: false, reason: "請選擇食糊者" };
-  if (winType === "discard" && (!discarder || discarder.id === winner.id)) return { valid: false, reason: "出銃時要選另一位玩家" };
+  if (!winner) return { valid: false, reason: t("請選擇食糊者", "Choose the winner") };
+  if (winType === "discard" && (!discarder || discarder.id === winner.id)) return { valid: false, reason: t("出銃時要選另一位玩家", "Choose a different player as the discarder") };
 
   const net = Object.fromEntries(state.participants.map((player) => [player.id, 0]));
   const dealerWinMultiplier = dealerId === winner.id ? rules.dealerWinMultiplier : 1;
@@ -1294,6 +1512,10 @@ function renderMahjongEntry() {
   if (state.participants.some((player) => player.id === dealerValue)) elements.mahjongDealer.value = dealerValue;
   if (!elements.mahjongDealer.value && state.participants[0]) elements.mahjongDealer.value = state.participants[0].id;
   if (elements.mahjongWinner.value === elements.mahjongDiscarder.value && state.participants[1]) elements.mahjongDiscarder.value = state.participants[1].id;
+  if (elements.mahjongScoringModal.classList.contains("is-open")) {
+    const activeWinner = state.participants.find((player) => player.id === elements.mahjongWinner.value);
+    $("#mahjongScoringTitle").textContent = activeWinner ? t(`為 ${activeWinner.name} 計番`, `Score ${activeWinner.name}'s win`) : t("今局計番", "Score this hand");
+  }
   ["winner", "discarder", "winType", "dealer", "handFan", "flowers", "note"].forEach((name) => {
     const control = elements.mahjongEntryForm.elements.namedItem(name);
     if (control && draftValues[name] !== undefined) control.value = draftValues[name];
@@ -1304,6 +1526,7 @@ function renderMahjongEntry() {
   $("#mahjongHandFanField").hidden = elements.mahjongWinType.value === "draw";
   $("#mahjongFlowersField").hidden = elements.mahjongWinType.value === "draw";
   $("#mahjongPatternFieldset").hidden = elements.mahjongWinType.value === "draw";
+  $("#mahjongOpenAnalyzerButton").hidden = elements.mahjongWinType.value === "draw";
   elements.mahjongPatternChoices.replaceChildren();
   const currentWind = MahjongCore.windForCycle(session.startingWind || state.mahjong.prevailingWind, session.completedCycles);
   const windLabels = MahjongCore.WIND_NAMES;
@@ -1316,9 +1539,17 @@ function renderMahjongEntry() {
     input.value = pattern.id;
     input.checked = selectedPatternIds.has(pattern.id);
     const text = document.createElement("span");
-    text.textContent = uiLanguage === "en"
+    text.className = "mahjong-pattern-copy";
+    const patternName = document.createElement("b");
+    patternName.textContent = uiLanguage === "en"
       ? (MAHJONG_PATTERN_LABELS_EN[pattern.id] || pattern.label)
       : displayMahjongPatternLabel(pattern, currentWind);
+    text.appendChild(patternName);
+    if (uiLanguage === "en" && MAHJONG_PATTERN_HELP_EN[pattern.id]) {
+      const help = document.createElement("small");
+      help.textContent = MAHJONG_PATTERN_HELP_EN[pattern.id];
+      text.appendChild(help);
+    }
     const fan = document.createElement("strong");
     const isCappedPattern = state.mahjong.maxFan > 0 && pattern.fan > state.mahjong.maxFan;
     fan.textContent = isCappedPattern
@@ -1790,6 +2021,7 @@ function renderChooser() {
     elements.touchPoints.appendChild(selectedPoint);
   }
   elements.chooserResult.hidden = !result;
+  elements.chooserHomeButton.hidden = !result;
   if (result) elements.chooserResult.textContent = t(`✦ 今次首家：手指 ${state.chooser.resultFingerNumber}`, `✦ First player: finger ${state.chooser.resultFingerNumber}`);
   if (chooserCountdown > 0) {
     elements.chooserStatus.textContent = `${chooserCountdown}…`;
@@ -1862,6 +2094,7 @@ function renderBigTwoRoundForm(winnerId = "") {
   if (state.participants.some((player) => player.id === currentWinner)) elements.bigTwoWinner.value = currentWinner;
   elements.bigTwoRemainingList.replaceChildren();
   state.participants.forEach((player) => {
+    if (player.id === elements.bigTwoWinner.value) return;
     const row = document.createElement("label");
     row.className = "big-two-remaining-row";
     const name = document.createElement("strong");
@@ -1873,11 +2106,11 @@ function renderBigTwoRoundForm(winnerId = "") {
     input.max = "13";
     input.inputMode = "numeric";
     input.dataset.bigtwoPlayerId = player.id;
-    const isWinner = player.id === elements.bigTwoWinner.value;
-    input.disabled = isWinner;
-    input.value = isWinner ? "0" : Number(previous[player.id]) >= 1 ? previous[player.id] : "1";
+    input.placeholder = "—";
+    input.value = Number(previous[player.id]) >= 1 ? previous[player.id] : "";
+    input.autocomplete = "off";
     const suffix = document.createElement("span");
-    suffix.textContent = isWinner ? t("贏家", "Winner") : t("剩牌", "cards left");
+    suffix.textContent = t("剩牌", "cards left");
     row.append(name, input, suffix);
     elements.bigTwoRemainingList.appendChild(row);
   });
@@ -2416,6 +2649,41 @@ elements.mahjongEntryForm.addEventListener("change", (event) => {
 
 elements.mahjongOpenScoringButton.addEventListener("click", () => openMahjongScoring());
 $("#mahjongEndButton").addEventListener("click", requestMahjongSettlement);
+$("#mahjongOpenAnalyzerButton").addEventListener("click", openMahjongAnalyzer);
+elements.mahjongAnalyzerMeldType.addEventListener("change", updateMahjongAnalyzerMeldOptions);
+$("#mahjongAnalyzerAddMeld").addEventListener("click", () => {
+  if (mahjongAnalyzerDraft.melds.length >= 4) return showToast(t("最多只可以加入四組牌", "You can add at most four melds"));
+  const selectedType = elements.mahjongAnalyzerMeldType.value;
+  const meld = { type: selectedType === "concealed-kong" ? "kong" : selectedType, tile: elements.mahjongAnalyzerMeldTile.value, open: selectedType !== "concealed-kong" };
+  const nextCounts = mahjongAnalyzerUsedCounts({ ...mahjongAnalyzerDraft, melds: [...mahjongAnalyzerDraft.melds, meld] });
+  if (Object.values(nextCounts).some((count) => count > 4)) return showToast(t("同一款牌最多只可以有四隻", "Only four copies of each tile are available"));
+  mahjongAnalyzerDraft.melds.push(meld);
+  renderMahjongAnalyzer();
+});
+elements.mahjongAnalyzerMelds.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-analyzer-meld]");
+  if (!button) return;
+  mahjongAnalyzerDraft.melds.splice(Number(button.dataset.removeAnalyzerMeld), 1);
+  renderMahjongAnalyzer();
+});
+elements.mahjongAnalyzerPalette.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-add-analyzer-tile]");
+  if (!button || button.disabled) return;
+  mahjongAnalyzerDraft.concealed.push(button.dataset.addAnalyzerTile);
+  renderMahjongAnalyzer();
+});
+elements.mahjongAnalyzerSelected.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-analyzer-tile]");
+  if (!button) return;
+  const index = mahjongAnalyzerDraft.concealed.lastIndexOf(button.dataset.removeAnalyzerTile);
+  if (index >= 0) mahjongAnalyzerDraft.concealed.splice(index, 1);
+  renderMahjongAnalyzer();
+});
+elements.mahjongAnalyzerApply.addEventListener("click", applyMahjongAnalyzerSuggestions);
+
+$$('[data-close="mahjongAnalyzerModal"]').forEach((button) => {
+  button.addEventListener("click", () => closeModal("mahjongAnalyzerModal"));
+});
 
 elements.bigTwoOpenRoundButton.addEventListener("click", () => openBigTwoRound());
 elements.bigTwoWinner.addEventListener("change", () => renderBigTwoRoundForm(elements.bigTwoWinner.value));
@@ -2464,6 +2732,7 @@ $("#settingsMahjongCommonDefaults").addEventListener("click", () => {
 });
 
 $("#chooserResetButton").addEventListener("click", resetChooser);
+elements.chooserHomeButton.addEventListener("click", showHome);
 
 $("#setupForm").addEventListener("change", (event) => {
   if (event.target.name === "preset") updateSetupFromPreset();
@@ -2546,6 +2815,7 @@ elements.languageToggle.addEventListener("click", () => {
   updateConnectionStatus();
   if (elements.gameLibraryModal.classList.contains("is-open")) renderGameLibrary();
   if (elements.mahjongScoringModal.classList.contains("is-open")) renderMahjongEntry();
+  if (elements.mahjongAnalyzerModal.classList.contains("is-open")) renderMahjongAnalyzer();
   if (elements.bigTwoRoundModal.classList.contains("is-open")) renderBigTwoRoundForm(elements.bigTwoWinner.value);
 });
 $("#homeModeGrid").addEventListener("click", (event) => {
@@ -2576,12 +2846,15 @@ elements.gameLibraryList.addEventListener("click", (event) => {
   if (!remove) return;
   const game = gameLibrary.find((entry) => entry.gameId === remove.dataset.deleteGameId);
   if (!game) return;
+  const category = activeLibraryCategory;
+  closeModal("gameLibraryModal");
   openConfirm({
     title: t("刪除呢個紀錄？", "Delete this game?"),
     message: t(`「${game.title}」刪除後無法復原。`, `“${game.title}” cannot be restored after deletion.`),
     cancelText: t("保留紀錄", "Keep game"),
     acceptText: t("刪除", "Delete"),
     icon: "×",
+    cancelAction: () => openGameLibrary(category),
     action: () => {
       gameLibrary = gameLibrary.filter((entry) => entry.gameId !== game.gameId);
       persistGameLibrary();
@@ -2594,9 +2867,9 @@ elements.gameLibraryList.addEventListener("click", (event) => {
         state = null;
         clearStoredState();
       }
-      renderGameLibrary();
       updateHome();
       showToast(t("紀錄已刪除", "Game deleted"));
+      openGameLibrary(category);
     },
   });
 });
@@ -2743,7 +3016,8 @@ document.addEventListener("keydown", (event) => {
       pendingCancelAction = null;
       closeModal("confirmModal");
       action?.();
-    } else if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
+    } else if (elements.mahjongAnalyzerModal.classList.contains("is-open")) closeModal("mahjongAnalyzerModal");
+    else if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
     else if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
     else if (elements.bigTwoRoundModal.classList.contains("is-open")) closeModal("bigTwoRoundModal");
     else if (elements.gameLibraryModal.classList.contains("is-open")) closeModal("gameLibraryModal");
