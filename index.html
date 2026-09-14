@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=40" />
+    <link rel="stylesheet" href="style.css?v=41" />
   </head>
   <body>
     <div class="app-shell">
@@ -86,7 +86,7 @@
           </button>
           <button class="home-mode-card" type="button" data-home-preset="mahjong">
             <span class="home-mode-icon home-mode-icon-green">雀</span>
-            <span class="home-mode-copy"><strong>香港麻雀</strong><small>揀牌型自動計番，再加手動番數</small></span>
+            <span class="home-mode-copy"><strong>香港麻雀</strong><small>揀牌型，自動計番同分配分數</small></span>
             <span class="home-mode-arrow">→</span>
           </button>
           <button class="home-mode-card" type="button" data-home-preset="chooser">
@@ -169,7 +169,7 @@
         </section>
 
         <section class="mahjong-panel" id="mahjongPanel" hidden aria-labelledby="mahjongTitle">
-          <div class="special-heading">
+          <div class="special-heading mahjong-full-heading">
             <div>
               <p class="eyebrow">HONG KONG MAHJONG</p>
               <h2 id="mahjongTitle">香港牌計番</h2>
@@ -179,10 +179,22 @@
           </div>
           <div class="mahjong-session-bar" id="mahjongSessionBar">
             <strong id="mahjongProgress">第 1／4 圈・東圈・第 1 局</strong>
-            <button class="outline-button" id="mahjongEndButton" type="button">結束並結算</button>
+            <div class="mahjong-session-actions">
+              <button class="primary-button" id="mahjongOpenScoringButton" type="button"><span aria-hidden="true">🀄</span> 有人食糊／計番</button>
+              <button class="mahjong-icon-action" id="mahjongEndButton" type="button" aria-label="結束並結算" title="結束並結算">✓</button>
+            </div>
           </div>
           <section class="mahjong-settlement" id="mahjongSettlement" hidden aria-live="polite"></section>
-          <form class="mahjong-entry" id="mahjongEntryForm">
+          <div class="modal-backdrop" id="mahjongScoringModal" role="dialog" aria-modal="true" aria-labelledby="mahjongScoringTitle" aria-hidden="true">
+            <div class="modal mahjong-scoring-modal">
+              <div class="modal-accent" aria-hidden="true"></div>
+              <button class="modal-close" data-close="mahjongScoringModal" type="button" aria-label="關閉計番頁面">×</button>
+              <div class="modal-header compact">
+                <p class="eyebrow">SCORE THIS HAND</p>
+                <h2 id="mahjongScoringTitle">今局計番</h2>
+                <p>揀食糊者、食糊方式同牌型，確認後先會更新四位玩家分數。</p>
+              </div>
+              <form class="mahjong-entry" id="mahjongEntryForm">
             <div class="mahjong-entry-grid">
               <label class="field-label" id="mahjongWinnerField">食糊者
                 <select class="text-input" id="mahjongWinner" name="winner"></select>
@@ -198,8 +210,9 @@
               <label class="field-label" id="mahjongDiscarderField">出銃者
                 <select class="text-input" id="mahjongDiscarder" name="discarder"></select>
               </label>
-              <label class="field-label" id="mahjongHandFanField">手動加番
+              <label class="field-label" id="mahjongHandFanField">額外番數（如牌型未列出）
                 <input class="text-input" id="mahjongHandFan" name="handFan" type="number" min="0" max="99" value="0" inputmode="numeric" />
+                <small class="settings-help">只係補充未列出嘅牌型番數，唔會直接加減玩家分數。</small>
               </label>
               <label class="field-label">今局莊家
                 <select class="text-input" id="mahjongDealer" name="dealer"></select>
@@ -218,7 +231,9 @@
             </fieldset>
             <p class="mahjong-preview" id="mahjongPreview">輸入番數後會顯示今局計算結果。</p>
             <button class="primary-button wide" type="submit">記錄呢局麻雀</button>
-          </form>
+              </form>
+            </div>
+          </div>
         </section>
 
         <section class="score-grid" id="scoreGrid" aria-label="計分區"></section>
@@ -311,6 +326,25 @@
               </label>
             </div>
           </div>
+
+          <fieldset class="mahjong-player-setup" id="setupMahjongPlayers" hidden>
+            <legend>四位玩家名稱</legend>
+            <p class="settings-help">開枱前入好名，之後主畫面只會顯示玩家同分數。</p>
+            <div class="mahjong-player-name-grid">
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">1</span> 玩家 1
+                <input class="text-input" name="mahjongPlayer1" type="text" maxlength="18" value="玩家 1" />
+              </label>
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">2</span> 玩家 2
+                <input class="text-input" name="mahjongPlayer2" type="text" maxlength="18" value="玩家 2" />
+              </label>
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">3</span> 玩家 3
+                <input class="text-input" name="mahjongPlayer3" type="text" maxlength="18" value="玩家 3" />
+              </label>
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">4</span> 玩家 4
+                <input class="text-input" name="mahjongPlayer4" type="text" maxlength="18" value="玩家 4" />
+              </label>
+            </div>
+          </fieldset>
 
           <section class="mahjong-setup" id="setupMahjongRules" hidden aria-label="香港麻雀快速設定">
             <div class="mahjong-setup-heading">
@@ -624,7 +658,7 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=40" defer></script>
-    <script src="app.js?v=40" defer></script>
+    <script src="mahjong-core.js?v=41" defer></script>
+    <script src="app.js?v=41" defer></script>
   </body>
 </html>

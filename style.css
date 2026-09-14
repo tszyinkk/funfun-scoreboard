@@ -390,6 +390,96 @@ p {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.mahjong-score-grid,
+.score-grid.mahjong-score-grid[data-count="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(10px, 2vw, 20px);
+}
+
+.mahjong-player-card {
+  position: relative;
+  min-width: 0;
+  min-height: clamp(210px, 30vw, 340px);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  justify-items: center;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  padding: clamp(16px, 3vw, 28px);
+  border: 1px solid color-mix(in srgb, var(--player-color) 45%, var(--ink));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--player-color) 24%, white);
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(16, 24, 32, .08);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mahjong-player-card:nth-child(odd) {
+  border-color: color-mix(in srgb, var(--player-color) 55%, var(--ink));
+  background: color-mix(in srgb, var(--player-color) 42%, var(--ink));
+  color: white;
+}
+
+.mahjong-player-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.mahjong-player-card:active {
+  transform: scale(.985);
+}
+
+.mahjong-player-icon,
+.mahjong-name-icon {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: white;
+  font-weight: 950;
+}
+
+.mahjong-player-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(16, 24, 32, .13);
+  font-size: 13px;
+}
+
+.mahjong-player-card:nth-child(odd) .mahjong-player-icon {
+  background: rgba(255, 255, 255, .18);
+}
+
+.mahjong-player-card strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(19px, 3vw, 28px);
+  font-weight: 950;
+  letter-spacing: -.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mahjong-player-card b {
+  align-self: center;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(76px, 13vw, 150px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 950;
+  line-height: .9;
+  letter-spacing: -.05em;
+}
+
+.mahjong-player-card small {
+  color: currentColor;
+  font-size: 11px;
+  font-weight: 850;
+  opacity: .64;
+}
+
 .score-card {
   position: relative;
   min-width: 0;
@@ -1488,6 +1578,38 @@ legend,
   background: white;
 }
 
+.mahjong-player-setup {
+  margin: 0 0 22px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #faf9f4;
+}
+
+.mahjong-player-name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.mahjong-player-name-grid .field-label {
+  min-width: 0;
+  margin: 0;
+}
+
+.mahjong-name-icon {
+  width: 25px;
+  height: 25px;
+  margin-right: 5px;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.mahjong-player-name-grid .text-input {
+  margin-top: 8px;
+}
+
 .mahjong-setup {
   display: grid;
   gap: 18px;
@@ -1593,6 +1715,30 @@ legend,
 }
 .mahjong-session-bar strong { font-size: 15px; }
 .mahjong-session-bar .outline-button { min-height: 42px; flex: 0 0 auto; }
+.mahjong-session-actions { display: flex; align-items: center; gap: 8px; }
+.mahjong-session-actions .primary-button { min-height: 44px; padding: 0 18px; }
+.mahjong-icon-action {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(16, 24, 32, .22);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+  cursor: pointer;
+}
+.mahjong-icon-action:hover { background: var(--ink); color: white; }
+.mahjong-scoring-modal { width: min(820px, 100%); }
+.mahjong-scoring-modal .mahjong-entry { padding: 0; border: 0; background: transparent; }
+
+body.mahjong-minimal-active .mahjong-full-heading { display: none; }
+body.mahjong-minimal-active #mahjongPanel { margin-top: clamp(14px, 3vw, 28px); }
+body.mahjong-minimal-active footer { display: none; }
 .mahjong-settlement {
   margin: 0 0 18px;
   padding: clamp(18px, 4vw, 28px);
@@ -1939,6 +2085,12 @@ legend,
   .score-grid[data-count="6"],
   .score-grid[data-count="7"],
   .score-grid[data-count="8"] { grid-template-columns: 1fr; }
+  .score-grid.mahjong-score-grid,
+  .score-grid.mahjong-score-grid[data-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mahjong-player-card { min-height: clamp(180px, 49vw, 260px); padding: 13px 9px; }
+  .mahjong-player-card b { font-size: clamp(58px, 20vw, 92px); }
+  .mahjong-player-card strong { font-size: clamp(16px, 5vw, 22px); }
+  .mahjong-player-card small { font-size: 9px; }
   .score-display { min-height: 170px; }
   .score-number { font-size: 128px; }
   .match-controls { display: grid; grid-template-columns: 1fr 1fr; }
@@ -1992,6 +2144,9 @@ legend,
   .mahjong-score-table td { padding: 8px; }
   .mahjong-session-bar { align-items: stretch; flex-direction: column; }
   .mahjong-session-bar .outline-button { width: 100%; }
+  .mahjong-player-name-grid { grid-template-columns: 1fr; }
+  .mahjong-session-actions { width: 100%; }
+  .mahjong-session-actions .primary-button { flex: 1 1 auto; }
   .mahjong-final-ranks li { grid-template-columns: minmax(58px, .7fr) minmax(0, 1fr) auto; gap: 7px; padding: 12px; }
   .mahjong-history-title { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
