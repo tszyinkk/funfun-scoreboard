@@ -162,6 +162,20 @@ button,
   letter-spacing: 0.05em;
 }
 
+.language-toggle {
+  min-width: 44px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+.language-toggle:hover { border-color: var(--ink); }
+
 .connection-badge > span:first-child {
   width: 7px;
   height: 7px;
@@ -1384,7 +1398,7 @@ legend,
 .home-section-heading h2 { margin: 5px 0 0; font-size: 25px; letter-spacing: -.035em; }
 .home-section-heading > span { color: var(--ink-soft); font-size: 11px; }
 
-.home-mode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.home-mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 
 .home-mode-card {
   display: grid;
@@ -1407,6 +1421,7 @@ legend,
 .home-mode-icon-orange { background: #fff0eb; color: var(--orange); }
 .home-mode-icon-green { background: #eff8d6; color: #6e8f1e; }
 .home-mode-icon-blue { background: #e9f5fb; color: #3986a9; }
+.home-mode-icon-purple { background: #f2eafa; color: #8050a6; }
 .home-mode-copy { display: grid; gap: 5px; min-width: 0; }
 .home-mode-copy strong { font-size: 14px; }
 .home-mode-copy small { overflow: hidden; color: var(--ink-soft); font-size: 11px; line-height: 1.4; text-overflow: ellipsis; }
@@ -1768,6 +1783,46 @@ legend,
   border-radius: 14px;
   background: #f0eee6;
 }
+
+.big-two-panel { margin-top: clamp(14px, 3vw, 28px); }
+.big-two-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -4px 0 18px;
+  padding: 12px 15px;
+  border-radius: 14px;
+  background: #f0eee6;
+}
+.big-two-session-bar strong { font-size: 15px; }
+.big-two-session-bar .primary-button { min-height: 44px; }
+.big-two-round-modal { width: min(620px, 100%); }
+.big-two-remaining-list { display: grid; gap: 9px; margin: 16px 0; }
+.big-two-remaining-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 72px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #faf9f4;
+}
+.big-two-remaining-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.big-two-remaining-row .text-input { height: 44px; text-align: center; }
+.big-two-remaining-row .text-input:disabled { background: #e8eadf; color: var(--ink-soft); opacity: 1; }
+.big-two-remaining-row span { color: var(--ink-soft); font-size: 11px; font-weight: 800; }
+.big-two-rule-note {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: #f0eee6;
+}
+.big-two-rule-note strong { font-size: 13px; }
+.big-two-rule-note span { color: var(--ink-soft); font-size: 11px; line-height: 1.5; }
 .mahjong-session-bar strong { font-size: 15px; }
 .mahjong-session-bar .outline-button { min-height: 42px; flex: 0 0 auto; }
 .mahjong-session-actions { display: flex; align-items: center; gap: 8px; }
@@ -2128,6 +2183,7 @@ body.mahjong-minimal-active footer { display: none; }
   .brand-mark { width: 38px; height: 38px; }
   .home-button { min-height: 36px; padding: 0 10px; font-size: 11px; }
   .connection-badge { display: none; }
+  .language-toggle { min-width: 40px; height: 36px; padding: 0 8px; }
   .match-heading { align-items: flex-start; flex-direction: column; padding: 28px 4px 20px; }
   .heading-meta { padding-bottom: 0; }
   .timer-bar { padding: 12px; }
@@ -2204,6 +2260,9 @@ body.mahjong-minimal-active footer { display: none; }
   .mahjong-session-actions .primary-button { flex: 1 1 auto; }
   .mahjong-final-ranks li { grid-template-columns: minmax(58px, .7fr) minmax(0, 1fr) auto; gap: 7px; padding: 12px; }
   .mahjong-history-title { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .big-two-session-bar { align-items: stretch; flex-direction: column; }
+  .big-two-session-bar .primary-button { width: 100%; }
+  .big-two-remaining-row { grid-template-columns: minmax(0, 1fr) 76px 58px; gap: 7px; padding: 9px; }
 }
 
 @media (max-width: 390px) {

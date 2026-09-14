@@ -2,6 +2,7 @@
   const WINDS = ["east", "south", "west", "north"];
   const WIND_NAMES = { east: "東圈", south: "南圈", west: "西圈", north: "北圈" };
   const WIND_SHORT_NAMES = { east: "東", south: "南", west: "西", north: "北" };
+  const WIND_SHORT_NAMES_EN = { east: "E", south: "S", west: "W", north: "N" };
 
   function unitMultiplierForFan(fan) {
     const cleanFan = Math.max(0, Math.round(Number(fan) || 0));
@@ -65,7 +66,7 @@
     return WINDS[(startIndex + cycleIndex) % WINDS.length];
   }
 
-  function handWindLabel(session, participantIds) {
+  function handWindLabel(session, participantIds, language = "zh") {
     const players = Array.isArray(participantIds) ? participantIds.map(String) : [];
     const completed = Math.max(0, Math.floor(Number(session?.completedCycles) || 0));
     const prevailingWind = windForCycle(session?.startingWind || "east", completed);
@@ -73,24 +74,33 @@
     const dealerId = String(session?.nextDealerId || fallbackDealer);
     const dealerIndex = Math.max(0, players.indexOf(dealerId));
     const handWind = WINDS[dealerIndex % WINDS.length];
+    if (language === "en") return `${WIND_SHORT_NAMES_EN[prevailingWind] || "E"} Round · ${WIND_SHORT_NAMES_EN[handWind] || "E"} Dealer`;
     return `${WIND_SHORT_NAMES[prevailingWind] || "東"}風${WIND_SHORT_NAMES[handWind] || "東"}`;
   }
 
-  function progressLabel(session, participantIds) {
+  function progressLabel(session, participantIds, language = "zh") {
     const completed = Math.max(0, Math.floor(Number(session?.completedCycles) || 0));
     const cycleNumber = completed + 1;
     const planned = Math.max(0, Math.floor(Number(session?.plannedCycles) || 0));
     const roundNumber = Math.floor(completed / WINDS.length) + 1;
-    const secondLap = roundNumber > 1 ? `（第${roundNumber}輪）` : "";
-    const handLabel = handWindLabel(session, participantIds);
+    const secondLap = roundNumber > 1 ? (language === "en" ? ` (lap ${roundNumber})` : `（第${roundNumber}輪）`) : "";
+    const handLabel = handWindLabel(session, participantIds, language);
     if (session?.lengthMode === "custom-hands") {
       const completedHands = Math.max(0, Math.floor(Number(session.completedHands) || 0));
       const plannedHands = Math.max(0, Math.floor(Number(session.plannedHands) || 0));
-      return `${handLabel}${secondLap}・已完成 ${completedHands}${plannedHands ? `／${plannedHands}` : ""} 手`;
+      return language === "en"
+        ? `${handLabel}${secondLap} · ${completedHands}${plannedHands ? `/${plannedHands}` : ""} hands completed`
+        : `${handLabel}${secondLap}・已完成 ${completedHands}${plannedHands ? `／${plannedHands}` : ""} 手`;
     }
     const cycleLabel = planned > 0 && cycleNumber <= planned
       ? `第 ${cycleNumber}／${planned} 圈`
       : `第 ${cycleNumber} 圈${planned > 0 ? "（已達預定）" : ""}`;
+    if (language === "en") {
+      const englishCycle = planned > 0 && cycleNumber <= planned
+        ? `Round ${cycleNumber}/${planned}`
+        : `Round ${cycleNumber}${planned > 0 ? " (planned length reached)" : ""}`;
+      return `${englishCycle}${secondLap} · ${handLabel}`;
+    }
     return `${cycleLabel}${secondLap}・${handLabel}`;
   }
 
@@ -131,6 +141,7 @@
     WINDS,
     WIND_NAMES,
     WIND_SHORT_NAMES,
+    WIND_SHORT_NAMES_EN,
     unitMultiplierForFan,
     halfSpicyMultiplierForFan,
     fullSpicyMultiplierForFan,

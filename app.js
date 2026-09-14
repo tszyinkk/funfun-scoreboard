@@ -1,6 +1,7 @@
 const STORAGE_KEY = "funfun-scoreboard-v1";
 const MAHJONG_ARCHIVE_KEY = "funfun-scoreboard-mahjong-archive-v1";
 const GAME_LIBRARY_KEY = "funfun-scoreboard-games-v1";
+const LANGUAGE_KEY = "funfun-scoreboard-language-v1";
 const COLORS = ["#ff6a3d", "#c9f558", "#67c8ff", "#c99bff", "#ffcf4a", "#57d6a3", "#ff8fbd", "#8ea0ff"];
 const HK_SCORING_MODES = ["hk-table", "hk-half-spicy", "hk-full-spicy"];
 const MAHJONG_SCORING_LABELS = {
@@ -33,12 +34,19 @@ let chooserCountdown = 0;
 let nextFingerNumber = 1;
 let gameLibrary = [];
 let activeLibraryCategory = "mahjong";
+let uiLanguage = "zh";
+try {
+  uiLanguage = localStorage.getItem(LANGUAGE_KEY) === "en" ? "en" : "zh";
+} catch {
+  // Some private browsing modes can block local storage; Chinese remains the fallback.
+}
 
 const elements = {
   scoreGrid: $("#scoreGrid"),
   appMain: $("#appMain"),
   topbar: $(".topbar"),
   topActions: $(".top-actions"),
+  languageToggle: $("#languageToggle"),
   matchHeading: $(".match-heading"),
   matchControls: $("#matchControls"),
   roundHistory: $("#roundHistory"),
@@ -104,7 +112,244 @@ const elements = {
   mahjongProgress: $("#mahjongProgress"),
   mahjongSessionBar: $("#mahjongSessionBar"),
   mahjongSettlement: $("#mahjongSettlement"),
+  bigTwoPanel: $("#bigTwoPanel"),
+  bigTwoProgress: $("#bigTwoProgress"),
+  bigTwoOpenRoundButton: $("#bigTwoOpenRoundButton"),
+  bigTwoRoundModal: $("#bigTwoRoundModal"),
+  bigTwoRoundForm: $("#bigTwoRoundForm"),
+  bigTwoWinner: $("#bigTwoWinner"),
+  bigTwoRemainingList: $("#bigTwoRemainingList"),
+  bigTwoPreview: $("#bigTwoPreview"),
 };
+
+function t(zh, en) {
+  return uiLanguage === "en" ? en : zh;
+}
+
+const STATIC_TRANSLATIONS = {
+  "主頁": "Home",
+  "今晚玩咩？": "What are we playing?",
+  "揀一個玩法，開枱即用。唔使註冊，無網絡都照計。": "Choose a mode and start right away. No sign-up, and it works offline.",
+  "選擇玩法": "Choose a mode",
+  "所有資料只留喺本機": "All data stays on this device",
+  "普通計分": "Two-Team Score",
+  "球類、桌遊、任何要加減分嘅活動": "Sports matches with two teams",
+  "兩隊比賽計分": "Two-Team Match",
+  "排球、籃球、羽毛球等對賽": "Volleyball, basketball, badminton and more",
+  "香港麻雀": "Hong Kong Mahjong",
+  "揀牌型，自動計番同分配分數": "Pick patterns and calculate scores automatically",
+  "首家抽籤": "First Player Chooser",
+  "任何位置一齊按住，隨機閃出首家": "Everyone touches the screen to pick one player",
+  "鋤大D 四人計分": "Big Two Scoring",
+  "自動計起炒、雙炒、三炒": "Automatic penalty multipliers",
+  "每個玩法都會分開儲存多個紀錄；按入分類就可以繼續或刪除。安裝到主畫面後，離線都可以用。": "Each mode keeps its own saved games. Open a category to continue or delete one. The installed app also works offline.",
+  "請將手機橫放": "Rotate your phone",
+  "球類計分板會以全螢幕左右比分顯示。": "The two-team scoreboard uses a full-screen landscape layout.",
+  "開始計時": "Start timer",
+  "比賽時間": "Match time",
+  "一齊放手指，抽出首家": "Touch together to pick the first player",
+  "大家喺螢幕任何位置同時按住，倒數後會隨機閃出其中一隻手指做首家。": "Everyone touches anywhere on the screen. After the countdown, one finger is selected.",
+  "任何位置都可以按住": "Touch anywhere",
+  "按住等倒數，閃起嗰隻就係首家": "Hold through the countdown; the highlighted finger goes first",
+  "再抽一次": "Pick again",
+  "每鋪揀贏家，再填其餘玩家剩牌數；起炒、雙炒、三炒會自動計算。": "Choose the winner and enter cards left. Penalty multipliers are calculated automatically.",
+  "完成一鋪／計分": "Score a hand",
+  "香港牌計番": "Hong Kong Mahjong Scoring",
+  "每局輸入番數及食糊方式，分數會按你設定的規則自動分配。": "Enter the winning pattern and method; scores are distributed automatically.",
+  "有人食糊／計番": "Score a win",
+  "今局計番": "Score this hand",
+  "揀食糊者、食糊方式同牌型，確認後先會更新四位玩家分數。": "Choose the winner, win type and patterns. Scores update only after confirmation.",
+  "食糊者": "Winner",
+  "食糊方式": "Win type",
+  "自摸": "Self-draw",
+  "出銃": "Discard win",
+  "流局（冇人食糊）": "Draw (no winner)",
+  "出銃者": "Discarder",
+  "額外番數（如牌型未列出）": "Extra fan (unlisted patterns)",
+  "只係補充未列出嘅牌型番數，唔會直接加減玩家分數。": "Only for an unlisted pattern; it does not directly change a player's score.",
+  "今局莊家": "Dealer",
+  "花牌數（如有花牌玩法）": "Flower tiles (if used)",
+  "備註（可留空）": "Note (optional)",
+  "食咩牌型？（可多選）": "Winning patterns (select all that apply)",
+  "記錄呢局麻雀": "Save Mahjong hand",
+  "輸入番數後會顯示今局計算結果。": "The score preview will appear here.",
+  "自摸＝自己摸到；出銃＝食其他玩家打出的牌。": "Self-draw means drawing the winning tile yourself; discard win means winning on another player's discard.",
+  "只在有花牌的玩法先填；每隻加幾多番可在進階設定調整。": "Only enter this when playing with flower tiles.",
+  "完成本局": "Finish round",
+  "比分紀錄": "Score history",
+  "清除紀錄": "Clear history",
+  "今次點樣計？": "What are you scoring?",
+  "快速選擇": "Choose a mode",
+  "兩隊對賽": "Two-team match",
+  "排球・籃球・羽毛球": "Volleyball · Basketball · Badminton",
+  "鋤大D": "Big Two",
+  "四人・自動計炒牌倍數": "Four players · automatic penalties",
+  "香港常用設定，即揀即開局": "Common Hong Kong rules",
+  "多人同時按住螢幕": "Multi-touch selection",
+  "自訂人數": "Custom players",
+  "活動名稱": "Game name",
+  "兩隊名稱": "Team names",
+  "主隊": "Home team",
+  "客隊": "Away team",
+  "四位玩家名稱": "Four player names",
+  "按開局座位入名；之後主畫面會用東、南、西、北顯示每位玩家。": "Enter names by starting seat; the scoreboard will show each player's E, S, W or N seat.",
+  "東位玩家": "East player",
+  "南位玩家": "South player",
+  "西位玩家": "West player",
+  "北位玩家": "North player",
+  "入好四位玩家名，每鋪只需要填剩牌數。": "Enter four names. After each hand, only enter the cards left.",
+  "炒牌計分": "Penalty scoring",
+  "1–7 張 ×1・8–9 張起炒 ×2・10–12 張雙炒 ×3・13 張三炒 ×4": "1–7 cards ×1 · 8–9 cards ×2 · 10–12 cards ×3 · 13 cards ×4",
+  "玩家 1": "Player 1",
+  "玩家 2": "Player 2",
+  "玩家 3": "Player 3",
+  "玩家 4": "Player 4",
+  "快速設定": "Quick settings",
+  "三項開局設定已簡化，計分節奏亦有常用預設": "Three simple choices, with common scoring presets",
+  "幾多番先可以食糊？": "Minimum fan to win",
+  "1 番": "1 fan",
+  "3 番": "3 fan",
+  "5 番": "5 fan",
+  "牌型最少達到所選番數先可以食糊。": "Your hand must reach this fan total before it can win.",
+  "最高計到幾多番？": "Maximum fan",
+  "最高計8番": "Maximum 8 fan",
+  "最高計10番": "Maximum 10 fan",
+  "最高計13番": "Maximum 13 fan",
+  "打幾多圈？": "Game length",
+  "東圈": "East round",
+  "半莊": "Half game",
+  "自訂局數": "Custom hands",
+  "香港常用計分": "Common Hong Kong scoring",
+  "想用邊種計分節奏？": "Scoring style",
+  "簡易級別（預設）": "Simple tiers (default)",
+  "半辣上（香港朋友枱常見）": "Half-spicy progression",
+  "辣辣上（每番跳一倍）": "Full-spicy progression",
+  "番數計算級別": "Fan tier",
+  "倍數": "Multiplier",
+  "只建議熟悉計分規則的玩家使用。": "Recommended only for players familiar with the scoring rules.",
+  "套用香港常用計分": "Use common Hong Kong scoring",
+  "進階設定": "Advanced settings",
+  "底數（每1倍值幾多分）": "Base points (value of ×1)",
+  "自訂番數計分方式": "Custom fan scoring method",
+  "自訂倍增幅度": "Custom multiplier step",
+  "封頂分數（0＝不限）": "Maximum points (0 = no limit)",
+  "開始圈風": "Starting prevailing wind",
+  "自摸額外加幾番": "Extra fan for self-draw",
+  "每隻花牌加幾番": "Fan per flower tile",
+  "莊家勝出倍數": "Dealer win multiplier",
+  "莊家輸款倍數": "Dealer loss multiplier",
+  "自摸每家倍數": "Self-draw payment multiplier",
+  "出銃者倍數": "Discarder payment multiplier",
+  "出銃時其他人付款": "Payments on a discard win",
+  "只由出銃者付款": "Discarder pays only",
+  "三家都付款": "All three opponents pay",
+  "自訂牌型及番數": "Custom patterns and fan",
+  "所有分數只儲存在這部裝置": "All scores stay on this device",
+  "建立計分板": "Create scoreboard",
+  "計分設定": "Score settings",
+  "參加者": "Players",
+  "＋ 加一位／一隊": "+ Add player/team",
+  "儲存設定": "Save settings",
+  "開全新計分板": "Start a new scoreboard",
+  "確定嗎？": "Are you sure?",
+  "取消": "Cancel",
+  "確定": "Confirm",
+  "返回遊戲": "Back to game",
+  "結束並結算": "Finish and settle",
+  "立即結算": "Settle now",
+  "繼續玩": "Keep playing",
+  "返回完成本局": "Complete this hand",
+  "放棄本局並結算": "Discard hand and settle",
+  "保留紀錄": "Keep game",
+  "刪除": "Delete",
+  "關閉": "Close",
+  "對局紀錄": "Saved games",
+  "揀一個舊紀錄繼續，或者開新一局。": "Continue a saved game or start a new one.",
+  "＋ 開新一局": "+ New game",
+  "今鋪鋤大D計分": "Score this Big Two hand",
+  "揀贏家，再填其他玩家仲有幾多張牌。": "Choose the winner, then enter how many cards each other player has left.",
+  "今鋪贏家": "Hand winner",
+  "自動炒牌倍數": "Automatic penalty multiplier",
+  "填寫剩牌數後會顯示今鋪分數。": "Enter cards left to preview this hand's scores.",
+  "記錄今鋪": "Save hand",
+  "總分": "Total",
+  "本局": "Current",
+  "按一下 ＋1": "Tap +1",
+  "按錯？減 1 分": "Undo: -1 point",
+};
+
+const MAHJONG_PATTERN_LABELS_EN = {
+  chicken: "Chicken hand",
+  pinghu: "All sequences",
+  "no-flower": "No flowers",
+  "proper-flower": "Own flower",
+  concealed: "Concealed hand",
+  "dragon-pung": "Dragon pung",
+  "seat-wind": "Seat wind",
+  "prevailing-wind": "Prevailing wind",
+  "rob-kong": "Robbing a kong",
+  "one-flower-set": "Complete flower set",
+  "kong-draw": "Win after kong",
+  "last-tile": "Last tile win",
+  "seven-flowers": "Seven flowers",
+  "seven-pairs": "Seven pairs",
+  "all-pungs": "All pungs",
+  "half-flush": "Half flush",
+  "human-hand": "Humanly hand",
+  "terminals-honors": "Terminals and honours",
+  "small-dragons": "Small three dragons",
+  "small-winds": "Small four winds",
+  "full-flush": "Full flush",
+  "big-dragons": "Big three dragons",
+  "big-flower": "All eight flowers",
+  "concealed-pungs": "Four concealed pungs",
+  "kong-on-kong": "Double-kong self-draw",
+  "mixed-terminals": "Mixed terminals",
+  "all-honors": "All honours",
+  "pure-terminals": "All terminals",
+  "nine-gates": "Nine gates",
+  "big-winds": "Big four winds",
+  "thirteen-orphans": "Thirteen orphans",
+  "heavenly-hand": "Heavenly hand",
+  "earthly-hand": "Earthly hand",
+  "four-kongs": "Four kongs",
+};
+
+let staticTranslationNodes = [];
+
+function prepareStaticTranslations() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    const parentTag = node.parentElement?.tagName;
+    const source = node.nodeValue.trim();
+    if (!["SCRIPT", "STYLE"].includes(parentTag) && STATIC_TRANSLATIONS[source]) {
+      staticTranslationNodes.push({ node, source, prefix: node.nodeValue.match(/^\s*/)?.[0] || "", suffix: node.nodeValue.match(/\s*$/)?.[0] || "" });
+    }
+    node = walker.nextNode();
+  }
+}
+
+function translateKnown(value) {
+  return uiLanguage === "en" ? STATIC_TRANSLATIONS[value] || value : value;
+}
+
+function applyLanguage() {
+  document.documentElement.lang = uiLanguage === "en" ? "en" : "zh-Hant";
+  document.title = t("分分計｜靈活計分板", "FunFun Scoreboard");
+  staticTranslationNodes.forEach(({ node, source, prefix, suffix }) => {
+    node.nodeValue = `${prefix}${uiLanguage === "en" ? STATIC_TRANSLATIONS[source] : source}${suffix}`;
+  });
+  elements.languageToggle.textContent = uiLanguage === "en" ? "中" : "EN";
+  elements.languageToggle.setAttribute("aria-label", uiLanguage === "en" ? "切換至中文" : "Switch to English");
+  $("#brandHome").setAttribute("aria-label", t("分分計首頁", "FunFun Scoreboard home"));
+  elements.homeButton.setAttribute("aria-label", t("返回主頁", "Back to home"));
+  elements.homeButton.title = t("返回主頁", "Back to home");
+  elements.undoButton.setAttribute("aria-label", t("撤銷上一步", "Undo last action"));
+  elements.undoButton.title = t("撤銷上一步", "Undo last action");
+  $("#settingsButton").setAttribute("aria-label", t("計分設定", "Score settings"));
+  $("#settingsButton").title = t("計分設定", "Score settings");
+}
 
 function uid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -216,17 +461,18 @@ function freshState(preset, title, count = 2, teamNames = {}) {
   const isCards = preset === "cards";
   const isMahjong = preset === "mahjong";
   const isChooser = preset === "chooser";
-  const size = preset === "sports" ? 2 : isCards || isMahjong ? 4 : isChooser ? 0 : count;
+  const isBigTwo = preset === "bigtwo";
+  const size = preset === "sports" ? 2 : isCards || isMahjong || isBigTwo ? 4 : isChooser ? 0 : count;
   const names = preset === "sports"
-    ? [teamNames.home, teamNames.away].map((name, index) => String(name || "").trim().slice(0, 18) || (index === 0 ? "主隊" : "客隊"))
-    : Array.from({ length: size }, (_, index) => `玩家 ${index + 1}`);
+    ? [teamNames.home, teamNames.away].map((name, index) => String(name || "").trim().slice(0, 18) || (index === 0 ? t("主隊", "Home") : t("客隊", "Away")))
+    : Array.from({ length: size }, (_, index) => t(`玩家 ${index + 1}`, `Player ${index + 1}`));
 
   return {
     gameId: uid(),
     updatedAt: new Date().toISOString(),
-    title: title.trim() || (isCards || isMahjong ? "今晚開枱" : isChooser ? "首家抽籤" : "今晚開波"),
+    title: title.trim() || (isBigTwo ? "今晚鋤大D" : isCards || isMahjong ? "今晚開枱" : isChooser ? "首家抽籤" : "今晚開波"),
     kind: preset,
-    totalMode: isCards || isMahjong ? "cumulative" : "winner",
+    totalMode: isCards || isMahjong || isBigTwo ? "cumulative" : "winner",
     winnerRule: "highest",
     round: 1,
     timer: { elapsed: 0, running: false, startedAt: null },
@@ -243,7 +489,7 @@ function freshState(preset, title, count = 2, teamNames = {}) {
 
 function sanitizeState(candidate) {
   if (!candidate || !Array.isArray(candidate.participants)) return null;
-  const kind = ["sports", "cards", "custom", "mahjong", "chooser"].includes(candidate.kind) ? candidate.kind : "custom";
+  const kind = ["sports", "cards", "custom", "mahjong", "chooser", "bigtwo"].includes(candidate.kind) ? candidate.kind : "custom";
   if (kind !== "chooser" && candidate.participants.length < 2) return null;
   const elapsed = Math.max(0, Math.floor(Number(candidate.timer?.elapsed) || 0));
   const startedAt = Number(candidate.timer?.startedAt);
@@ -253,8 +499,8 @@ function sanitizeState(candidate) {
     id: String(item.id || uid()),
     name: String(item.name || `玩家 ${index + 1}`).slice(0, 18),
     color: COLORS.includes(item.color) ? item.color : COLORS[index % COLORS.length],
-    score: kind === "mahjong" ? Number(item.score) || 0 : Math.max(0, Number(item.score) || 0),
-    total: kind === "mahjong" ? Number(item.total) || 0 : Math.max(0, Number(item.total) || 0),
+    score: ["mahjong", "bigtwo"].includes(kind) ? Number(item.score) || 0 : Math.max(0, Number(item.score) || 0),
+    total: ["mahjong", "bigtwo"].includes(kind) ? Number(item.total) || 0 : Math.max(0, Number(item.total) || 0),
     ...(kind === "mahjong" ? { seatWind: MahjongCore.WINDS.includes(item.seatWind) ? item.seatWind : MahjongCore.WINDS[index % 4] } : {}),
   }));
   while (kind === "mahjong" && participants.length < 4) {
@@ -505,23 +751,28 @@ function migrateLegacyRecords() {
 function gameCategory(kind) {
   if (kind === "mahjong") return "mahjong";
   if (kind === "chooser") return "chooser";
+  if (kind === "bigtwo" || kind === "cards") return "bigtwo";
   return "sports";
 }
 
 function libraryCategoryCopy(category) {
-  if (category === "mahjong") return { title: "香港麻雀對局", description: "繼續未完嘅牌局、查看已結算成績，或者開一個新牌局。", newLabel: "＋ 開新麻雀牌局" };
-  if (category === "chooser") return { title: "首家抽籤紀錄", description: "可以重開之前嘅抽籤，或者開始新一次。", newLabel: "＋ 開新抽籤" };
-  return { title: "普通計分紀錄", description: "繼續之前嘅球賽、牌局或自訂計分，或者建立新計分板。", newLabel: "＋ 開新計分板" };
+  if (category === "mahjong") return { title: t("香港麻雀對局", "Hong Kong Mahjong Games"), description: t("繼續未完嘅牌局、查看已結算成績，或者開一個新牌局。", "Continue a game, view final scores, or start a new table."), newLabel: t("＋ 開新麻雀牌局", "+ New Mahjong Game") };
+  if (category === "chooser") return { title: t("首家抽籤紀錄", "First Player Chooser"), description: t("可以重開之前嘅抽籤，或者開始新一次。", "Reopen a previous draw or start a new one."), newLabel: t("＋ 開新抽籤", "+ New Draw") };
+  if (category === "bigtwo") return { title: t("鋤大D 四人計分", "Big Two Scoreboards"), description: t("繼續之前嘅鋤大D計分，或者開一張新分紙。", "Continue a Big Two scoreboard or start a new one."), newLabel: t("＋ 開新鋤大D計分", "+ New Big Two Game") };
+  return { title: t("兩隊比賽紀錄", "Two-Team Games"), description: t("繼續之前嘅球賽，或者建立新計分板。", "Continue a match or create a new scoreboard."), newLabel: t("＋ 開新比賽", "+ New Match") };
 }
 
 function gameRecordMeta(game) {
-  const updated = game.updatedAt ? new Date(game.updatedAt).toLocaleString("zh-HK", { dateStyle: "short", timeStyle: "short" }) : "";
+  const updated = game.updatedAt ? new Date(game.updatedAt).toLocaleString(uiLanguage === "en" ? "en-CA" : "zh-HK", { dateStyle: "short", timeStyle: "short" }) : "";
   if (game.kind === "mahjong") {
     const settled = game.mahjongSession?.status === "settled";
-    return `${settled ? "已結算" : "進行中"}・${MahjongCore.progressLabel(game.mahjongSession, game.participants.map((player) => player.id))}${updated ? `・${updated}` : ""}`;
+    return `${settled ? t("已結算", "Finished") : t("進行中", "In progress")}・${MahjongCore.progressLabel(game.mahjongSession, game.participants.map((player) => player.id), uiLanguage)}${updated ? `・${updated}` : ""}`;
   }
-  if (game.kind === "chooser") return `首家抽籤${updated ? `・${updated}` : ""}`;
-  return `${game.participants.length} 人／隊・完成 ${game.history.length} 回合${updated ? `・${updated}` : ""}`;
+  if (game.kind === "chooser") return `${t("首家抽籤", "First player draw")}${updated ? `・${updated}` : ""}`;
+  if (game.kind === "bigtwo" || game.kind === "cards") return `${t("完成", "Completed")} ${game.history.length} ${t("鋪", "hands")}${updated ? `・${updated}` : ""}`;
+  return uiLanguage === "en"
+    ? `${game.participants.length} teams · ${game.history.length} rounds completed${updated ? ` · ${updated}` : ""}`
+    : `${game.participants.length} 人／隊・完成 ${game.history.length} 回合${updated ? `・${updated}` : ""}`;
 }
 
 function renderGameLibrary() {
@@ -534,7 +785,7 @@ function renderGameLibrary() {
   if (!records.length) {
     const empty = document.createElement("p");
     empty.className = "game-library-empty";
-    empty.textContent = "暫時未有紀錄。開新一局後會自動儲存喺呢度。";
+    empty.textContent = t("暫時未有紀錄。開新一局後會自動儲存喺呢度。", "No saved games yet. New games will be saved here automatically.");
     elements.gameLibraryList.appendChild(empty);
     return;
   }
@@ -546,7 +797,7 @@ function renderGameLibrary() {
     resume.className = "game-library-resume";
     resume.dataset.gameId = game.gameId;
     const title = document.createElement("strong");
-    title.textContent = game.title || "未命名對局";
+    title.textContent = game.title || t("未命名對局", "Untitled game");
     const meta = document.createElement("small");
     meta.textContent = gameRecordMeta(game);
     resume.append(title, meta);
@@ -554,8 +805,8 @@ function renderGameLibrary() {
     remove.type = "button";
     remove.className = "game-library-delete";
     remove.dataset.deleteGameId = game.gameId;
-    remove.setAttribute("aria-label", `刪除 ${title.textContent}`);
-    remove.title = "刪除紀錄";
+    remove.setAttribute("aria-label", t(`刪除 ${title.textContent}`, `Delete ${title.textContent}`));
+    remove.title = t("刪除紀錄", "Delete game");
     remove.textContent = "×";
     item.append(resume, remove);
     elements.gameLibraryList.appendChild(item);
@@ -634,6 +885,7 @@ function syncSportsLayout() {
       elements.matchHeading,
       elements.timerBar,
       elements.chooserPanel,
+      elements.bigTwoPanel,
       elements.mahjongPanel,
       elements.scoreGrid,
       elements.matchControls,
@@ -667,6 +919,7 @@ function showHome() {
   if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
   if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
+  if (elements.bigTwoRoundModal.classList.contains("is-open")) closeModal("bigTwoRoundModal");
   try { screen.orientation?.unlock?.(); } catch { /* Orientation lock is not supported on every device. */ }
   exitAppFullscreen();
   setHomeVisible(true);
@@ -714,10 +967,19 @@ function exitAppFullscreen() {
 
 function resetSetupForm(preset = "sports") {
   $("#setupForm").reset();
+  $("#setupPresetFieldset").hidden = true;
   setMahjongScoringControls($("#setupForm"), "hk-table");
   $("#setupMahjongAdvanced").open = false;
   renderMahjongPatternEditor(elements.setupMahjongPatternEditor, defaultMahjongRules().patterns);
-  $("#setupName").value = preset === "chooser" ? "首家抽籤" : ["mahjong", "cards"].includes(preset) ? "今晚開枱" : preset === "custom" ? "自訂比賽" : "今晚開波";
+  $("#setupName").value = preset === "chooser" ? t("首家抽籤", "First Player Draw") : preset === "bigtwo" ? t("今晚鋤大D", "Big Two Game") : ["mahjong", "cards"].includes(preset) ? t("今晚開枱", "Mahjong Game") : preset === "custom" ? t("自訂比賽", "Custom Game") : t("今晚開波", "Match");
+  $("#setupHomeTeamName").value = t("主隊", "Home");
+  $("#setupAwayTeamName").value = t("客隊", "Away");
+  ["mahjong", "bigTwo"].forEach((group) => {
+    for (let index = 1; index <= 4; index += 1) {
+      const input = $(`[name="${group}Player${index}"]`);
+      if (input) input.value = t(`玩家 ${index}`, `Player ${index}`);
+    }
+  });
   customCount = 3;
   $("#countOutput").textContent = customCount;
   const presetInput = $(`input[name="preset"][value="${preset}"]`, $("#setupForm"));
@@ -750,22 +1012,23 @@ function render() {
   syncSportsLayout();
   const sportsLandscape = document.body.classList.contains("sports-landscape-active");
   elements.matchTitle.textContent = state.title;
-  elements.roundLabel.textContent = `第 ${state.round} 局`;
+  elements.roundLabel.textContent = t(`第 ${state.round} 局`, `Round ${state.round}`);
   elements.playerCountLabel.textContent = state.kind === "chooser"
-    ? "多人手指抽籤"
-    : state.kind === "mahjong" ? `${state.participants.length} 位玩家` : `${state.participants.length} 個計分格`;
-  elements.modeLabel.textContent = state.kind === "mahjong" ? "香港牌計番" : state.kind === "chooser" ? "隨機抽首家" : ({ winner: "勝方 +1", cumulative: "累加本局", manual: "手動總分" })[state.totalMode];
-  const specialMode = state.kind === "mahjong" || state.kind === "chooser";
+    ? t("多人手指抽籤", "Multi-touch draw")
+    : state.kind === "mahjong" ? `${state.participants.length} ${t("位玩家", "players")}` : `${state.participants.length} ${t("個計分格", "score panels")}`;
+  elements.modeLabel.textContent = state.kind === "mahjong" ? t("香港牌計番", "Hong Kong Mahjong") : state.kind === "bigtwo" ? t("鋤大D自動計分", "Automatic Big Two scoring") : state.kind === "chooser" ? t("隨機抽首家", "Random first player") : ({ winner: t("勝方 +1", "Winner +1"), cumulative: t("累加本局", "Add round scores"), manual: t("手動總分", "Manual totals") })[state.totalMode];
+  const specialMode = state.kind === "mahjong" || state.kind === "chooser" || state.kind === "bigtwo";
   const mahjongActive = state.kind === "mahjong";
   document.body.classList.toggle("mahjong-minimal-active", mahjongActive && !isHomeVisible);
-  elements.matchHeading.hidden = mahjongActive;
+  elements.matchHeading.hidden = mahjongActive || state.kind === "bigtwo";
   elements.timerBar.hidden = specialMode;
   elements.matchControls.hidden = specialMode;
   const mahjongSettled = state.kind === "mahjong" && state.mahjongSession?.status === "settled";
-  elements.roundHistory.hidden = state.kind === "chooser" || state.kind === "mahjong" || sportsLandscape;
+  elements.roundHistory.hidden = state.kind === "chooser" || state.kind === "mahjong" || state.kind === "bigtwo" || sportsLandscape;
   elements.scoreGrid.hidden = state.kind === "chooser" || sportsLandscape || mahjongSettled;
   elements.mahjongPanel.hidden = state.kind !== "mahjong";
   elements.chooserPanel.hidden = state.kind !== "chooser";
+  elements.bigTwoPanel.hidden = state.kind !== "bigtwo";
   $("#settingsButton").hidden = isHomeVisible || !state || mahjongSettled;
   elements.undoButton.hidden = isHomeVisible || mahjongSettled;
   $("#clearHistoryButton").hidden = state.kind === "mahjong";
@@ -774,6 +1037,7 @@ function render() {
   renderScoreCards();
   renderHistory();
   if (state.kind === "mahjong") renderMahjongEntry();
+  if (state.kind === "bigtwo") renderBigTwo();
   if (state.kind === "chooser") renderChooser();
   elements.undoButton.disabled = undoStack.length === 0;
   saveState();
@@ -783,21 +1047,26 @@ function render() {
 function renderScoreCards() {
   elements.scoreGrid.replaceChildren();
   elements.scoreGrid.dataset.count = String(state.participants.length);
-  elements.scoreGrid.classList.toggle("mahjong-score-grid", state.kind === "mahjong");
+  elements.scoreGrid.classList.toggle("mahjong-score-grid", state.kind === "mahjong" || state.kind === "bigtwo");
   elements.sportsLandscapeLeft.replaceChildren();
   elements.sportsLandscapeRight.replaceChildren();
   const landscapeTarget = document.body.classList.contains("sports-landscape-active");
 
-  if (state.kind === "mahjong") {
+  if (state.kind === "mahjong" || state.kind === "bigtwo") {
     state.participants.forEach((player, index) => {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "mahjong-player-card";
       card.dataset.id = player.id;
       card.style.setProperty("--player-color", player.color);
+      const isMahjong = state.kind === "mahjong";
       const seatWind = MahjongCore.WINDS.includes(player.seatWind) ? player.seatWind : MahjongCore.WINDS[index];
-      const seatLabel = MahjongCore.WIND_SHORT_NAMES[seatWind] || "東";
-      card.setAttribute("aria-label", `${seatLabel}位 ${player.name}，總分 ${formatPoints(player.total)}，按一下記錄食糊`);
+      const seatLabel = isMahjong
+        ? (uiLanguage === "en" ? MahjongCore.WIND_SHORT_NAMES_EN[seatWind] || "E" : MahjongCore.WIND_SHORT_NAMES[seatWind] || "東")
+        : String(index + 1);
+      card.setAttribute("aria-label", isMahjong
+        ? uiLanguage === "en" ? `${seatLabel} seat, ${player.name}, total ${formatPoints(player.total)}. Tap to score a win` : `${seatLabel}位 ${player.name}，總分 ${formatPoints(player.total)}，按一下記錄食糊`
+        : `${player.name}，總分 ${formatPoints(player.total)}`);
       const icon = document.createElement("span");
       icon.className = "mahjong-player-icon";
       icon.textContent = seatLabel;
@@ -806,7 +1075,7 @@ function renderScoreCards() {
       const score = document.createElement("b");
       score.textContent = formatPoints(player.total);
       const hint = document.createElement("small");
-      hint.textContent = `${seatLabel}位・按玩家開始計番`;
+      hint.textContent = isMahjong ? `${seatLabel}${t("位・", " seat · ")}${t("按玩家開始計番", "Tap to score a win")}` : t("累積分數", "Total score");
       card.append(icon, name, score, hint);
       elements.scoreGrid.appendChild(card);
     });
@@ -824,9 +1093,9 @@ function renderScoreCards() {
     $(".score-number", card).textContent = player.score;
     $(".total-score strong", card).textContent = player.total;
     $(".score-display", card).setAttribute("aria-label", `${player.name} 現時 ${player.score} 分，按一下加一分`);
-    $(".score-tap-hint", card).textContent = "按一下 ＋1";
+    $(".score-tap-hint", card).textContent = t("按一下 ＋1", "Tap +1");
     const minusButton = $(".minus-button", card);
-    minusButton.textContent = "按錯？減 1 分";
+    minusButton.textContent = t("按錯？減 1 分", "Undo: -1 point");
     minusButton.setAttribute("aria-label", `${player.name} 減一分`);
     $(".total-plus", card).setAttribute("aria-label", `${player.name} 總分加一`);
     $(".total-minus", card).setAttribute("aria-label", `${player.name} 總分減一`);
@@ -853,7 +1122,7 @@ function updateTimerDisplay() {
   if (!state?.timer) return;
   elements.timerDisplay.textContent = formatTime(currentElapsedSeconds());
   elements.timerToggleButton.setAttribute("aria-pressed", String(state.timer.running));
-  const timerActionLabel = state.timer.running ? "暫停計時" : "開始計時";
+  const timerActionLabel = state.timer.running ? t("暫停計時", "Pause timer") : t("開始計時", "Start timer");
   elements.timerToggleButton.setAttribute("aria-label", timerActionLabel);
   elements.timerToggleButton.title = timerActionLabel;
   elements.timerToggleLabel.textContent = timerActionLabel;
@@ -1000,7 +1269,7 @@ function renderMahjongEntry() {
     return;
   }
 
-  elements.mahjongProgress.textContent = MahjongCore.progressLabel(session, state.participants.map((player) => player.id));
+  elements.mahjongProgress.textContent = MahjongCore.progressLabel(session, state.participants.map((player) => player.id), uiLanguage);
   const draft = session.draft;
   const draftValues = draft?.touched ? draft.values || {} : {};
   const winnerValue = elements.mahjongWinner.value;
@@ -1015,7 +1284,8 @@ function renderMahjongEntry() {
       const option = document.createElement("option");
       option.value = player.id;
       const seatWind = MahjongCore.WINDS.includes(player.seatWind) ? player.seatWind : MahjongCore.WINDS[index];
-      option.textContent = `${MahjongCore.WIND_SHORT_NAMES[seatWind] || "東"}位・${player.name}`;
+      const seatLabel = uiLanguage === "en" ? MahjongCore.WIND_SHORT_NAMES_EN[seatWind] || "E" : MahjongCore.WIND_SHORT_NAMES[seatWind] || "東";
+      option.textContent = `${seatLabel}${t("位・", " seat · ")}${player.name}`;
       select.appendChild(option);
     });
   });
@@ -1046,15 +1316,24 @@ function renderMahjongEntry() {
     input.value = pattern.id;
     input.checked = selectedPatternIds.has(pattern.id);
     const text = document.createElement("span");
-    text.textContent = displayMahjongPatternLabel(pattern, currentWind);
+    text.textContent = uiLanguage === "en"
+      ? (MAHJONG_PATTERN_LABELS_EN[pattern.id] || pattern.label)
+      : displayMahjongPatternLabel(pattern, currentWind);
     const fan = document.createElement("strong");
     const isCappedPattern = state.mahjong.maxFan > 0 && pattern.fan > state.mahjong.maxFan;
-    fan.textContent = isCappedPattern ? `${pattern.fan}→${state.mahjong.maxFan} 番` : `${pattern.fan} 番`;
+    fan.textContent = isCappedPattern
+      ? t(`${pattern.fan}→${state.mahjong.maxFan} 番`, `${pattern.fan}→${state.mahjong.maxFan} fan`)
+      : t(`${pattern.fan} 番`, `${pattern.fan} fan`);
     label.append(input, text, fan);
     elements.mahjongPatternChoices.appendChild(label);
   });
-  const limitLabel = state.mahjong.maxFan > 0 ? `${state.mahjong.maxFan} 番封頂` : "不限番";
-  $("#mahjongRuleBadge").textContent = `${windLabels[currentWind] || "東圈"}・${state.mahjong.minimumFan} 番起糊・${limitLabel}`;
+  const limitLabel = state.mahjong.maxFan > 0
+    ? t(`${state.mahjong.maxFan} 番封頂`, `${state.mahjong.maxFan} fan cap`)
+    : t("不限番", "No fan cap");
+  const currentWindLabel = uiLanguage === "en"
+    ? `${MahjongCore.WIND_SHORT_NAMES_EN[currentWind] || "E"} Round`
+    : windLabels[currentWind] || "東圈";
+  $("#mahjongRuleBadge").textContent = `${currentWindLabel}・${t(`${state.mahjong.minimumFan} 番起糊`, `${state.mahjong.minimumFan} fan minimum`)}・${limitLabel}`;
   updateMahjongPreview();
 }
 
@@ -1070,7 +1349,7 @@ function openMahjongScoring(winnerId = "") {
     updateMahjongPreview();
   }
   const winner = state.participants.find((player) => player.id === elements.mahjongWinner.value);
-  $("#mahjongScoringTitle").textContent = winnerId && winner ? `為 ${winner.name} 計番` : "今局計番";
+  $("#mahjongScoringTitle").textContent = winnerId && winner ? t(`為 ${winner.name} 計番`, `Score ${winner.name}'s win`) : t("今局計番", "Score this hand");
   openModal("mahjongScoringModal");
 }
 
@@ -1089,14 +1368,17 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   const examples = fanList.map((fan) => {
     const result = MahjongCore.scoreForFan({ rawFan: fan, minimumFan, maxFan, basePoints, fanStep, scoringMode, maxPoints: data.get("mahjongMaxPoints") });
     return HK_SCORING_MODES.includes(scoringMode)
-      ? `${fan}番計${result.multiplier}倍`
-      : `${fan}番計${Math.round(result.points)}分`;
+      ? t(`${fan}番計${result.multiplier}倍`, `${fan} fan = ×${result.multiplier}`)
+      : t(`${fan}番計${Math.round(result.points)}分`, `${fan} fan = ${Math.round(result.points)} points`);
   });
-  const capText = maxFan > 0 ? `${maxFan}番封頂` : "不設上限";
-  preview.textContent = `目前玩法：${minimumFan}番起糊，${capText}；例如${examples.join("、")}。`;
+  const capText = maxFan > 0 ? t(`${maxFan}番封頂`, `${maxFan} fan cap`) : t("不設上限", "no fan cap");
+  preview.textContent = t(
+    `目前玩法：${minimumFan}番起糊，${capText}；例如${examples.join("、")}。`,
+    `Current rules: ${minimumFan} fan minimum, ${capText}; for example ${examples.join(", ")}.`,
+  );
   if (capHelp) capHelp.textContent = maxFan > 0
-    ? `實際超過${maxFan}番，都會按${maxFan}番封頂。`
-    : "沿用舊設定：不設番數上限。";
+    ? t(`實際超過${maxFan}番，都會按${maxFan}番封頂。`, `Hands above ${maxFan} fan are scored at the ${maxFan}-fan cap.`)
+    : t("沿用舊設定：不設番數上限。", "Legacy rule: no fan cap.");
 }
 
 function renderMahjongScoringTable(form, scoringMode) {
@@ -1112,16 +1394,16 @@ function renderMahjongScoringTable(form, scoringMode) {
     const row = document.createElement("tr");
     const fanCell = document.createElement("td");
     const multiplierCell = document.createElement("td");
-    fanCell.textContent = fan;
-    multiplierCell.textContent = multiplier;
+    fanCell.textContent = uiLanguage === "en" ? fan.replace("番或以上", " fan or more").replace("番", " fan") : fan;
+    multiplierCell.textContent = uiLanguage === "en" ? multiplier.replace("倍／封頂", "× / cap").replace("倍", "×") : multiplier;
     row.append(fanCell, multiplierCell);
     return row;
   }));
   if (help) help.textContent = scoringMode === "hk-half-spicy"
-    ? "四番後交替加半級、再升一倍，銀碼上升較平順。"
+    ? t("四番後交替加半級、再升一倍，銀碼上升較平順。", "After 4 fan, the multiplier alternates between a half step and doubling for a gentler rise.")
     : scoringMode === "hk-full-spicy"
-      ? "四番後每多一番都會再跳一倍，適合想高番差距更大。"
-      : "將相近番數分成同一級，最容易睇同計。";
+      ? t("四番後每多一番都會再跳一倍，適合想高番差距更大。", "Every fan after 4 doubles again, creating a much wider gap at high fan.")
+      : t("將相近番數分成同一級，最容易睇同計。", "Nearby fan totals share a tier, making this the easiest option to follow.");
 }
 
 function setMahjongScoringControls(form, scoringMode) {
@@ -1140,7 +1422,7 @@ function setMahjongScoringControls(form, scoringMode) {
         preset.appendChild(customOption);
       }
       customOption.value = mode;
-      customOption.textContent = `進階自訂：${MAHJONG_SCORING_LABELS[mode]}`;
+      customOption.textContent = t(`進階自訂：${MAHJONG_SCORING_LABELS[mode]}`, `Advanced custom: ${mode === "doubling" ? "per-fan doubling" : "linear scoring"}`);
     }
     preset.value = mode;
   }
@@ -1164,12 +1446,12 @@ function updateMahjongLengthFields(form, prefix) {
   if (customField) customField.hidden = mode !== "custom-hands";
   if (!help) return;
   help.textContent = mode === "half"
-    ? "半莊代表東圈加南圈；有人連莊，實際局數會增加。"
+    ? t("半莊代表東圈加南圈；有人連莊，實際局數會增加。", "A half game includes the East and South rounds; dealer repeats can add hands.")
     : mode === "custom-hands"
-      ? "設定牌局總數；達到局數後會詢問是否結算。"
+      ? t("設定牌局總數；達到局數後會詢問是否結算。", "Set a hand limit; the app will ask to settle when it is reached.")
       : mode === "legacy-cycles"
-        ? "為咗保留呢場舊對局原有局數設定，會沿用原定圈數。"
-        : "東圈代表四位玩家最少各做一次莊；連莊時實際局數會增加。";
+        ? t("為咗保留呢場舊對局原有局數設定，會沿用原定圈數。", "This saved game keeps its original round settings.")
+        : t("東圈代表四位玩家最少各做一次莊；連莊時實際局數會增加。", "An East round gives each player at least one turn as dealer; dealer repeats can add hands.");
 }
 
 function updateMahjongSetupPreview() {
@@ -1493,7 +1775,7 @@ function renderChooser() {
     point.className = `touch-point${state.chooser?.resultFingerNumber === touch.fingerNumber ? " is-selected" : ""}`;
     point.style.left = `${touch.x}%`;
     point.style.top = `${touch.y}%`;
-    point.textContent = state.chooser?.resultFingerNumber === touch.fingerNumber ? "首家" : "☝️";
+    point.textContent = state.chooser?.resultFingerNumber === touch.fingerNumber ? t("首家", "FIRST") : "☝️";
     elements.touchPoints.appendChild(point);
   });
 
@@ -1504,18 +1786,138 @@ function renderChooser() {
     selectedPoint.className = "touch-point is-selected";
     selectedPoint.style.left = `${state.chooser.resultX}%`;
     selectedPoint.style.top = `${state.chooser.resultY}%`;
-    selectedPoint.textContent = "首家";
+    selectedPoint.textContent = t("首家", "FIRST");
     elements.touchPoints.appendChild(selectedPoint);
   }
   elements.chooserResult.hidden = !result;
-  if (result) elements.chooserResult.textContent = `✦ 今次首家：手指 ${state.chooser.resultFingerNumber}`;
+  if (result) elements.chooserResult.textContent = t(`✦ 今次首家：手指 ${state.chooser.resultFingerNumber}`, `✦ First player: finger ${state.chooser.resultFingerNumber}`);
   if (chooserCountdown > 0) {
     elements.chooserStatus.textContent = `${chooserCountdown}…`;
   } else if (result) {
-    elements.chooserStatus.textContent = "抽籤完成";
+    elements.chooserStatus.textContent = t("抽籤完成", "Done");
   } else {
-    elements.chooserStatus.textContent = chooserTouches.size ? `已按住 ${chooserTouches.size} 隻手指` : "等大家喺任何位置按住";
+    elements.chooserStatus.textContent = chooserTouches.size ? t(`已按住 ${chooserTouches.size} 隻手指`, `${chooserTouches.size} fingers touching`) : t("等大家喺任何位置按住", "Waiting for everyone to touch");
   }
+}
+
+function bigTwoMultiplier(cards) {
+  return BigTwoCore.multiplierForCards(cards);
+}
+
+function bigTwoLevel(cards) {
+  const remaining = Math.max(0, Math.min(13, Math.floor(Number(cards) || 0)));
+  if (remaining >= 13) return t("三炒", "Triple penalty");
+  if (remaining >= 10) return t("雙炒", "Double penalty");
+  if (remaining >= 8) return t("起炒", "Penalty");
+  return t("正常", "Normal");
+}
+
+function readBigTwoRound() {
+  const winnerId = elements.bigTwoWinner.value;
+  const penalties = {};
+  let valid = Boolean(state.participants.some((player) => player.id === winnerId));
+  state.participants.forEach((player) => {
+    if (player.id === winnerId) {
+      penalties[player.id] = { cards: 0, multiplier: 1, points: 0 };
+      return;
+    }
+    const input = $(`[data-bigtwo-player-id="${CSS.escape(player.id)}"]`, elements.bigTwoRemainingList);
+    const cards = Number(input?.value);
+    if (!Number.isInteger(cards) || cards < 1 || cards > 13) valid = false;
+    const cleanCards = Math.max(0, Math.min(13, Math.floor(cards || 0)));
+    const multiplier = bigTwoMultiplier(cleanCards);
+    penalties[player.id] = { cards: cleanCards, multiplier, points: cleanCards * multiplier };
+  });
+  return { valid, winnerId, penalties };
+}
+
+function updateBigTwoPreview() {
+  if (state?.kind !== "bigtwo") return;
+  const round = readBigTwoRound();
+  if (!round.valid) {
+    elements.bigTwoPreview.textContent = t("每位輸家請輸入 1 至 13 張剩牌。", "Enter 1–13 remaining cards for each losing player.");
+    elements.bigTwoPreview.classList.add("is-invalid");
+    return;
+  }
+  elements.bigTwoPreview.classList.remove("is-invalid");
+  const lines = state.participants.filter((player) => player.id !== round.winnerId).map((player) => {
+    const penalty = round.penalties[player.id];
+    return `${player.name} ${penalty.cards}${t("張", " cards")}・${bigTwoLevel(penalty.cards)} ×${penalty.multiplier}＝-${penalty.points}`;
+  });
+  const winner = state.participants.find((player) => player.id === round.winnerId);
+  const gain = Object.values(round.penalties).reduce((sum, entry) => sum + entry.points, 0);
+  elements.bigTwoPreview.textContent = `${lines.join("｜")}｜${winner?.name || ""} +${gain}`;
+}
+
+function renderBigTwoRoundForm(winnerId = "") {
+  const previous = Object.fromEntries($$("[data-bigtwo-player-id]", elements.bigTwoRemainingList).map((input) => [input.dataset.bigtwoPlayerId, input.value]));
+  const currentWinner = winnerId || elements.bigTwoWinner.value || state.participants[0]?.id;
+  elements.bigTwoWinner.replaceChildren();
+  state.participants.forEach((player) => {
+    const option = document.createElement("option");
+    option.value = player.id;
+    option.textContent = player.name;
+    elements.bigTwoWinner.appendChild(option);
+  });
+  if (state.participants.some((player) => player.id === currentWinner)) elements.bigTwoWinner.value = currentWinner;
+  elements.bigTwoRemainingList.replaceChildren();
+  state.participants.forEach((player) => {
+    const row = document.createElement("label");
+    row.className = "big-two-remaining-row";
+    const name = document.createElement("strong");
+    name.textContent = player.name;
+    const input = document.createElement("input");
+    input.className = "text-input";
+    input.type = "number";
+    input.min = "1";
+    input.max = "13";
+    input.inputMode = "numeric";
+    input.dataset.bigtwoPlayerId = player.id;
+    const isWinner = player.id === elements.bigTwoWinner.value;
+    input.disabled = isWinner;
+    input.value = isWinner ? "0" : Number(previous[player.id]) >= 1 ? previous[player.id] : "1";
+    const suffix = document.createElement("span");
+    suffix.textContent = isWinner ? t("贏家", "Winner") : t("剩牌", "cards left");
+    row.append(name, input, suffix);
+    elements.bigTwoRemainingList.appendChild(row);
+  });
+  updateBigTwoPreview();
+}
+
+function openBigTwoRound(winnerId = "") {
+  if (state?.kind !== "bigtwo") return;
+  renderBigTwoRoundForm(winnerId);
+  openModal("bigTwoRoundModal");
+}
+
+function renderBigTwo() {
+  elements.bigTwoProgress.textContent = t(`第 ${state.round} 鋪`, `Hand ${state.round}`);
+}
+
+function recordBigTwoRound(event) {
+  event.preventDefault();
+  const round = readBigTwoRound();
+  if (!round.valid) return showToast(t("請檢查每位輸家嘅剩牌數", "Check each losing player's remaining cards"));
+  const winner = state.participants.find((player) => player.id === round.winnerId);
+  const gain = Object.values(round.penalties).reduce((sum, entry) => sum + entry.points, 0);
+  snapshot();
+  state.participants.forEach((player) => {
+    const amount = player.id === round.winnerId ? gain : -round.penalties[player.id].points;
+    player.score = amount;
+    player.total += amount;
+  });
+  state.history.push({
+    number: state.round,
+    scores: state.participants.map((player) => ({ id: player.id, name: player.name, score: player.score })),
+    winners: [winner.name],
+    winnerName: winner.name,
+    remaining: state.participants.map((player) => ({ id: player.id, name: player.name, ...(round.penalties[player.id] || { cards: 0, multiplier: 1, points: 0 }) })),
+    createdAt: new Date().toISOString(),
+  });
+  state.round += 1;
+  closeModal("bigTwoRoundModal");
+  render();
+  showToast(t("今鋪鋤大D分數已記錄", "Big Two hand saved"));
 }
 
 function cancelChooserCountdown() {
@@ -1639,7 +2041,7 @@ function showToast(message) {
 function updateConnectionStatus() {
   const isOffline = !navigator.onLine;
   elements.connectionBadge.classList.toggle("is-offline", isOffline);
-  elements.connectionLabel.textContent = isOffline ? "離線模式" : "離線可用";
+  elements.connectionLabel.textContent = isOffline ? t("離線模式", "Offline") : t("離線可用", "Works offline");
 }
 
 async function registerOfflineSupport() {
@@ -1701,10 +2103,10 @@ function closeModal(id) {
 }
 
 function openConfirm({ title, message, acceptText = "確定", cancelText = "取消", icon = "?", action, cancelAction }) {
-  $("#confirmTitle").textContent = title;
+  $("#confirmTitle").textContent = translateKnown(title);
   $("#confirmMessage").textContent = message;
-  $("#confirmAccept").textContent = acceptText;
-  $("#confirmCancel").textContent = cancelText;
+  $("#confirmAccept").textContent = translateKnown(acceptText);
+  $("#confirmCancel").textContent = translateKnown(cancelText);
   $("#confirmIcon").textContent = icon;
   pendingConfirmAction = action;
   pendingCancelAction = cancelAction || null;
@@ -1759,12 +2161,12 @@ function openSettings() {
 }
 
 function updateSettingsModeFields() {
-  const special = state?.kind === "mahjong" || state?.kind === "chooser";
+  const special = state?.kind === "mahjong" || state?.kind === "chooser" || state?.kind === "bigtwo";
   $("#standardSettingsFields").hidden = special;
   $("#winnerRuleFields").hidden = special;
   $("#settingsMahjongQuickFields").hidden = state?.kind !== "mahjong";
   $("#mahjongSettingsFields").hidden = state?.kind !== "mahjong";
-  $("#addParticipantButton").hidden = state?.kind === "mahjong";
+  $("#addParticipantButton").hidden = state?.kind === "mahjong" || state?.kind === "bigtwo";
 }
 
 function isMahjongEarly(session) {
@@ -1866,7 +2268,7 @@ function renderParticipantEditor() {
     remove.type = "button";
     remove.className = "remove-participant";
     remove.textContent = "×";
-    const minimumParticipants = state?.kind === "mahjong" ? 4 : 2;
+    const minimumParticipants = state?.kind === "mahjong" || state?.kind === "bigtwo" ? 4 : 2;
     remove.disabled = settingsParticipantsDraft.length <= minimumParticipants;
     remove.setAttribute("aria-label", `移除 ${player.name}`);
 
@@ -1874,27 +2276,32 @@ function renderParticipantEditor() {
     editor.appendChild(row);
   });
 
-  $("#addParticipantButton").hidden = state?.kind === "mahjong";
-  $("#addParticipantButton").disabled = state?.kind === "mahjong" || settingsParticipantsDraft.length >= 8;
+  $("#addParticipantButton").hidden = state?.kind === "mahjong" || state?.kind === "bigtwo";
+  $("#addParticipantButton").disabled = state?.kind === "mahjong" || state?.kind === "bigtwo" || settingsParticipantsDraft.length >= 8;
 }
 
 function updateSetupFromPreset() {
   const preset = $("input[name='preset']:checked", $("#setupForm")).value;
   const isMahjong = preset === "mahjong";
+  const isBigTwo = preset === "bigtwo";
   $("#setupTeamNamesRow").hidden = preset !== "sports";
   $("#setupMahjongPlayers").hidden = !isMahjong;
-  $("#setupTitle").textContent = isMahjong ? "香港麻雀開局設定" : "今次點樣計？";
+  $("#setupBigTwoPlayers").hidden = !isBigTwo;
+  $("#setupTitle").textContent = isMahjong ? t("香港麻雀開局設定", "Hong Kong Mahjong Setup") : isBigTwo ? t("鋤大D 計分設定", "Big Two Setup") : t("今次點樣計？", "What are you scoring?");
   $("#setupDescription").textContent = isMahjong
-    ? "先按東、南、西、北座位入名，再揀起糊番數、圈數同最高番數。"
+    ? t("先按東、南、西、北座位入名，再揀起糊番數、圈數同最高番數。", "Enter the East, South, West and North players, then choose the game rules.")
+    : isBigTwo
+      ? t("輸入四位玩家名；之後每鋪填剩牌數就會自動計炒牌倍數。", "Enter four players. After each hand, enter cards left and penalties are calculated automatically.")
     : preset === "chooser"
-      ? "唔使輸入玩家名；大家喺畫面任何位置按住，就會抽出首家。"
-      : "揀一個玩法開始，之後隨時可以改名或加減人數。";
-  $("#setupSubmitText").textContent = isMahjong ? "建立麻雀計分板" : preset === "chooser" ? "開始抽首家" : "建立計分板";
+      ? t("唔使輸入玩家名；大家喺畫面任何位置按住，就會抽出首家。", "No names needed. Everyone touches the screen and one finger is chosen.")
+      : t("輸入兩隊名稱就可以開始。", "Enter both team names to begin.");
+  $("#setupSubmitText").textContent = isMahjong ? t("建立麻雀計分板", "Start Mahjong") : isBigTwo ? t("建立鋤大D計分板", "Start Big Two") : preset === "chooser" ? t("開始抽首家", "Start Choosing") : t("建立計分板", "Create Scoreboard");
   $("#participantCountRow").hidden = preset !== "custom";
   $("#setupMahjongRules").hidden = !isMahjong;
   const nameInput = $("#setupName");
   if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
-  if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚開枱";
+  if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤", "今晚鋤大D"].includes(nameInput.value)) nameInput.value = "今晚開枱";
+  if (preset === "bigtwo" && ["今晚開波", "今晚開枱", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚鋤大D";
   if (preset === "chooser" && ["今晚開波", "今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "首家抽籤";
   $("#countOutput").textContent = customCount;
   if (preset === "custom" && ["今晚開波", "今晚開枱"].includes(nameInput.value)) nameInput.value = "自訂比賽";
@@ -1973,7 +2380,8 @@ document.addEventListener("pointercancel", (event) => {
 document.addEventListener("click", (event) => {
   const mahjongCard = event.target.closest(".mahjong-player-card");
   if (mahjongCard) {
-    openMahjongScoring(mahjongCard.dataset.id);
+    if (state?.kind === "bigtwo") openBigTwoRound(mahjongCard.dataset.id);
+    else openMahjongScoring(mahjongCard.dataset.id);
     return;
   }
   const card = event.target.closest(".score-card");
@@ -2009,6 +2417,15 @@ elements.mahjongEntryForm.addEventListener("change", (event) => {
 elements.mahjongOpenScoringButton.addEventListener("click", () => openMahjongScoring());
 $("#mahjongEndButton").addEventListener("click", requestMahjongSettlement);
 
+elements.bigTwoOpenRoundButton.addEventListener("click", () => openBigTwoRound());
+elements.bigTwoWinner.addEventListener("change", () => renderBigTwoRoundForm(elements.bigTwoWinner.value));
+elements.bigTwoRemainingList.addEventListener("input", updateBigTwoPreview);
+elements.bigTwoRoundForm.addEventListener("submit", recordBigTwoRound);
+
+$$('[data-close="bigTwoRoundModal"]').forEach((button) => {
+  button.addEventListener("click", () => closeModal("bigTwoRoundModal"));
+});
+
 $$('[data-close="mahjongScoringModal"]').forEach((button) => {
   button.addEventListener("click", () => closeModal("mahjongScoringModal"));
 });
@@ -2032,7 +2449,7 @@ $("#mahjongCommonDefaults").addEventListener("click", () => {
   $("[name='mahjongFanStep']", form).value = "2";
   setMahjongScoringControls(form, "hk-table");
   updateMahjongSetupPreview();
-  showToast("已套用香港常用計分");
+  showToast(t("已套用香港常用計分", "Common Hong Kong scoring applied"));
 });
 
 $("#settingsMahjongCommonDefaults").addEventListener("click", () => {
@@ -2043,7 +2460,7 @@ $("#settingsMahjongCommonDefaults").addEventListener("click", () => {
   $("[name='mahjongFanStep']", form).value = "2";
   setMahjongScoringControls(form, "hk-table");
   updateMahjongSettingsPreview();
-  showToast("已套用香港常用計分");
+  showToast(t("已套用香港常用計分", "Common Hong Kong scoring applied"));
 });
 
 $("#chooserResetButton").addEventListener("click", resetChooser);
@@ -2071,7 +2488,7 @@ $("#setupForm").addEventListener("submit", (event) => {
   });
   if (state.kind === "mahjong") {
     state.participants.forEach((player, index) => {
-      player.name = String(form.get(`mahjongPlayer${index + 1}`) || "").trim().slice(0, 18) || `玩家 ${index + 1}`;
+      player.name = String(form.get(`mahjongPlayer${index + 1}`) || "").trim().slice(0, 18) || t(`玩家 ${index + 1}`, `Player ${index + 1}`);
       player.seatWind = MahjongCore.WINDS[index];
     });
     const defaultRules = defaultMahjongRules();
@@ -2104,18 +2521,33 @@ $("#setupForm").addEventListener("submit", (event) => {
     });
     applyMahjongLengthSelection(state.mahjongSession, form);
     state.mahjongSession.nextDealerId = state.participants[0]?.id || "";
+  } else if (state.kind === "bigtwo") {
+    state.participants.forEach((player, index) => {
+      player.name = String(form.get(`bigTwoPlayer${index + 1}`) || "").trim().slice(0, 18) || t(`玩家 ${index + 1}`, `Player ${index + 1}`);
+    });
   }
   undoStack = [];
   closeModal("setupModal");
   elements.setupCloseButton.hidden = false;
   showScoreboard();
-  showToast("計分板準備好喇");
+  showToast(t("計分板準備好喇", "Scoreboard ready"));
 });
 
 $("#settingsButton").addEventListener("click", openSettings);
 elements.homeButton.addEventListener("click", showHome);
 elements.homeNewButton.addEventListener("click", () => beginNewActivity("sports"));
 elements.homeContinueButton.addEventListener("click", showScoreboard);
+elements.languageToggle.addEventListener("click", () => {
+  uiLanguage = uiLanguage === "en" ? "zh" : "en";
+  try { localStorage.setItem(LANGUAGE_KEY, uiLanguage); } catch { /* Language still changes for this session. */ }
+  applyLanguage();
+  updateSetupFromPreset();
+  if (state) render();
+  updateConnectionStatus();
+  if (elements.gameLibraryModal.classList.contains("is-open")) renderGameLibrary();
+  if (elements.mahjongScoringModal.classList.contains("is-open")) renderMahjongEntry();
+  if (elements.bigTwoRoundModal.classList.contains("is-open")) renderBigTwoRoundForm(elements.bigTwoWinner.value);
+});
 $("#homeModeGrid").addEventListener("click", (event) => {
   const card = event.target.closest("[data-home-preset]");
   if (card) openGameLibrary(gameCategory(card.dataset.homePreset));
@@ -2137,7 +2569,7 @@ elements.gameLibraryList.addEventListener("click", (event) => {
     undoStack = [];
     closeModal("gameLibraryModal");
     showScoreboard();
-    showToast(state.kind === "mahjong" && state.mahjongSession?.status === "settled" ? "已打開結算紀錄" : "已繼續之前嘅紀錄");
+    showToast(state.kind === "mahjong" && state.mahjongSession?.status === "settled" ? t("已打開結算紀錄", "Final scores opened") : t("已繼續之前嘅紀錄", "Saved game resumed"));
     return;
   }
   const remove = event.target.closest("[data-delete-game-id]");
@@ -2145,10 +2577,10 @@ elements.gameLibraryList.addEventListener("click", (event) => {
   const game = gameLibrary.find((entry) => entry.gameId === remove.dataset.deleteGameId);
   if (!game) return;
   openConfirm({
-    title: "刪除呢個紀錄？",
-    message: `「${game.title}」刪除後無法復原。`,
-    cancelText: "保留紀錄",
-    acceptText: "刪除",
+    title: t("刪除呢個紀錄？", "Delete this game?"),
+    message: t(`「${game.title}」刪除後無法復原。`, `“${game.title}” cannot be restored after deletion.`),
+    cancelText: t("保留紀錄", "Keep game"),
+    acceptText: t("刪除", "Delete"),
     icon: "×",
     action: () => {
       gameLibrary = gameLibrary.filter((entry) => entry.gameId !== game.gameId);
@@ -2164,7 +2596,7 @@ elements.gameLibraryList.addEventListener("click", (event) => {
       }
       renderGameLibrary();
       updateHome();
-      showToast("紀錄已刪除");
+      showToast(t("紀錄已刪除", "Game deleted"));
     },
   });
 });
@@ -2257,12 +2689,12 @@ $("#settingsForm").addEventListener("submit", (event) => {
     });
     state.mahjongSession.startingWind = state.mahjong.prevailingWind;
     applyMahjongLengthSelection(state.mahjongSession, form);
-  } else if (state.kind !== "chooser") {
+  } else if (state.kind !== "chooser" && state.kind !== "bigtwo") {
     state.kind = state.participants.length === 2 ? state.kind : "custom";
   }
   closeModal("settingsModal");
   render();
-  showToast("設定已儲存");
+  showToast(t("設定已儲存", "Settings saved"));
 });
 
 $("#newScoreboardButton").addEventListener("click", () => {
@@ -2313,6 +2745,7 @@ document.addEventListener("keydown", (event) => {
       action?.();
     } else if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
     else if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
+    else if (elements.bigTwoRoundModal.classList.contains("is-open")) closeModal("bigTwoRoundModal");
     else if (elements.gameLibraryModal.classList.contains("is-open")) closeModal("gameLibraryModal");
     else if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   }
@@ -2324,14 +2757,16 @@ document.addEventListener("keydown", (event) => {
 
 window.addEventListener("online", () => {
   updateConnectionStatus();
-  showToast("已重新連線");
+  showToast(t("已重新連線", "Back online"));
 });
 
 window.addEventListener("offline", () => {
   updateConnectionStatus();
-  showToast("已進入離線模式，計分仍可使用");
+  showToast(t("已進入離線模式，計分仍可使用", "Offline mode: scoring still works"));
 });
 
+prepareStaticTranslations();
+applyLanguage();
 state = loadState();
 migrateLegacyRecords();
 if (state) {

@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=42" />
+    <link rel="stylesheet" href="style.css?v=44" />
   </head>
   <body>
     <div class="app-shell">
@@ -28,6 +28,7 @@
         </a>
 
         <div class="top-actions">
+          <button class="language-toggle" id="languageToggle" type="button" aria-label="Switch to English">EN</button>
           <button class="home-button" id="homeButton" type="button" aria-label="返回主頁" title="返回主頁">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z" /></svg>
             <span class="home-button-label">主頁</span>
@@ -81,7 +82,7 @@
         <div class="home-mode-grid" id="homeModeGrid">
           <button class="home-mode-card" type="button" data-home-preset="sports">
             <span class="home-mode-icon home-mode-icon-orange">＋</span>
-            <span class="home-mode-copy"><strong>普通計分</strong><small>球類、桌遊、任何要加減分嘅活動</small></span>
+            <span class="home-mode-copy"><strong>兩隊比賽計分</strong><small>排球、籃球、羽毛球等對賽</small></span>
             <span class="home-mode-arrow">→</span>
           </button>
           <button class="home-mode-card" type="button" data-home-preset="mahjong">
@@ -92,6 +93,11 @@
           <button class="home-mode-card" type="button" data-home-preset="chooser">
             <span class="home-mode-icon home-mode-icon-blue">抽</span>
             <span class="home-mode-copy"><strong>首家抽籤</strong><small>任何位置一齊按住，隨機閃出首家</small></span>
+            <span class="home-mode-arrow">→</span>
+          </button>
+          <button class="home-mode-card" type="button" data-home-preset="bigtwo">
+            <span class="home-mode-icon home-mode-icon-purple">D</span>
+            <span class="home-mode-copy"><strong>鋤大D 四人計分</strong><small>自動計起炒、雙炒、三炒</small></span>
             <span class="home-mode-arrow">→</span>
           </button>
         </div>
@@ -166,6 +172,20 @@
           </div>
           <div class="chooser-result" id="chooserResult" aria-live="polite" hidden></div>
           <button class="primary-button wide" id="chooserResetButton" type="button">再抽一次</button>
+        </section>
+
+        <section class="big-two-panel" id="bigTwoPanel" hidden aria-labelledby="bigTwoTitle">
+          <div class="special-heading">
+            <div>
+              <p class="eyebrow">BIG TWO SCORE</p>
+              <h2 id="bigTwoTitle">鋤大D 四人計分</h2>
+              <p>每鋪揀贏家，再填其餘玩家剩牌數；起炒、雙炒、三炒會自動計算。</p>
+            </div>
+          </div>
+          <div class="big-two-session-bar">
+            <strong id="bigTwoProgress">第 1 鋪</strong>
+            <button class="primary-button" id="bigTwoOpenRoundButton" type="button">完成一鋪／計分</button>
+          </div>
         </section>
 
         <section class="mahjong-panel" id="mahjongPanel" hidden aria-labelledby="mahjongTitle">
@@ -274,7 +294,7 @@
         </div>
 
         <form id="setupForm">
-          <fieldset>
+          <fieldset id="setupPresetFieldset" hidden>
             <legend>快速選擇</legend>
             <div class="preset-grid">
               <label class="preset-card">
@@ -284,9 +304,9 @@
                 <span class="radio-dot"></span>
               </label>
               <label class="preset-card">
-                <input type="radio" name="preset" value="cards" />
+                <input type="radio" name="preset" value="bigtwo" />
                 <span class="preset-icon">牌</span>
-                <span><strong>四人計分</strong><small>啤牌・桌遊・麻雀</small></span>
+                <span><strong>鋤大D</strong><small>四人・自動計炒牌倍數</small></span>
                 <span class="radio-dot"></span>
               </label>
               <label class="preset-card">
@@ -343,6 +363,21 @@
               <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">北</span> 北位玩家
                 <input class="text-input" name="mahjongPlayer4" type="text" maxlength="18" value="玩家 4" placeholder="坐北位嘅玩家" />
               </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="mahjong-player-setup" id="setupBigTwoPlayers" hidden>
+            <legend>四位玩家名稱</legend>
+            <p class="settings-help">入好四位玩家名，每鋪只需要填剩牌數。</p>
+            <div class="mahjong-player-name-grid">
+              <label class="field-label">玩家 1<input class="text-input" name="bigTwoPlayer1" type="text" maxlength="18" value="玩家 1" /></label>
+              <label class="field-label">玩家 2<input class="text-input" name="bigTwoPlayer2" type="text" maxlength="18" value="玩家 2" /></label>
+              <label class="field-label">玩家 3<input class="text-input" name="bigTwoPlayer3" type="text" maxlength="18" value="玩家 3" /></label>
+              <label class="field-label">玩家 4<input class="text-input" name="bigTwoPlayer4" type="text" maxlength="18" value="玩家 4" /></label>
+            </div>
+            <div class="big-two-rule-note">
+              <strong>炒牌計分</strong>
+              <span>1–7 張 ×1・8–9 張起炒 ×2・10–12 張雙炒 ×3・13 張三炒 ×4</span>
             </div>
           </fieldset>
 
@@ -642,6 +677,30 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" id="bigTwoRoundModal" role="dialog" aria-modal="true" aria-labelledby="bigTwoRoundTitle" aria-hidden="true">
+      <div class="modal big-two-round-modal">
+        <div class="modal-accent" aria-hidden="true"></div>
+        <button class="modal-close" data-close="bigTwoRoundModal" type="button" aria-label="關閉鋤大D計分">×</button>
+        <div class="modal-header compact">
+          <p class="eyebrow">SCORE THIS HAND</p>
+          <h2 id="bigTwoRoundTitle">今鋪鋤大D計分</h2>
+          <p>揀贏家，再填其他玩家仲有幾多張牌。</p>
+        </div>
+        <form id="bigTwoRoundForm">
+          <label class="field-label">今鋪贏家
+            <select class="text-input" id="bigTwoWinner" name="winner"></select>
+          </label>
+          <div class="big-two-remaining-list" id="bigTwoRemainingList"></div>
+          <div class="big-two-rule-note">
+            <strong>自動炒牌倍數</strong>
+            <span>1–7 張 ×1・8–9 張起炒 ×2・10–12 張雙炒 ×3・13 張三炒 ×4</span>
+          </div>
+          <p class="mahjong-preview" id="bigTwoPreview">填寫剩牌數後會顯示今鋪分數。</p>
+          <button class="primary-button wide" type="submit">記錄今鋪</button>
+        </form>
+      </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <template id="scoreCardTemplate">
@@ -672,7 +731,8 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=42" defer></script>
-    <script src="app.js?v=42" defer></script>
+    <script src="mahjong-core.js?v=44" defer></script>
+    <script src="big-two-core.js?v=44" defer></script>
+    <script src="app.js?v=44" defer></script>
   </body>
 </html>
