@@ -233,6 +233,7 @@ button,
 
 .match-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
@@ -2040,6 +2041,59 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .mahjong-history-item p { margin: 8px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
 .settings-help { margin: 12px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
 
+.sports-game-setup {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--paper) 72%, white);
+}
+
+.sports-setup-heading { display: flex; align-items: end; justify-content: space-between; gap: 14px; }
+.sports-setup-heading span { color: var(--orange); font-size: 10px; font-weight: 950; letter-spacing: .14em; }
+.sports-setup-heading h3 { margin: 3px 0 0; font-size: 22px; }
+.sports-setup-heading small { max-width: 220px; color: var(--ink-soft); font-size: 12px; text-align: right; }
+.sports-preset-fieldset { margin: 0; padding: 0; border: 0; }
+.sports-preset-fieldset legend { margin-bottom: 10px; color: var(--ink-soft); font-size: 12px; font-weight: 900; }
+.sports-preset-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sports-preset-card {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+  cursor: pointer;
+}
+.sports-preset-card input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.sports-preset-card span { min-width: 0; display: grid; gap: 5px; }
+.sports-preset-card strong { font-size: 14px; }
+.sports-preset-card small { color: var(--ink-soft); font-size: 11px; line-height: 1.35; }
+.sports-preset-card b { width: 22px; height: 22px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: transparent; font-size: 12px; }
+.sports-preset-card:has(input:checked) { border-color: var(--ink); background: color-mix(in srgb, var(--lime) 18%, white); box-shadow: 0 0 0 1px var(--ink); }
+.sports-preset-card:has(input:checked) b { border-color: var(--ink); background: var(--ink); color: white; }
+.sports-option-panel { padding: 15px; border-radius: 15px; background: white; box-shadow: inset 0 0 0 1px var(--line); }
+.sports-option-panel:not(.sports-custom-panel) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.sports-inline-custom { margin-top: 7px; }
+.sports-decider-toggle { align-self: center; margin-top: 22px; }
+.sports-setup-preview { padding: 13px 15px; border-radius: 13px; background: var(--ink); color: white; font-size: 12px; font-weight: 800; line-height: 1.55; }
+.sports-match-status { flex: 1 1 100%; margin: 3px 0 0; color: var(--orange); font-size: 13px; font-weight: 950; }
+.score-display.is-disabled { cursor: default; filter: saturate(.55); }
+.sports-summary-modal { width: min(560px, 100%); }
+.sports-summary-result { display: grid; gap: 5px; margin: 8px 0 18px; padding: 18px; border-radius: 16px; background: var(--ink); color: white; text-align: center; }
+.sports-summary-result span { color: var(--lime); font-size: 11px; font-weight: 950; letter-spacing: .08em; text-transform: uppercase; }
+.sports-summary-result strong { font-size: clamp(22px, 5vw, 34px); }
+.sports-summary-games { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.sports-summary-games li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.sports-summary-games span { color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+.sports-summary-games b { font-size: 19px; }
+.sports-summary-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+
 .sports-landscape-board[hidden],
 .rotate-prompt[hidden],
 #appMain[hidden],
@@ -2135,6 +2189,7 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-landscape-center .match-heading .eyebrow { margin: 0; color: var(--orange); font-size: 9px; }
 .sports-landscape-center .match-heading h1,
 .sports-landscape-center .heading-meta { display: none; }
+.sports-landscape-center .sports-match-status { max-width: 72px; margin: 4px auto 0; color: var(--ink); font-size: 9px; line-height: 1.25; }
 .sports-landscape-center .timer-bar { flex-direction: column; gap: 7px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--ink); }
 .sports-landscape-center .timer-status { flex-direction: column; gap: 4px; }
 .sports-landscape-center .timer-icon { display: none; }
@@ -2344,6 +2399,12 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
   }
   .modal-close { top: 12px; right: 12px; }
   .preset-grid { grid-template-columns: 1fr; }
+  .sports-game-setup { padding: 15px; }
+  .sports-setup-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .sports-setup-heading small { max-width: none; text-align: left; }
+  .sports-preset-grid { grid-template-columns: 1fr; }
+  .sports-option-panel:not(.sports-custom-panel) { grid-template-columns: 1fr; }
+  .sports-summary-actions { grid-template-columns: 1fr; }
   .preset-card { flex-direction: row; align-items: center; }
   .radio-dot { top: 50%; transform: translateY(-50%); }
   footer { flex-direction: column; gap: 6px; }

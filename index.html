@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=47" />
+    <link rel="stylesheet" href="style.css?v=48" />
   </head>
   <body>
     <div class="app-shell">
@@ -133,6 +133,7 @@
             <span class="meta-divider"></span>
             <span id="modeLabel">勝方 +1</span>
           </div>
+          <p class="sports-match-status" id="sportsMatchStatus" hidden></p>
         </section>
 
         <section class="timer-bar" id="timerBar" aria-label="比賽計時器">
@@ -272,6 +273,18 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
             <span class="landscape-control-label">完成本局</span>
           </button>
+          <button class="secondary-button" id="sportsResetGameButton" type="button" hidden aria-label="重設目前一局" title="重設目前一局">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6" /></svg>
+            <span class="landscape-control-label">重設本局</span>
+          </button>
+          <button class="secondary-button" id="sportsResetMatchButton" type="button" hidden aria-label="重設整場比賽" title="重設整場比賽">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6.4 6.4l2.1 2.1m7 7 2.1 2.1m0-11.2-2.1 2.1m-7 7-2.1 2.1" /><circle cx="12" cy="12" r="4" /></svg>
+            <span class="landscape-control-label">重設比賽</span>
+          </button>
+          <button class="primary-button" id="sportsSummaryButton" type="button" hidden aria-label="查看比賽結果" title="查看比賽結果">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4a5 5 0 0 1-10 0V3Z" /><path d="M7 5H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4M12 12v5m-4 4h8m-6-4h4" /></svg>
+            <span class="landscape-control-label">比賽結果</span>
+          </button>
         </section>
 
         <section class="round-history" id="roundHistory" aria-labelledby="historyTitle">
@@ -355,6 +368,86 @@
               </label>
             </div>
           </div>
+
+          <section class="sports-game-setup" id="setupSportsRules" hidden aria-label="運動比賽設定">
+            <div class="sports-setup-heading">
+              <div><span>GAME SETUP</span><h3>比賽玩法</h3></div>
+              <small>揀一個預設就可以立即開始</small>
+            </div>
+            <label class="field-label">選擇運動
+              <select class="text-input" name="sportType">
+                <option value="volleyball" selected>排球 Volleyball</option>
+                <option value="basketball" disabled>籃球 Basketball（下一步加入）</option>
+                <option value="badminton" disabled>羽毛球 Badminton（下一步加入）</option>
+                <option value="table-tennis" disabled>乒乓球 Table Tennis（下一步加入）</option>
+              </select>
+            </label>
+            <fieldset class="sports-preset-fieldset">
+              <legend>選擇玩法</legend>
+              <div class="sports-preset-grid">
+                <label class="sports-preset-card">
+                  <input type="radio" name="volleyballPreset" value="standard" checked />
+                  <span><strong>Standard</strong><small>三局兩勝・25／25／15・領先2分</small></span>
+                  <b>✓</b>
+                </label>
+                <label class="sports-preset-card">
+                  <input type="radio" name="volleyballPreset" value="single" />
+                  <span><strong>Single Game</strong><small>一局定勝負，適合朋友局或練習</small></span>
+                  <b>✓</b>
+                </label>
+                <label class="sports-preset-card">
+                  <input type="radio" name="volleyballPreset" value="custom" />
+                  <span><strong>Custom</strong><small>自訂局數、目標分及決勝局</small></span>
+                  <b>✓</b>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="sports-option-panel" id="sportsSingleFields" hidden>
+              <label class="field-label">一局打幾多分？
+                <select class="text-input" id="sportsSingleTarget" name="sportsSingleTarget">
+                  <option value="15">15分</option><option value="21" selected>21分</option><option value="25">25分</option><option value="30">30分</option><option value="custom">自訂</option>
+                </select>
+                <input class="text-input sports-inline-custom" id="sportsSingleCustomTarget" name="sportsSingleCustomTarget" type="number" min="1" max="999" value="30" inputmode="numeric" hidden />
+              </label>
+              <label class="field-label">勝出條件
+                <select class="text-input" name="sportsSingleWinBy">
+                  <option value="1" selected>先到指定分數即完</option>
+                  <option value="2">必須領先2分</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="sports-option-panel sports-custom-panel" id="sportsCustomFields" hidden>
+              <div class="settings-grid">
+                <label class="field-label">幾局幾勝？
+                  <select class="text-input" id="sportsCustomFormat" name="sportsCustomFormat">
+                    <option value="single">Single Game</option><option value="best-of-3" selected>Best of 3</option><option value="best-of-5">Best of 5</option>
+                  </select>
+                </label>
+                <label class="field-label">普通局目標分數
+                  <select class="text-input" id="sportsCustomTarget" name="sportsCustomTarget">
+                    <option value="15">15分</option><option value="21">21分</option><option value="25" selected>25分</option><option value="30">30分</option><option value="custom">自訂</option>
+                  </select>
+                  <input class="text-input sports-inline-custom" id="sportsCustomTargetValue" name="sportsCustomTargetValue" type="number" min="1" max="999" value="25" inputmode="numeric" hidden />
+                </label>
+                <label class="field-label">勝出條件
+                  <select class="text-input" name="sportsCustomWinBy">
+                    <option value="2" selected>必須領先2分</option><option value="1">先到指定分數即完</option>
+                  </select>
+                </label>
+                <label class="field-label">最高分上限
+                  <input class="text-input" name="sportsCustomMaxScore" type="number" min="0" max="999" value="0" inputmode="numeric" />
+                  <small class="settings-help">填0代表不設上限；到達上限即勝出。</small>
+                </label>
+                <label class="checkbox-line sports-decider-toggle"><input id="sportsUseDecider" name="sportsUseDecider" type="checkbox" checked /><span>決勝局使用不同分數</span></label>
+                <label class="field-label" id="sportsDeciderTargetField">決勝局目標分數
+                  <input class="text-input" name="sportsDeciderTarget" type="number" min="1" max="999" value="15" inputmode="numeric" />
+                </label>
+              </div>
+            </div>
+            <div class="sports-setup-preview" id="sportsSetupPreview" aria-live="polite"></div>
+          </section>
 
           <fieldset class="mahjong-player-setup" id="setupMahjongPlayers" hidden>
             <legend>四位玩家名稱</legend>
@@ -664,6 +757,18 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" id="sportsSummaryModal" role="dialog" aria-modal="true" aria-labelledby="sportsSummaryTitle" aria-hidden="true">
+      <div class="modal sports-summary-modal">
+        <button class="modal-close" data-close="sportsSummaryModal" type="button" aria-label="關閉比賽結果">×</button>
+        <div class="modal-header compact"><p class="eyebrow">MATCH SUMMARY</p><h2 id="sportsSummaryTitle">比賽結果</h2></div>
+        <div id="sportsSummaryContent"></div>
+        <div class="sports-summary-actions">
+          <button class="secondary-button" id="sportsReopenButton" type="button">重新開啟／修改賽果</button>
+          <button class="primary-button" data-close="sportsSummaryModal" type="button">完成</button>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-backdrop" id="mahjongRecordModal" role="dialog" aria-modal="true" aria-labelledby="mahjongRecordTitle" aria-hidden="true">
       <div class="modal confirm-modal mahjong-record-modal">
         <button class="modal-close" data-close="mahjongRecordModal" type="button" aria-label="關閉紀錄">×</button>
@@ -782,9 +887,10 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=47" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=47" defer></script>
-    <script src="big-two-core.js?v=47" defer></script>
-    <script src="app.js?v=47" defer></script>
+    <script src="sports-rule-engine.js?v=48" defer></script>
+    <script src="mahjong-core.js?v=48" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=48" defer></script>
+    <script src="big-two-core.js?v=48" defer></script>
+    <script src="app.js?v=48" defer></script>
   </body>
 </html>
