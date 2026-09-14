@@ -12,6 +12,24 @@
     return 32;
   }
 
+  function halfSpicyMultiplierForFan(fan) {
+    const cleanFan = Math.max(0, Math.round(Number(fan) || 0));
+    if (cleanFan <= 4) return Math.pow(2, cleanFan - 3);
+    const completedPairs = Math.floor((cleanFan - 4) / 2);
+    return 2 * Math.pow(2, completedPairs) * (cleanFan % 2 === 1 ? 1.5 : 1);
+  }
+
+  function fullSpicyMultiplierForFan(fan) {
+    const cleanFan = Math.max(0, Math.round(Number(fan) || 0));
+    return Math.pow(2, cleanFan - 3);
+  }
+
+  function multiplierForFan(fan, scoringMode = "hk-table") {
+    if (scoringMode === "hk-half-spicy") return halfSpicyMultiplierForFan(fan);
+    if (scoringMode === "hk-full-spicy") return fullSpicyMultiplierForFan(fan);
+    return unitMultiplierForFan(fan);
+  }
+
   function scoreForFan({ rawFan, minimumFan, maxFan, basePoints, fanStep, scoringMode, maxPoints }) {
     const cleanRawFan = Math.max(0, Math.round(Number(rawFan) || 0));
     const cleanMinimumFan = Math.max(0, Math.round(Number(minimumFan) || 0));
@@ -23,7 +41,7 @@
 
     const base = Math.max(0, Number(basePoints) || 0);
     const step = Math.max(1, Number(fanStep) || 1);
-    const multiplier = unitMultiplierForFan(fan);
+    const multiplier = multiplierForFan(fan, scoringMode);
     const points = scoringMode === "linear"
       ? base * fan
       : scoringMode === "doubling"
@@ -95,7 +113,19 @@
     return targetCycles > 0 && Math.max(0, Math.floor(Number(session?.completedCycles) || 0)) >= targetCycles;
   }
 
-  const api = { WINDS, WIND_NAMES, unitMultiplierForFan, scoreForFan, windForCycle, progressLabel, advanceProgress, hasCompletedPlan };
+  const api = {
+    WINDS,
+    WIND_NAMES,
+    unitMultiplierForFan,
+    halfSpicyMultiplierForFan,
+    fullSpicyMultiplierForFan,
+    multiplierForFan,
+    scoreForFan,
+    windForCycle,
+    progressLabel,
+    advanceProgress,
+    hasCompletedPlan,
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MahjongCore = api;
 })(typeof window === "undefined" ? globalThis : window);

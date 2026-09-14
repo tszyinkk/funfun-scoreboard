@@ -1,6 +1,14 @@
 const STORAGE_KEY = "funfun-scoreboard-v1";
 const MAHJONG_ARCHIVE_KEY = "funfun-scoreboard-mahjong-archive-v1";
 const COLORS = ["#ff6a3d", "#c9f558", "#67c8ff", "#c99bff", "#ffcf4a", "#57d6a3", "#ff8fbd", "#8ea0ff"];
+const HK_SCORING_MODES = ["hk-table", "hk-half-spicy", "hk-full-spicy"];
+const MAHJONG_SCORING_LABELS = {
+  "hk-table": "簡易級別（預設）",
+  "hk-half-spicy": "半辣上（香港朋友枱常見）",
+  "hk-full-spicy": "辣辣上（每番跳一倍）",
+  doubling: "舊式逐番倍增",
+  linear: "自訂線性計分",
+};
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -178,7 +186,7 @@ function sanitizeMahjongRules(rules = {}) {
     minimumFan: Math.round(number("minimumFan", 0, 99)),
     basePoints: number("basePoints", 0, 999999),
     fanStep: number("fanStep", 1, 10),
-    scoringMode: ["hk-table", "doubling", "linear"].includes(rules.scoringMode) ? rules.scoringMode : defaults.scoringMode,
+    scoringMode: [...HK_SCORING_MODES, "doubling", "linear"].includes(rules.scoringMode) ? rules.scoringMode : defaults.scoringMode,
     maxFan: Math.round(number("maxFan", 0, 99)),
     maxPoints: number("maxPoints", 0, 999999),
     selfDrawFan: Math.round(number("selfDrawFan", 0, 99)),
@@ -539,6 +547,7 @@ function exitAppFullscreen() {
 
 function resetSetupForm(preset = "sports") {
   $("#setupForm").reset();
+  setMahjongScoringControls($("#setupForm"), "hk-table");
   $("#setupMahjongAdvanced").open = false;
   renderMahjongPatternEditor(elements.setupMahjongPatternEditor, defaultMahjongRules().patterns);
   $("#setupName").value = preset === "chooser" ? "首家抽籤" : ["mahjong", "cards"].includes(preset) ? "今晚開枱" : preset === "custom" ? "自訂比賽" : "今晚開波";
@@ -794,7 +803,7 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     });
   }
 
-  return { valid: true, fan, rawFan, cappedByLimit: fan < rawFan, bonusFan, patternFan: cleanPatternFan, points: cappedPoints, net, winner, discarder };
+  return { valid: true, fan, rawFan, cappedByLimit: fan < rawFan, bonusFan, patternFan: cleanPatternFan, multiplier: score.multiplier, points: cappedPoints, net, winner, discarder };
 }
 
 function renderMahjongEntry() {
@@ -873,13 +882,14 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   const maxFan = Number(data.get("mahjongMaxFan")) || 0;
   const basePoints = Math.max(1, Number(data.get("mahjongBasePoints")) || 1);
   const fanStep = Math.max(1, Number(data.get("mahjongFanStep")) || 2);
-  const scoringMode = data.get("mahjongScoringMode") || "hk-table";
+  const scoringMode = data.get("mahjongScoringPreset") || data.get("mahjongAdvancedScoringMode") || "hk-table";
+  renderMahjongScoringTable(form, scoringMode);
   const fanList = [...new Set([minimumFan, Math.max(minimumFan, 4), maxFan > 0 ? maxFan : Math.max(minimumFan, 13)])]
     .filter((fan) => fan >= minimumFan && (maxFan === 0 || fan <= maxFan))
     .sort((left, right) => left - right);
   const examples = fanList.map((fan) => {
     const result = MahjongCore.scoreForFan({ rawFan: fan, minimumFan, maxFan, basePoints, fanStep, scoringMode, maxPoints: data.get("mahjongMaxPoints") });
-    return scoringMode === "hk-table"
+    return HK_SCORING_MODES.includes(scoringMode)
       ? `${fan}番計${result.multiplier}倍`
       : `${fan}番計${Math.round(result.points)}分`;
   });
@@ -888,6 +898,63 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   if (capHelp) capHelp.textContent = maxFan > 0
     ? `實際超過${maxFan}番，都會按${maxFan}番封頂。`
     : "沿用舊設定：不設番數上限。";
+}
+
+function renderMahjongScoringTable(form, scoringMode) {
+  const body = $(".mahjong-score-table tbody", form);
+  const help = $("[data-scoring-style-help]", form);
+  if (!body) return;
+  const rows = scoringMode === "hk-half-spicy"
+    ? [["3番", "1倍"], ["4番", "2倍"], ["5番", "3倍"], ["6番", "4倍"], ["7番", "6倍"], ["8番", "8倍"], ["9番", "12倍"], ["10番", "16倍"], ["11番", "24倍"], ["12番", "32倍"], ["13番或以上", "48倍／封頂"]]
+    : scoringMode === "hk-full-spicy"
+      ? [["3番", "1倍"], ["4番", "2倍"], ["5番", "4倍"], ["6番", "8倍"], ["7番", "16倍"], ["8番", "32倍"], ["9番", "64倍"], ["10番", "128倍"], ["11番", "256倍"], ["12番", "512倍"], ["13番或以上", "1024倍／封頂"]]
+      : [["3番", "1倍"], ["4番", "2倍"], ["5–6番", "4倍"], ["7–9番", "8倍"], ["10–12番", "16倍"], ["13番或以上", "32倍／封頂"]];
+  body.replaceChildren(...rows.map(([fan, multiplier]) => {
+    const row = document.createElement("tr");
+    const fanCell = document.createElement("td");
+    const multiplierCell = document.createElement("td");
+    fanCell.textContent = fan;
+    multiplierCell.textContent = multiplier;
+    row.append(fanCell, multiplierCell);
+    return row;
+  }));
+  if (help) help.textContent = scoringMode === "hk-half-spicy"
+    ? "四番後交替加半級、再升一倍，銀碼上升較平順。"
+    : scoringMode === "hk-full-spicy"
+      ? "四番後每多一番都會再跳一倍，適合想高番差距更大。"
+      : "將相近番數分成同一級，最容易睇同計。";
+}
+
+function setMahjongScoringControls(form, scoringMode) {
+  if (!form) return;
+  const mode = [...HK_SCORING_MODES, "doubling", "linear"].includes(scoringMode) ? scoringMode : "hk-table";
+  const preset = $("[name='mahjongScoringPreset']", form);
+  const advanced = $("[name='mahjongAdvancedScoringMode']", form);
+  if (preset) {
+    let customOption = $("option[data-advanced-mode]", preset);
+    if (HK_SCORING_MODES.includes(mode)) {
+      customOption?.remove();
+    } else {
+      if (!customOption) {
+        customOption = document.createElement("option");
+        customOption.dataset.advancedMode = "true";
+        preset.appendChild(customOption);
+      }
+      customOption.value = mode;
+      customOption.textContent = `進階自訂：${MAHJONG_SCORING_LABELS[mode]}`;
+    }
+    preset.value = mode;
+  }
+  if (advanced) advanced.value = mode;
+}
+
+function syncMahjongScoringControls(event) {
+  const form = event.currentTarget;
+  if (event.target.name === "mahjongScoringPreset") {
+    setMahjongScoringControls(form, event.target.value);
+  } else if (event.target.name === "mahjongAdvancedScoringMode") {
+    setMahjongScoringControls(form, event.target.value);
+  }
 }
 
 function updateMahjongLengthFields(form, prefix) {
@@ -958,7 +1025,8 @@ function updateMahjongPreview() {
   }
   const breakdownLine = breakdown.length ? `${breakdown.join("＋")}｜` : "";
   const limitLine = result.cappedByLimit ? `（原計 ${result.rawFan} 番，封頂 ${result.fan} 番）` : "";
-  elements.mahjongPreview.textContent = `${breakdownLine}合共 ${result.fan} 番${limitLine}｜計分 ${Math.round(result.points)} 分｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
+  const multiplierLine = Number.isFinite(result.multiplier) ? `${result.multiplier}倍・` : "";
+  elements.mahjongPreview.textContent = `${breakdownLine}合共 ${result.fan} 番${limitLine}｜${multiplierLine}計分 ${Math.round(result.points)} 分｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
 }
 
 function renderMahjongHistory() {
@@ -976,7 +1044,8 @@ function renderMahjongHistory() {
     const titleStrong = document.createElement("strong");
     titleStrong.textContent = `第 ${round.number} 局${round.cycleNumber ? `・第 ${round.cycleNumber} 圈` : ""}`;
     const titleSummary = document.createElement("span");
-    titleSummary.textContent = round.winType === "draw" ? "流局・0 分" : `${round.winType === "self" ? "自摸" : "出銃"}・${round.fan} 番・${Math.round(round.points)} 分`;
+    const multiplierText = Number.isFinite(round.multiplier) ? `・${round.multiplier}倍` : "";
+    titleSummary.textContent = round.winType === "draw" ? "流局・0 分" : `${round.winType === "self" ? "自摸" : "出銃"}・${round.fan} 番${multiplierText}・${Math.round(round.points)} 分`;
     title.append(titleStrong, titleSummary);
     const detail = document.createElement("p");
     const netLine = (round.net || []).map((entry) => `${entry.name} ${formatPoints(entry.amount)}`).join("　");
@@ -1149,7 +1218,7 @@ function viewArchivedMahjongRecord(recordId) {
   hands.className = "mahjong-record-hands";
   [...(record.history || [])].reverse().forEach((hand) => {
     const item = document.createElement("p");
-    item.textContent = `第 ${hand.number} 局${hand.cycleNumber ? `・第 ${hand.cycleNumber} 圈` : ""}・${hand.winnerName || "流局"}・${hand.fan || 0} 番・${Math.round(hand.points || 0)} 分`;
+    item.textContent = `第 ${hand.number} 局${hand.cycleNumber ? `・第 ${hand.cycleNumber} 圈` : ""}・${hand.winnerName || "流局"}・${hand.fan || 0} 番${Number.isFinite(hand.multiplier) ? `・${hand.multiplier}倍` : ""}・${Math.round(hand.points || 0)} 分`;
     hands.appendChild(item);
   });
   if (!record.history?.length) {
@@ -1197,6 +1266,7 @@ function recordMahjongHand(event) {
     winnerName: result.winner?.name || "流局",
     winType: payload.winType,
     fan: result.fan,
+    multiplier: result.multiplier,
     points: result.points,
     patternNames: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).map((pattern) => displayMahjongPatternLabel(pattern, currentWind)),
     note: String(formData.get("note") || "").trim().slice(0, 40),
@@ -1518,7 +1588,6 @@ function openSettings() {
     mahjongMinFan: rules.minimumFan,
     mahjongBasePoints: rules.basePoints,
     mahjongFanStep: rules.fanStep,
-    mahjongScoringMode: rules.scoringMode,
     mahjongMaxFan: rules.maxFan,
     mahjongMaxPoints: rules.maxPoints,
     mahjongSelfDrawFan: rules.selfDrawFan,
@@ -1531,6 +1600,7 @@ function openSettings() {
     mahjongCustomHands: session.plannedHands,
   };
   Object.entries(ruleFields).forEach(([name, value]) => { $(`[name="${name}"]`, $("#settingsForm")).value = value; });
+  setMahjongScoringControls($("#settingsForm"), rules.scoringMode);
   $("[name='mahjongRonPaymentMode']", $("#settingsForm")).value = rules.ronPaymentMode;
   renderParticipantEditor();
   renderMahjongPatternEditor();
@@ -1779,9 +1849,15 @@ elements.mahjongEntryForm.addEventListener("change", (event) => {
 $("#mahjongEndButton").addEventListener("click", requestMahjongSettlement);
 
 $("#setupForm").addEventListener("input", updateMahjongSetupPreview);
-$("#setupForm").addEventListener("change", updateMahjongSetupPreview);
+$("#setupForm").addEventListener("change", (event) => {
+  syncMahjongScoringControls(event);
+  updateMahjongSetupPreview();
+});
 $("#settingsForm").addEventListener("input", updateMahjongSettingsPreview);
-$("#settingsForm").addEventListener("change", updateMahjongSettingsPreview);
+$("#settingsForm").addEventListener("change", (event) => {
+  syncMahjongScoringControls(event);
+  updateMahjongSettingsPreview();
+});
 
 $("#mahjongCommonDefaults").addEventListener("click", () => {
   const form = $("#setupForm");
@@ -1789,7 +1865,7 @@ $("#mahjongCommonDefaults").addEventListener("click", () => {
   $("[name='mahjongMaxFan']", form).value = "13";
   $("[name='mahjongBasePoints']", form).value = "1";
   $("[name='mahjongFanStep']", form).value = "2";
-  $("[name='mahjongScoringMode']", form).value = "hk-table";
+  setMahjongScoringControls(form, "hk-table");
   updateMahjongSetupPreview();
   showToast("已套用香港常用計分");
 });
@@ -1800,7 +1876,7 @@ $("#settingsMahjongCommonDefaults").addEventListener("click", () => {
   $("[name='mahjongMaxFan']", form).value = "13";
   $("[name='mahjongBasePoints']", form).value = "1";
   $("[name='mahjongFanStep']", form).value = "2";
-  $("[name='mahjongScoringMode']", form).value = "hk-table";
+  setMahjongScoringControls(form, "hk-table");
   updateMahjongSettingsPreview();
   showToast("已套用香港常用計分");
 });
@@ -1835,7 +1911,7 @@ $("#setupForm").addEventListener("submit", (event) => {
       minimumFan: form.get("mahjongMinFan"),
       basePoints: form.get("mahjongBasePoints"),
       fanStep: form.get("mahjongFanStep"),
-      scoringMode: form.get("mahjongScoringMode"),
+      scoringMode: form.get("mahjongScoringPreset") || form.get("mahjongAdvancedScoringMode"),
       maxFan: form.get("mahjongMaxFan"),
       maxPoints: form.get("mahjongMaxPoints"),
       selfDrawFan: form.get("mahjongSelfDrawFan"),
@@ -1941,7 +2017,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
       minimumFan: form.get("mahjongMinFan"),
       basePoints: form.get("mahjongBasePoints"),
       fanStep: form.get("mahjongFanStep"),
-      scoringMode: form.get("mahjongScoringMode"),
+      scoringMode: form.get("mahjongScoringPreset") || form.get("mahjongAdvancedScoringMode"),
       maxFan: form.get("mahjongMaxFan"),
       maxPoints: form.get("mahjongMaxPoints"),
       selfDrawFan: form.get("mahjongSelfDrawFan"),

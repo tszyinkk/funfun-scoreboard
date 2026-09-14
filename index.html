@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=38" />
+    <link rel="stylesheet" href="style.css?v=40" />
   </head>
   <body>
     <div class="app-shell">
@@ -277,7 +277,7 @@
               <label class="preset-card">
                 <input type="radio" name="preset" value="mahjong" />
                 <span class="preset-icon">雀</span>
-                <span><strong>香港麻雀</strong><small>香港常用計分，揀三項即開局</small></span>
+                <span><strong>香港麻雀</strong><small>香港常用設定，即揀即開局</small></span>
                 <span class="radio-dot"></span>
               </label>
               <label class="preset-card">
@@ -315,7 +315,7 @@
           <section class="mahjong-setup" id="setupMahjongRules" hidden aria-label="香港麻雀快速設定">
             <div class="mahjong-setup-heading">
               <h3>快速設定</h3>
-              <span>香港常用計分已預設好，揀三項就可以開局</span>
+              <span>三項開局設定已簡化，計分節奏亦有常用預設</span>
             </div>
             <div class="mahjong-quick-grid">
               <label class="field-label">幾多番先可以食糊？
@@ -343,6 +343,14 @@
             </div>
             <div class="mahjong-common-scoring">
               <strong>香港常用計分</strong>
+              <label class="field-label">想用邊種計分節奏？
+                <select class="text-input" name="mahjongScoringPreset">
+                  <option value="hk-table" selected>簡易級別（預設）</option>
+                  <option value="hk-half-spicy">半辣上（香港朋友枱常見）</option>
+                  <option value="hk-full-spicy">辣辣上（每番跳一倍）</option>
+                </select>
+                <small class="settings-help" data-scoring-style-help>將相近番數分成同一級，最容易睇同計。</small>
+              </label>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
                 <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
                 <tbody>
@@ -361,7 +369,7 @@
                   <input class="text-input" name="mahjongBasePoints" type="number" min="1" max="999999" value="1" inputmode="numeric" />
                 </label>
                 <label class="field-label">自訂番數計分方式
-                  <select class="text-input" name="mahjongScoringMode"><option value="hk-table" selected>香港常用計分表</option><option value="doubling">自訂逐番倍增</option><option value="linear">自訂線性計分</option></select>
+                  <select class="text-input" name="mahjongAdvancedScoringMode"><option value="hk-table" selected>簡易級別</option><option value="hk-half-spicy">半辣上</option><option value="hk-full-spicy">辣辣上</option><option value="doubling">自訂逐番倍增</option><option value="linear">自訂線性計分</option></select>
                 </label>
                 <label class="field-label">自訂倍增幅度
                   <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" value="2" inputmode="decimal" />
@@ -464,6 +472,14 @@
             </div>
             <div class="mahjong-common-scoring">
               <strong>香港常用計分</strong>
+              <label class="field-label">想用邊種計分節奏？
+                <select class="text-input" name="mahjongScoringPreset">
+                  <option value="hk-table">簡易級別（預設）</option>
+                  <option value="hk-half-spicy">半辣上（香港朋友枱常見）</option>
+                  <option value="hk-full-spicy">辣辣上（每番跳一倍）</option>
+                </select>
+                <small class="settings-help" data-scoring-style-help>將相近番數分成同一級，最容易睇同計。</small>
+              </label>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
                 <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
                 <tbody>
@@ -493,7 +509,7 @@
                 <input class="text-input" name="mahjongBasePoints" type="number" min="1" max="999999" inputmode="numeric" />
               </label>
               <label class="field-label">自訂番數計分方式
-                <select class="text-input" name="mahjongScoringMode"><option value="hk-table">香港常用計分表</option><option value="doubling">自訂逐番倍增</option><option value="linear">自訂線性計分</option></select>
+                <select class="text-input" name="mahjongAdvancedScoringMode"><option value="hk-table">簡易級別</option><option value="hk-half-spicy">半辣上</option><option value="hk-full-spicy">辣辣上</option><option value="doubling">自訂逐番倍增</option><option value="linear">自訂線性計分</option></select>
               </label>
               <label class="field-label">自訂倍增幅度
                 <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" inputmode="decimal" />
@@ -608,7 +624,7 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=38" defer></script>
-    <script src="app.js?v=38" defer></script>
+    <script src="mahjong-core.js?v=40" defer></script>
+    <script src="app.js?v=40" defer></script>
   </body>
 </html>

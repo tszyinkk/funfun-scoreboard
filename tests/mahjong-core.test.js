@@ -26,6 +26,25 @@ test("舊牌局仍可沿用舊逐番倍增及線性計分", () => {
   assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 4, maxFan: 0, scoringMode: "linear" }).points, 4);
 });
 
+test("半辣上由四番後每兩番升一倍，中間一級為一倍半", () => {
+  const scores = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    .map((fan) => MahjongCore.scoreForFan({ ...standard, rawFan: fan, scoringMode: "hk-half-spicy" }).points);
+  assert.deepEqual(scores, [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48]);
+});
+
+test("辣辣上由三番開始每多一番跳一倍", () => {
+  const scores = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    .map((fan) => MahjongCore.scoreForFan({ ...standard, rawFan: fan, scoringMode: "hk-full-spicy" }).points);
+  assert.deepEqual(scores, [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]);
+});
+
+test("半辣上及辣辣上仍會跟隨8、10、13番封頂", () => {
+  assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 13, maxFan: 8, scoringMode: "hk-half-spicy" }).points, 8);
+  assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 13, maxFan: 10, scoringMode: "hk-half-spicy" }).points, 16);
+  assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 20, maxFan: 13, scoringMode: "hk-half-spicy" }).points, 48);
+  assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 20, maxFan: 13, scoringMode: "hk-full-spicy" }).points, 1024);
+});
+
 test("未達3番起糊的牌型不可食糊", () => {
   const result = MahjongCore.scoreForFan({ ...standard, rawFan: 2 });
   assert.equal(result.valid, false);
