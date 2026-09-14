@@ -1153,7 +1153,7 @@ legend,
 
 .participant-row {
   display: grid;
-  grid-template-columns: 22px 1fr 38px;
+  grid-template-columns: 30px 1fr 38px;
   align-items: center;
   gap: 10px;
 }
@@ -1163,6 +1163,18 @@ legend,
   height: 14px;
   border-radius: 50%;
   background: var(--dot-color);
+}
+
+.color-dot.seat-wind-dot {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  margin-left: -3px;
+  background: var(--ink);
+  color: white;
+  font-size: 11px;
+  font-weight: 950;
 }
 
 .participant-row input {
@@ -1430,6 +1442,49 @@ legend,
 .mahjong-archive-card:hover { border-color: var(--ink); }
 .mahjong-archive-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mahjong-archive-card small { color: var(--ink-soft); line-height: 1.4; }
+
+.game-library-modal { width: min(680px, 100%); }
+.game-library-modal > .primary-button { margin-bottom: 18px; }
+.game-library-list { display: grid; gap: 10px; }
+.game-library-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #faf9f4;
+}
+.game-library-resume {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.game-library-resume:hover { background: white; }
+.game-library-resume strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.game-library-resume small { color: var(--ink-soft); font-size: 11px; line-height: 1.45; }
+.game-library-delete {
+  width: 44px;
+  height: 44px;
+  align-self: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  color: #a74537;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.game-library-delete:hover { border-color: #a74537; background: #fff1ee; }
+.game-library-empty { margin: 0; padding: 26px 18px; border: 1px dashed var(--line); border-radius: 14px; color: var(--ink-soft); text-align: center; }
 
 .special-heading {
   display: flex;

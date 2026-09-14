@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=41" />
+    <link rel="stylesheet" href="style.css?v=42" />
   </head>
   <body>
     <div class="app-shell">
@@ -51,7 +51,7 @@
             <h1 id="homeTitle">今晚玩咩？</h1>
             <p>揀一個玩法，開枱即用。唔使註冊，無網絡都照計。</p>
           </div>
-          <button class="primary-button home-new-button" id="homeNewButton" type="button">＋ 新活動</button>
+          <button class="primary-button home-new-button" id="homeNewButton" type="button" hidden>＋ 新活動</button>
         </div>
 
         <div class="home-current" id="homeCurrent" hidden>
@@ -96,7 +96,7 @@
           </button>
         </div>
 
-        <div class="home-note"><span>i</span><p>你可以喺設定入面改名、改人數、改規則；安裝到主畫面後，離線都可以用。</p></div>
+        <div class="home-note"><span>i</span><p>每個玩法都會分開儲存多個紀錄；按入分類就可以繼續或刪除。安裝到主畫面後，離線都可以用。</p></div>
       </section>
 
       <section class="sports-landscape-board" id="sportsLandscapeBoard" hidden aria-label="橫向球類計分板">
@@ -178,7 +178,7 @@
             <span class="mahjong-rule-badge" id="mahjongRuleBadge">3 番起糊</span>
           </div>
           <div class="mahjong-session-bar" id="mahjongSessionBar">
-            <strong id="mahjongProgress">第 1／4 圈・東圈・第 1 局</strong>
+            <strong id="mahjongProgress">第 1／4 圈・東風東</strong>
             <div class="mahjong-session-actions">
               <button class="primary-button" id="mahjongOpenScoringButton" type="button"><span aria-hidden="true">🀄</span> 有人食糊／計番</button>
               <button class="mahjong-icon-action" id="mahjongEndButton" type="button" aria-label="結束並結算" title="結束並結算">✓</button>
@@ -329,19 +329,19 @@
 
           <fieldset class="mahjong-player-setup" id="setupMahjongPlayers" hidden>
             <legend>四位玩家名稱</legend>
-            <p class="settings-help">開枱前入好名，之後主畫面只會顯示玩家同分數。</p>
+            <p class="settings-help">按開局座位入名；之後主畫面會用東、南、西、北顯示每位玩家。</p>
             <div class="mahjong-player-name-grid">
-              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">1</span> 玩家 1
-                <input class="text-input" name="mahjongPlayer1" type="text" maxlength="18" value="玩家 1" />
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">東</span> 東位玩家
+                <input class="text-input" name="mahjongPlayer1" type="text" maxlength="18" value="玩家 1" placeholder="坐東位嘅玩家" />
               </label>
-              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">2</span> 玩家 2
-                <input class="text-input" name="mahjongPlayer2" type="text" maxlength="18" value="玩家 2" />
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">南</span> 南位玩家
+                <input class="text-input" name="mahjongPlayer2" type="text" maxlength="18" value="玩家 2" placeholder="坐南位嘅玩家" />
               </label>
-              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">3</span> 玩家 3
-                <input class="text-input" name="mahjongPlayer3" type="text" maxlength="18" value="玩家 3" />
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">西</span> 西位玩家
+                <input class="text-input" name="mahjongPlayer3" type="text" maxlength="18" value="玩家 3" placeholder="坐西位嘅玩家" />
               </label>
-              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">4</span> 玩家 4
-                <input class="text-input" name="mahjongPlayer4" type="text" maxlength="18" value="玩家 4" />
+              <label class="field-label"><span class="mahjong-name-icon" aria-hidden="true">北</span> 北位玩家
+                <input class="text-input" name="mahjongPlayer4" type="text" maxlength="18" value="玩家 4" placeholder="坐北位嘅玩家" />
               </label>
             </div>
           </fieldset>
@@ -628,6 +628,20 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" id="gameLibraryModal" role="dialog" aria-modal="true" aria-labelledby="gameLibraryTitle" aria-hidden="true">
+      <div class="modal game-library-modal">
+        <div class="modal-accent" aria-hidden="true"></div>
+        <button class="modal-close" data-close="gameLibraryModal" type="button" aria-label="關閉對局紀錄">×</button>
+        <div class="modal-header compact">
+          <p class="eyebrow">SAVED GAMES</p>
+          <h2 id="gameLibraryTitle">對局紀錄</h2>
+          <p id="gameLibraryDescription">揀一個舊紀錄繼續，或者開新一局。</p>
+        </div>
+        <button class="primary-button wide" id="gameLibraryNewButton" type="button">＋ 開新一局</button>
+        <div class="game-library-list" id="gameLibraryList"></div>
+      </div>
+    </div>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <template id="scoreCardTemplate">
@@ -658,7 +672,7 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=41" defer></script>
-    <script src="app.js?v=41" defer></script>
+    <script src="mahjong-core.js?v=42" defer></script>
+    <script src="app.js?v=42" defer></script>
   </body>
 </html>

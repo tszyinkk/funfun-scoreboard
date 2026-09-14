@@ -64,6 +64,17 @@ test("每位玩家最少做一次莊才完成一圈，連莊會令局數增加",
   assert.deepEqual(session.dealerIdsInCycle, []);
 });
 
+test("北位連莊時仍留在原本圈風，轉回東位先完成一圈", () => {
+  const players = ["east", "south", "west", "north"];
+  let session = { completedCycles: 0, completedHands: 0, handsInCycle: 3, dealerIdsInCycle: ["east", "south", "west"] };
+  session = MahjongCore.advanceProgress(session, "north", players, "north");
+  assert.equal(session.completedCycles, 0);
+  assert.equal(MahjongCore.handWindLabel({ ...session, nextDealerId: "north" }, players), "東風北");
+  session = MahjongCore.advanceProgress(session, "north", players, "east");
+  assert.equal(session.completedCycles, 1);
+  assert.equal(MahjongCore.handWindLabel({ ...session, nextDealerId: "east" }, players), "南風東");
+});
+
 test("四圈中途可結算已完成圈數，而且下一圈繼續按牌局累進", () => {
   const players = ["a", "b", "c", "d"];
   let session = { plannedCycles: 4, completedCycles: 0, handsInCycle: 0, completedHands: 0, dealerIdsInCycle: [] };
@@ -89,13 +100,20 @@ test("東圈、半莊及自訂局數各自按正確條件完成", () => {
   assert.equal(MahjongCore.hasCompletedPlan({ lengthMode: "half", plannedCycles: 2, completedCycles: 2 }), true);
   assert.equal(MahjongCore.hasCompletedPlan({ lengthMode: "custom-hands", plannedHands: 12, completedHands: 11 }), false);
   assert.equal(MahjongCore.hasCompletedPlan({ lengthMode: "custom-hands", plannedHands: 12, completedHands: 12 }), true);
-  assert.match(MahjongCore.progressLabel({ lengthMode: "custom-hands", plannedHands: 12, completedHands: 3, completedCycles: 0, handsInCycle: 3 }, []), /第 4／12 局/);
+  assert.match(MahjongCore.progressLabel({ lengthMode: "custom-hands", plannedHands: 12, completedHands: 3, completedCycles: 0, handsInCycle: 3 }, ["a", "b", "c", "d"]), /東風北・已完成 3／12 手/);
 });
 
 test("八圈遊戲第五圈回到東圈並標示第二輪", () => {
   const session = { plannedCycles: 8, completedCycles: 4, handsInCycle: 2, completedHands: 18, dealerIdsInCycle: [] };
   assert.equal(MahjongCore.windForCycle("east", 4), "east");
-  assert.match(MahjongCore.progressLabel(session, ["a", "b", "c", "d"]), /第 5／8 圈・東圈（第2輪）・第 3 局/);
+  assert.match(MahjongCore.progressLabel(session, ["a", "b", "c", "d"]), /第 5／8 圈（第2輪）・東風西/);
+});
+
+test("進度按圈風及目前莊家顯示東風東、東風南等名稱", () => {
+  const players = ["east-player", "south-player", "west-player", "north-player"];
+  assert.equal(MahjongCore.handWindLabel({ startingWind: "east", completedCycles: 0, nextDealerId: players[0] }, players), "東風東");
+  assert.equal(MahjongCore.handWindLabel({ startingWind: "east", completedCycles: 0, nextDealerId: players[1] }, players), "東風南");
+  assert.equal(MahjongCore.handWindLabel({ startingWind: "east", completedCycles: 1, nextDealerId: players[2] }, players), "南風西");
 });
 
 test("不同開始圈風會按進度循環", () => {

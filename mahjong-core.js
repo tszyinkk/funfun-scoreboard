@@ -1,6 +1,7 @@
 (function attachMahjongCore(root) {
   const WINDS = ["east", "south", "west", "north"];
   const WIND_NAMES = { east: "東圈", south: "南圈", west: "西圈", north: "北圈" };
+  const WIND_SHORT_NAMES = { east: "東", south: "南", west: "西", north: "北" };
 
   function unitMultiplierForFan(fan) {
     const cleanFan = Math.max(0, Math.round(Number(fan) || 0));
@@ -64,33 +65,46 @@
     return WINDS[(startIndex + cycleIndex) % WINDS.length];
   }
 
+  function handWindLabel(session, participantIds) {
+    const players = Array.isArray(participantIds) ? participantIds.map(String) : [];
+    const completed = Math.max(0, Math.floor(Number(session?.completedCycles) || 0));
+    const prevailingWind = windForCycle(session?.startingWind || "east", completed);
+    const fallbackDealer = players[Math.max(0, Math.floor(Number(session?.handsInCycle) || 0)) % Math.max(1, players.length)] || players[0] || "";
+    const dealerId = String(session?.nextDealerId || fallbackDealer);
+    const dealerIndex = Math.max(0, players.indexOf(dealerId));
+    const handWind = WINDS[dealerIndex % WINDS.length];
+    return `${WIND_SHORT_NAMES[prevailingWind] || "東"}風${WIND_SHORT_NAMES[handWind] || "東"}`;
+  }
+
   function progressLabel(session, participantIds) {
     const completed = Math.max(0, Math.floor(Number(session?.completedCycles) || 0));
     const cycleNumber = completed + 1;
     const planned = Math.max(0, Math.floor(Number(session?.plannedCycles) || 0));
-    const wind = windForCycle(session?.startingWind || "east", completed);
     const roundNumber = Math.floor(completed / WINDS.length) + 1;
     const secondLap = roundNumber > 1 ? `（第${roundNumber}輪）` : "";
-    const handNumber = Math.max(0, Math.floor(Number(session?.handsInCycle) || 0)) + 1;
-    const windLabel = WIND_NAMES[wind] || WIND_NAMES.east;
+    const handLabel = handWindLabel(session, participantIds);
     if (session?.lengthMode === "custom-hands") {
       const completedHands = Math.max(0, Math.floor(Number(session.completedHands) || 0));
       const plannedHands = Math.max(0, Math.floor(Number(session.plannedHands) || 0));
-      return `自訂局數・第 ${completedHands + 1}${plannedHands ? `／${plannedHands}` : ""} 局・${windLabel}${secondLap}（該圈第 ${handNumber} 局）`;
+      return `${handLabel}${secondLap}・已完成 ${completedHands}${plannedHands ? `／${plannedHands}` : ""} 手`;
     }
     const cycleLabel = planned > 0 && cycleNumber <= planned
       ? `第 ${cycleNumber}／${planned} 圈`
       : `第 ${cycleNumber} 圈${planned > 0 ? "（已達預定）" : ""}`;
-    return `${cycleLabel}・${windLabel}${secondLap}・第 ${handNumber} 局`;
+    return `${cycleLabel}${secondLap}・${handLabel}`;
   }
 
-  function advanceProgress(session, dealerId, participantIds) {
+  function advanceProgress(session, dealerId, participantIds, nextDealerId = "") {
     const players = Array.isArray(participantIds) ? participantIds.map(String) : [];
     const ids = [...new Set([...(session?.dealerIdsInCycle || []).map(String), String(dealerId || "")].filter((id) => players.includes(id)))];
     let completedCycles = Math.max(0, Math.floor(Number(session?.completedCycles) || 0));
     let handsInCycle = Math.max(0, Math.floor(Number(session?.handsInCycle) || 0)) + 1;
     let dealerIdsInCycle = ids;
-    if (players.length > 0 && players.every((id) => ids.includes(id))) {
+    const hasNextDealer = players.includes(String(nextDealerId || ""));
+    const completedByRotation = hasNextDealer
+      ? String(dealerId || "") === players[players.length - 1] && String(nextDealerId) === players[0]
+      : players.every((id) => ids.includes(id));
+    if (players.length > 0 && completedByRotation) {
       completedCycles += 1;
       handsInCycle = 0;
       dealerIdsInCycle = [];
@@ -116,12 +130,14 @@
   const api = {
     WINDS,
     WIND_NAMES,
+    WIND_SHORT_NAMES,
     unitMultiplierForFan,
     halfSpicyMultiplierForFan,
     fullSpicyMultiplierForFan,
     multiplierForFan,
     scoreForFan,
     windForCycle,
+    handWindLabel,
     progressLabel,
     advanceProgress,
     hasCompletedPlan,

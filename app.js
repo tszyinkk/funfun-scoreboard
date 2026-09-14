@@ -1,5 +1,6 @@
 const STORAGE_KEY = "funfun-scoreboard-v1";
 const MAHJONG_ARCHIVE_KEY = "funfun-scoreboard-mahjong-archive-v1";
+const GAME_LIBRARY_KEY = "funfun-scoreboard-games-v1";
 const COLORS = ["#ff6a3d", "#c9f558", "#67c8ff", "#c99bff", "#ffcf4a", "#57d6a3", "#ff8fbd", "#8ea0ff"];
 const HK_SCORING_MODES = ["hk-table", "hk-half-spicy", "hk-full-spicy"];
 const MAHJONG_SCORING_LABELS = {
@@ -30,6 +31,8 @@ let chooserTouches = new Map();
 let chooserCountdownTimer = null;
 let chooserCountdown = 0;
 let nextFingerNumber = 1;
+let gameLibrary = [];
+let activeLibraryCategory = "mahjong";
 
 const elements = {
   scoreGrid: $("#scoreGrid"),
@@ -54,6 +57,11 @@ const elements = {
   homeButton: $("#homeButton"),
   homeNewButton: $("#homeNewButton"),
   homeContinueButton: $("#homeContinueButton"),
+  gameLibraryModal: $("#gameLibraryModal"),
+  gameLibraryTitle: $("#gameLibraryTitle"),
+  gameLibraryDescription: $("#gameLibraryDescription"),
+  gameLibraryNewButton: $("#gameLibraryNewButton"),
+  gameLibraryList: $("#gameLibraryList"),
   mahjongArchive: $("#mahjongArchive"),
   mahjongArchiveList: $("#mahjongArchiveList"),
   mahjongRecordModal: $("#mahjongRecordModal"),
@@ -108,6 +116,8 @@ function participant(name, index) {
 
 function defaultMahjongRules() {
   return {
+    gameId: uid(),
+    updatedAt: new Date().toISOString(),
     prevailingWind: "east",
     minimumFan: 3,
     basePoints: 1,
@@ -212,13 +222,18 @@ function freshState(preset, title, count = 2, teamNames = {}) {
     : Array.from({ length: size }, (_, index) => `玩家 ${index + 1}`);
 
   return {
+    gameId: uid(),
+    updatedAt: new Date().toISOString(),
     title: title.trim() || (isCards || isMahjong ? "今晚開枱" : isChooser ? "首家抽籤" : "今晚開波"),
     kind: preset,
     totalMode: isCards || isMahjong ? "cumulative" : "winner",
     winnerRule: "highest",
     round: 1,
     timer: { elapsed: 0, running: false, startedAt: null },
-    participants: names.map((name, index) => participant(name, index)),
+    participants: names.map((name, index) => ({
+      ...participant(name, index),
+      ...(isMahjong ? { seatWind: MahjongCore.WINDS[index] } : {}),
+    })),
     history: [],
     mahjong: defaultMahjongRules(),
     mahjongSession: null,
@@ -240,8 +255,12 @@ function sanitizeState(candidate) {
     color: COLORS.includes(item.color) ? item.color : COLORS[index % COLORS.length],
     score: kind === "mahjong" ? Number(item.score) || 0 : Math.max(0, Number(item.score) || 0),
     total: kind === "mahjong" ? Number(item.total) || 0 : Math.max(0, Number(item.total) || 0),
+    ...(kind === "mahjong" ? { seatWind: MahjongCore.WINDS.includes(item.seatWind) ? item.seatWind : MahjongCore.WINDS[index % 4] } : {}),
   }));
-  while (kind === "mahjong" && participants.length < 4) participants.push(participant(`玩家 ${participants.length + 1}`, participants.length));
+  while (kind === "mahjong" && participants.length < 4) {
+    const index = participants.length;
+    participants.push({ ...participant(`玩家 ${index + 1}`, index), seatWind: MahjongCore.WINDS[index] });
+  }
   const history = Array.isArray(candidate.history) ? candidate.history.slice(-1000) : [];
   const storedMahjong = candidate.mahjong && typeof candidate.mahjong === "object" ? candidate.mahjong : {};
   // Older saved games did not identify the scoring system. Keep their original
@@ -254,6 +273,8 @@ function sanitizeState(candidate) {
     ? sanitizeMahjongSession(candidate.mahjongSession, history, participants, mahjong.prevailingWind)
     : null;
   return {
+    gameId: String(candidate.gameId || uid()),
+    updatedAt: candidate.updatedAt || candidate.mahjongSession?.settledAt || new Date().toISOString(),
     title: String(candidate.title || "我的計分板").slice(0, 30),
     kind,
     totalMode: ["winner", "cumulative", "manual"].includes(candidate.totalMode) ? candidate.totalMode : "manual",
@@ -365,12 +386,44 @@ function loadState() {
   }
 }
 
+function loadGameLibrary() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GAME_LIBRARY_KEY));
+    if (!Array.isArray(saved)) return [];
+    return saved.map(sanitizeState).filter(Boolean).slice(0, 100);
+  } catch {
+    return [];
+  }
+}
+
+function persistGameLibrary() {
+  try {
+    localStorage.setItem(GAME_LIBRARY_KEY, JSON.stringify(gameLibrary.slice(0, 100)));
+  } catch {
+    // The current game still works if private browsing blocks local storage.
+  }
+}
+
+function upsertCurrentGame() {
+  if (!state) return;
+  const index = gameLibrary.findIndex((game) => game.gameId === state.gameId);
+  const copy = JSON.parse(JSON.stringify(state));
+  if (index >= 0) gameLibrary.splice(index, 1);
+  gameLibrary.unshift(copy);
+  gameLibrary = gameLibrary.slice(0, 100);
+  persistGameLibrary();
+}
+
 function saveState() {
+  if (!state) return;
+  state.gameId ||= uid();
+  state.updatedAt = new Date().toISOString();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // The scoreboard still works if storage is unavailable (for example in private browsing).
   }
+  upsertCurrentGame();
 }
 
 function clearStoredState() {
@@ -396,20 +449,129 @@ function saveMahjongArchive(archive = loadMahjongArchive()) {
 
 let mahjongArchive = loadMahjongArchive();
 
+function migrateLegacyRecords() {
+  gameLibrary = loadGameLibrary();
+  if (state && !gameLibrary.some((game) => game.gameId === state.gameId)) {
+    gameLibrary.unshift(JSON.parse(JSON.stringify(state)));
+  }
+  const currentArchiveId = state?.mahjongSession?.archiveRecordId;
+  loadMahjongArchive().forEach((record) => {
+    if (!record?.id || record.id === currentArchiveId) return;
+    const gameId = `legacy-mahjong-${record.id}`;
+    if (gameLibrary.some((game) => game.gameId === gameId)) return;
+    const participants = (record.participants || []).slice(0, 4).map((player, index) => ({
+      id: String(player.id || uid()),
+      name: String(player.name || `玩家 ${index + 1}`).slice(0, 18),
+      color: COLORS[index % COLORS.length],
+      seatWind: MahjongCore.WINDS[index],
+      score: 0,
+      total: Number(player.total) || 0,
+    }));
+    while (participants.length < 4) participants.push({ ...participant(`玩家 ${participants.length + 1}`, participants.length), seatWind: MahjongCore.WINDS[participants.length] });
+    const migrated = sanitizeState({
+      gameId,
+      updatedAt: record.settledAt || record.startedAt,
+      title: record.title,
+      kind: "mahjong",
+      totalMode: "cumulative",
+      winnerRule: "highest",
+      round: (record.completedHands || record.history?.length || 0) + 1,
+      timer: { elapsed: 0, running: false, startedAt: null },
+      participants,
+      history: record.history || [],
+      mahjong: record.rules || defaultMahjongRules(),
+      mahjongSession: {
+        lengthMode: record.lengthMode,
+        plannedCycles: record.plannedCycles,
+        plannedHands: record.plannedHands,
+        completedCycles: record.completedCycles,
+        completedHands: record.completedHands,
+        startingWind: record.rules?.prevailingWind || "east",
+        startedAt: record.startedAt,
+        settledAt: record.settledAt,
+        durationMs: record.durationMs,
+        status: "settled",
+        earlyEnded: record.earlyEnded,
+        archiveRecordId: record.id,
+      },
+    });
+    if (migrated) gameLibrary.push(migrated);
+  });
+  gameLibrary.sort((left, right) => Date.parse(right.updatedAt || 0) - Date.parse(left.updatedAt || 0));
+  gameLibrary = gameLibrary.slice(0, 100);
+  persistGameLibrary();
+}
+
+function gameCategory(kind) {
+  if (kind === "mahjong") return "mahjong";
+  if (kind === "chooser") return "chooser";
+  return "sports";
+}
+
+function libraryCategoryCopy(category) {
+  if (category === "mahjong") return { title: "香港麻雀對局", description: "繼續未完嘅牌局、查看已結算成績，或者開一個新牌局。", newLabel: "＋ 開新麻雀牌局" };
+  if (category === "chooser") return { title: "首家抽籤紀錄", description: "可以重開之前嘅抽籤，或者開始新一次。", newLabel: "＋ 開新抽籤" };
+  return { title: "普通計分紀錄", description: "繼續之前嘅球賽、牌局或自訂計分，或者建立新計分板。", newLabel: "＋ 開新計分板" };
+}
+
+function gameRecordMeta(game) {
+  const updated = game.updatedAt ? new Date(game.updatedAt).toLocaleString("zh-HK", { dateStyle: "short", timeStyle: "short" }) : "";
+  if (game.kind === "mahjong") {
+    const settled = game.mahjongSession?.status === "settled";
+    return `${settled ? "已結算" : "進行中"}・${MahjongCore.progressLabel(game.mahjongSession, game.participants.map((player) => player.id))}${updated ? `・${updated}` : ""}`;
+  }
+  if (game.kind === "chooser") return `首家抽籤${updated ? `・${updated}` : ""}`;
+  return `${game.participants.length} 人／隊・完成 ${game.history.length} 回合${updated ? `・${updated}` : ""}`;
+}
+
+function renderGameLibrary() {
+  const copy = libraryCategoryCopy(activeLibraryCategory);
+  elements.gameLibraryTitle.textContent = copy.title;
+  elements.gameLibraryDescription.textContent = copy.description;
+  elements.gameLibraryNewButton.textContent = copy.newLabel;
+  const records = gameLibrary.filter((game) => gameCategory(game.kind) === activeLibraryCategory);
+  elements.gameLibraryList.replaceChildren();
+  if (!records.length) {
+    const empty = document.createElement("p");
+    empty.className = "game-library-empty";
+    empty.textContent = "暫時未有紀錄。開新一局後會自動儲存喺呢度。";
+    elements.gameLibraryList.appendChild(empty);
+    return;
+  }
+  records.forEach((game) => {
+    const item = document.createElement("article");
+    item.className = "game-library-item";
+    const resume = document.createElement("button");
+    resume.type = "button";
+    resume.className = "game-library-resume";
+    resume.dataset.gameId = game.gameId;
+    const title = document.createElement("strong");
+    title.textContent = game.title || "未命名對局";
+    const meta = document.createElement("small");
+    meta.textContent = gameRecordMeta(game);
+    resume.append(title, meta);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "game-library-delete";
+    remove.dataset.deleteGameId = game.gameId;
+    remove.setAttribute("aria-label", `刪除 ${title.textContent}`);
+    remove.title = "刪除紀錄";
+    remove.textContent = "×";
+    item.append(resume, remove);
+    elements.gameLibraryList.appendChild(item);
+  });
+}
+
+function openGameLibrary(category) {
+  activeLibraryCategory = category;
+  renderGameLibrary();
+  openModal("gameLibraryModal");
+}
+
 function updateHome() {
   if (!elements.homeCurrent) return;
-  elements.homeCurrent.hidden = !state;
-  renderMahjongArchiveList();
-  if (!state) return;
-  elements.homeCurrentTitle.textContent = state.title;
-  const modeText = state.kind === "mahjong" ? "香港麻雀" : state.kind === "chooser" ? "首家抽籤" : "普通計分";
-  const settled = state.kind === "mahjong" && state.mahjongSession?.status === "settled";
-  elements.homeContinueButton.textContent = settled ? "查看結算" : "繼續計分";
-  elements.homeCurrentMeta.textContent = state.kind === "chooser"
-    ? "任意位置多指觸控抽首家"
-    : state.kind === "mahjong"
-      ? `${modeText}・${state.participants.length} 人・${settled ? "已結算" : MahjongCore.progressLabel(state.mahjongSession, state.participants.map((player) => player.id))}`
-      : `${modeText}・${state.participants.length} 人／隊・第 ${state.round} 局`;
+  elements.homeCurrent.hidden = true;
+  elements.mahjongArchive.hidden = true;
 }
 
 function renderMahjongArchiveList() {
@@ -501,6 +663,7 @@ function reloadForServiceWorkerUpdateIfSafe() {
 }
 
 function showHome() {
+  if (state) saveState();
   if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
   if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
@@ -563,29 +726,14 @@ function resetSetupForm(preset = "sports") {
 }
 
 function beginNewActivity(preset = "sports") {
-  const openSetup = () => {
-    if (state?.kind === "mahjong" && state.mahjongSession?.status !== "settled") {
-      settleMahjongGame(isMahjongEarly(state.mahjongSession));
-    }
-    clearStoredState();
-    undoStack = [];
-    state = null;
-    resetSetupForm(preset);
-    elements.setupCloseButton.hidden = true;
-    setHomeVisible(true);
-    openModal("setupModal");
-  };
-  if (state) {
-    openConfirm({
-      title: "開新活動？",
-      message: state.kind === "mahjong" && state.mahjongSession?.status !== "settled"
-        ? "已完成牌局會先儲存到主頁的「麻雀對局紀錄」；未完成輸入不會計入。確定要開始另一個玩法嗎？"
-        : "目前活動的分數及紀錄會清除，確定要開始另一個玩法嗎？",
-      acceptText: "開新活動",
-      icon: "＋",
-      action: openSetup,
-    });
-  } else openSetup();
+  if (state) saveState();
+  clearStoredState();
+  undoStack = [];
+  state = null;
+  resetSetupForm(preset);
+  elements.setupCloseButton.hidden = false;
+  setHomeVisible(true);
+  openModal("setupModal");
 }
 
 function snapshot() {
@@ -647,16 +795,18 @@ function renderScoreCards() {
       card.className = "mahjong-player-card";
       card.dataset.id = player.id;
       card.style.setProperty("--player-color", player.color);
-      card.setAttribute("aria-label", `${player.name}，總分 ${formatPoints(player.total)}，按一下記錄食糊`);
+      const seatWind = MahjongCore.WINDS.includes(player.seatWind) ? player.seatWind : MahjongCore.WINDS[index];
+      const seatLabel = MahjongCore.WIND_SHORT_NAMES[seatWind] || "東";
+      card.setAttribute("aria-label", `${seatLabel}位 ${player.name}，總分 ${formatPoints(player.total)}，按一下記錄食糊`);
       const icon = document.createElement("span");
       icon.className = "mahjong-player-icon";
-      icon.textContent = String(index + 1);
+      icon.textContent = seatLabel;
       const name = document.createElement("strong");
       name.textContent = player.name;
       const score = document.createElement("b");
       score.textContent = formatPoints(player.total);
       const hint = document.createElement("small");
-      hint.textContent = "按玩家開始計番";
+      hint.textContent = `${seatLabel}位・按玩家開始計番`;
       card.append(icon, name, score, hint);
       elements.scoreGrid.appendChild(card);
     });
@@ -861,10 +1011,11 @@ function renderMahjongEntry() {
   const selectedPatternIds = new Set(draftValues.patterns || $$("input[name='patterns']:checked", elements.mahjongPatternChoices).map((input) => input.value));
   [elements.mahjongWinner, elements.mahjongDiscarder, elements.mahjongDealer].forEach((select) => {
     select.replaceChildren();
-    state.participants.forEach((player) => {
+    state.participants.forEach((player, index) => {
       const option = document.createElement("option");
       option.value = player.id;
-      option.textContent = player.name;
+      const seatWind = MahjongCore.WINDS.includes(player.seatWind) ? player.seatWind : MahjongCore.WINDS[index];
+      option.textContent = `${MahjongCore.WIND_SHORT_NAMES[seatWind] || "東"}位・${player.name}`;
       select.appendChild(option);
     });
   });
@@ -1090,7 +1241,7 @@ function renderMahjongHistory() {
     const title = document.createElement("div");
     title.className = "mahjong-history-title";
     const titleStrong = document.createElement("strong");
-    titleStrong.textContent = `第 ${round.number} 局${round.cycleNumber ? `・第 ${round.cycleNumber} 圈` : ""}`;
+    titleStrong.textContent = round.handWindLabel || `${MahjongCore.WIND_SHORT_NAMES[round.wind] || "東"}風${MahjongCore.WIND_SHORT_NAMES[MahjongCore.WINDS[((round.handInCycle || 1) - 1) % 4]] || "東"}`;
     const titleSummary = document.createElement("span");
     const multiplierText = Number.isFinite(round.multiplier) ? `・${round.multiplier}倍` : "";
     titleSummary.textContent = round.winType === "draw" ? "流局・0 分" : `${round.winType === "self" ? "自摸" : "出銃"}・${round.fan} 番${multiplierText}・${Math.round(round.points)} 分`;
@@ -1147,28 +1298,9 @@ function mahjongRankText(sortedPlayers, index) {
 
 function archiveSettledMahjongGame() {
   const session = state.mahjongSession;
-  if (session.archiveRecordId) return session.archiveRecordId;
-  const id = uid();
-  const record = {
-    id,
-    title: state.title,
-    participants: state.participants.map((player) => ({ id: player.id, name: player.name, total: player.total })),
-    history: JSON.parse(JSON.stringify(state.history)),
-    plannedCycles: session.plannedCycles,
-    plannedHands: session.plannedHands,
-    lengthMode: session.lengthMode,
-    completedCycles: session.completedCycles,
-    completedHands: session.completedHands,
-    startedAt: session.startedAt,
-    settledAt: session.settledAt,
-    durationMs: session.durationMs,
-    earlyEnded: session.earlyEnded,
-    rules: JSON.parse(JSON.stringify(state.mahjong)),
-  };
-  mahjongArchive = [record, ...loadMahjongArchive()].slice(0, 50);
-  saveMahjongArchive(mahjongArchive);
-  session.archiveRecordId = id;
-  return id;
+  session.archiveRecordId ||= state.gameId;
+  saveState();
+  return session.archiveRecordId;
 }
 
 function settleMahjongGame(earlyEnded = false) {
@@ -1266,7 +1398,8 @@ function viewArchivedMahjongRecord(recordId) {
   hands.className = "mahjong-record-hands";
   [...(record.history || [])].reverse().forEach((hand) => {
     const item = document.createElement("p");
-    item.textContent = `第 ${hand.number} 局${hand.cycleNumber ? `・第 ${hand.cycleNumber} 圈` : ""}・${hand.winnerName || "流局"}・${hand.fan || 0} 番${Number.isFinite(hand.multiplier) ? `・${hand.multiplier}倍` : ""}・${Math.round(hand.points || 0)} 分`;
+    const windLabel = hand.handWindLabel || `${MahjongCore.WIND_SHORT_NAMES[hand.wind] || "東"}風${MahjongCore.WIND_SHORT_NAMES[MahjongCore.WINDS[((hand.handInCycle || 1) - 1) % 4]] || "東"}`;
+    item.textContent = `${windLabel}・${hand.winnerName || "流局"}・${hand.fan || 0} 番${Number.isFinite(hand.multiplier) ? `・${hand.multiplier}倍` : ""}・${Math.round(hand.points || 0)} 分`;
     hands.appendChild(item);
   });
   if (!record.history?.length) {
@@ -1302,10 +1435,12 @@ function recordMahjongHand(event) {
   });
   const session = state.mahjongSession;
   const currentWind = MahjongCore.windForCycle(session.startingWind, session.completedCycles);
+  const handWindLabel = MahjongCore.handWindLabel({ ...session, nextDealerId: payload.dealerId }, state.participants.map((player) => player.id));
   const cycleNumber = session.completedCycles + 1;
   const handInCycle = session.handsInCycle + 1;
   state.history.push({
     number: state.round,
+    handWindLabel,
     cycleNumber,
     handInCycle,
     wind: currentWind,
@@ -1323,14 +1458,14 @@ function recordMahjongHand(event) {
     createdAt: new Date().toISOString(),
   });
   const nextDealerId = nextDealerAfterHand(payload.dealerId, payload.winnerId, payload.winType);
-  Object.assign(session, MahjongCore.advanceProgress(session, payload.dealerId, state.participants.map((player) => player.id)));
+  Object.assign(session, MahjongCore.advanceProgress(session, payload.dealerId, state.participants.map((player) => player.id), nextDealerId));
   session.nextDealerId = nextDealerId;
   session.draft = { touched: false, values: {} };
   state.round += 1;
   elements.mahjongEntryForm.reset();
   closeModal("mahjongScoringModal");
   render();
-  showToast(payload.winType === "draw" ? `第 ${state.round - 1} 局已記錄：流局` : `第 ${state.round - 1} 局已記錄：${result.fan} 番`);
+  showToast(payload.winType === "draw" ? `${handWindLabel}已記錄：流局` : `${handWindLabel}已記錄：${result.fan} 番`);
   const marker = session.lengthMode === "custom-hands" ? session.completedHands : session.completedCycles;
   const lastMarker = session.lengthMode === "custom-hands" ? session.lastPromptedHands : session.lastPromptedCycles;
   const completedAsPlanned = MahjongCore.hasCompletedPlan(session) && lastMarker < marker;
@@ -1714,13 +1849,18 @@ function renderParticipantEditor() {
     const dot = document.createElement("span");
     dot.className = "color-dot";
     dot.style.setProperty("--dot-color", player.color);
+    if (state?.kind === "mahjong") {
+      const seatWind = MahjongCore.WINDS.includes(player.seatWind) ? player.seatWind : MahjongCore.WINDS[index];
+      dot.classList.add("seat-wind-dot");
+      dot.textContent = MahjongCore.WIND_SHORT_NAMES[seatWind] || "東";
+    }
 
     const input = document.createElement("input");
     input.className = "text-input participant-name-input";
     input.type = "text";
     input.maxLength = 18;
     input.value = player.name;
-    input.setAttribute("aria-label", `參加者 ${index + 1} 名稱`);
+    input.setAttribute("aria-label", state?.kind === "mahjong" ? `${dot.textContent}位玩家名稱` : `參加者 ${index + 1} 名稱`);
 
     const remove = document.createElement("button");
     remove.type = "button";
@@ -1734,7 +1874,8 @@ function renderParticipantEditor() {
     editor.appendChild(row);
   });
 
-  $("#addParticipantButton").disabled = settingsParticipantsDraft.length >= 8;
+  $("#addParticipantButton").hidden = state?.kind === "mahjong";
+  $("#addParticipantButton").disabled = state?.kind === "mahjong" || settingsParticipantsDraft.length >= 8;
 }
 
 function updateSetupFromPreset() {
@@ -1744,7 +1885,7 @@ function updateSetupFromPreset() {
   $("#setupMahjongPlayers").hidden = !isMahjong;
   $("#setupTitle").textContent = isMahjong ? "香港麻雀開局設定" : "今次點樣計？";
   $("#setupDescription").textContent = isMahjong
-    ? "揀好起糊番數、打幾多圈同最高番數，就可以即刻開枱。"
+    ? "先按東、南、西、北座位入名，再揀起糊番數、圈數同最高番數。"
     : preset === "chooser"
       ? "唔使輸入玩家名；大家喺畫面任何位置按住，就會抽出首家。"
       : "揀一個玩法開始，之後隨時可以改名或加減人數。";
@@ -1931,6 +2072,7 @@ $("#setupForm").addEventListener("submit", (event) => {
   if (state.kind === "mahjong") {
     state.participants.forEach((player, index) => {
       player.name = String(form.get(`mahjongPlayer${index + 1}`) || "").trim().slice(0, 18) || `玩家 ${index + 1}`;
+      player.seatWind = MahjongCore.WINDS[index];
     });
     const defaultRules = defaultMahjongRules();
     state.mahjong = sanitizeMahjongRules({
@@ -1976,7 +2118,59 @@ elements.homeNewButton.addEventListener("click", () => beginNewActivity("sports"
 elements.homeContinueButton.addEventListener("click", showScoreboard);
 $("#homeModeGrid").addEventListener("click", (event) => {
   const card = event.target.closest("[data-home-preset]");
-  if (card) beginNewActivity(card.dataset.homePreset);
+  if (card) openGameLibrary(gameCategory(card.dataset.homePreset));
+});
+
+elements.gameLibraryNewButton.addEventListener("click", () => {
+  const preset = activeLibraryCategory === "sports" ? "sports" : activeLibraryCategory;
+  closeModal("gameLibraryModal");
+  beginNewActivity(preset);
+});
+
+elements.gameLibraryList.addEventListener("click", (event) => {
+  const resume = event.target.closest("[data-game-id]");
+  if (resume) {
+    if (state) saveState();
+    const saved = gameLibrary.find((game) => game.gameId === resume.dataset.gameId);
+    if (!saved) return;
+    state = sanitizeState(JSON.parse(JSON.stringify(saved)));
+    undoStack = [];
+    closeModal("gameLibraryModal");
+    showScoreboard();
+    showToast(state.kind === "mahjong" && state.mahjongSession?.status === "settled" ? "已打開結算紀錄" : "已繼續之前嘅紀錄");
+    return;
+  }
+  const remove = event.target.closest("[data-delete-game-id]");
+  if (!remove) return;
+  const game = gameLibrary.find((entry) => entry.gameId === remove.dataset.deleteGameId);
+  if (!game) return;
+  openConfirm({
+    title: "刪除呢個紀錄？",
+    message: `「${game.title}」刪除後無法復原。`,
+    cancelText: "保留紀錄",
+    acceptText: "刪除",
+    icon: "×",
+    action: () => {
+      gameLibrary = gameLibrary.filter((entry) => entry.gameId !== game.gameId);
+      persistGameLibrary();
+      if (game.gameId.startsWith("legacy-mahjong-")) {
+        const legacyId = game.gameId.slice("legacy-mahjong-".length);
+        mahjongArchive = loadMahjongArchive().filter((record) => record.id !== legacyId);
+        saveMahjongArchive(mahjongArchive);
+      }
+      if (state?.gameId === game.gameId) {
+        state = null;
+        clearStoredState();
+      }
+      renderGameLibrary();
+      updateHome();
+      showToast("紀錄已刪除");
+    },
+  });
+});
+
+$$('[data-close="gameLibraryModal"]').forEach((button) => {
+  button.addEventListener("click", () => closeModal("gameLibraryModal"));
 });
 $("#brandHome").addEventListener("click", (event) => {
   event.preventDefault();
@@ -2102,7 +2296,7 @@ $$('[data-close="mahjongRecordModal"]').forEach((button) => {
 });
 
 $("#setupCloseButton").addEventListener("click", () => {
-  if (state) closeModal("setupModal");
+  closeModal("setupModal");
 });
 
 $$('[data-close="settingsModal"]').forEach((button) => {
@@ -2119,7 +2313,8 @@ document.addEventListener("keydown", (event) => {
       action?.();
     } else if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
     else if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
-    else if (elements.setupModal.classList.contains("is-open") && state) closeModal("setupModal");
+    else if (elements.gameLibraryModal.classList.contains("is-open")) closeModal("gameLibraryModal");
+    else if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   }
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !$(".modal-backdrop.is-open")) {
     event.preventDefault();
@@ -2138,13 +2333,15 @@ window.addEventListener("offline", () => {
 });
 
 state = loadState();
+migrateLegacyRecords();
 if (state) {
+  saveState();
   elements.setupModal.classList.remove("is-open");
   elements.setupModal.setAttribute("aria-hidden", "true");
   elements.setupCloseButton.hidden = false;
   setHomeVisible(true);
 } else {
-  elements.setupCloseButton.hidden = true;
+  elements.setupCloseButton.hidden = false;
   resetSetupForm("sports");
   setHomeVisible(true);
 }
