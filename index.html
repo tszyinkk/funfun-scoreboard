@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=35" />
+    <link rel="stylesheet" href="style.css?v=38" />
   </head>
   <body>
     <div class="app-shell">
@@ -62,6 +62,13 @@
           </div>
           <button class="secondary-button" id="homeContinueButton" type="button">繼續計分</button>
         </div>
+
+        <section class="home-archive" id="mahjongArchive" hidden aria-labelledby="mahjongArchiveTitle">
+          <div class="home-section-heading">
+            <div><span class="home-section-kicker">SAVED GAMES</span><h2 id="mahjongArchiveTitle">麻雀對局紀錄</h2></div>
+          </div>
+          <div class="mahjong-archive-list" id="mahjongArchiveList"></div>
+        </section>
 
         <div class="home-section-heading">
           <div>
@@ -170,34 +177,42 @@
             </div>
             <span class="mahjong-rule-badge" id="mahjongRuleBadge">3 番起糊</span>
           </div>
+          <div class="mahjong-session-bar" id="mahjongSessionBar">
+            <strong id="mahjongProgress">第 1／4 圈・東圈・第 1 局</strong>
+            <button class="outline-button" id="mahjongEndButton" type="button">結束並結算</button>
+          </div>
+          <section class="mahjong-settlement" id="mahjongSettlement" hidden aria-live="polite"></section>
           <form class="mahjong-entry" id="mahjongEntryForm">
             <div class="mahjong-entry-grid">
-              <label class="field-label">食糊者
+              <label class="field-label" id="mahjongWinnerField">食糊者
                 <select class="text-input" id="mahjongWinner" name="winner"></select>
               </label>
-              <label class="field-label">食糊方式
+              <label class="field-label" id="mahjongWinTypeField">食糊方式
                 <select class="text-input" id="mahjongWinType" name="winType">
                   <option value="self">自摸</option>
                   <option value="discard">出銃</option>
+                  <option value="draw">流局（冇人食糊）</option>
                 </select>
+                <small class="settings-help">自摸＝自己摸到；出銃＝食其他玩家打出的牌。</small>
               </label>
               <label class="field-label" id="mahjongDiscarderField">出銃者
                 <select class="text-input" id="mahjongDiscarder" name="discarder"></select>
               </label>
-              <label class="field-label">手動加番
+              <label class="field-label" id="mahjongHandFanField">手動加番
                 <input class="text-input" id="mahjongHandFan" name="handFan" type="number" min="0" max="99" value="0" inputmode="numeric" />
               </label>
               <label class="field-label">今局莊家
                 <select class="text-input" id="mahjongDealer" name="dealer"></select>
               </label>
-              <label class="field-label">花牌數（每隻加番）
+              <label class="field-label" id="mahjongFlowersField">花牌數（如有花牌玩法）
                 <input class="text-input" id="mahjongFlowers" name="flowers" type="number" min="0" max="8" value="0" inputmode="numeric" />
+                <small class="settings-help">只在有花牌的玩法先填；每隻加幾多番可在進階設定調整。</small>
               </label>
               <label class="field-label">備註（可留空）
                 <input class="text-input" id="mahjongNote" name="note" type="text" maxlength="40" placeholder="例如：清一色、自摸" />
               </label>
             </div>
-            <fieldset class="mahjong-pattern-fieldset">
+            <fieldset class="mahjong-pattern-fieldset" id="mahjongPatternFieldset">
               <legend>食咩牌型？（可多選）</legend>
               <div class="mahjong-pattern-choices" id="mahjongPatternChoices"></div>
             </fieldset>
@@ -262,7 +277,7 @@
               <label class="preset-card">
                 <input type="radio" name="preset" value="mahjong" />
                 <span class="preset-icon">雀</span>
-                <span><strong>香港麻雀</strong><small>自訂番數及賠法</small></span>
+                <span><strong>香港麻雀</strong><small>香港常用計分，揀三項即開局</small></span>
                 <span class="radio-dot"></span>
               </label>
               <label class="preset-card">
@@ -297,80 +312,93 @@
             </div>
           </div>
 
-          <div class="form-row" id="setupMahjongWindRow" hidden>
-            <label class="field-label" for="setupMahjongWind">大圈／圈風</label>
-            <select class="text-input" id="setupMahjongWind" name="mahjongWind">
-              <option value="east">東圈</option>
-              <option value="south">南圈</option>
-              <option value="west">西圈</option>
-              <option value="north">北圈</option>
-            </select>
-            <p class="settings-help">會用作計算「圈風」番；今次開枱前先揀好。</p>
-          </div>
-
-          <div class="form-row" id="setupMahjongLimitRow" hidden>
-            <label class="field-label" for="setupMahjongLimit">打幾大／封頂番數</label>
-            <select class="text-input" id="setupMahjongLimit" name="mahjongMaxFan">
-              <option value="8">8 番（八番例牌）</option>
-              <option value="10">10 番（十番例牌）</option>
-              <option value="13" selected>13 番（十三番例牌）</option>
-              <option value="0">不限（例牌照實際番數）</option>
-            </select>
-            <p class="settings-help">清章常見 8／10 番；網上玩法亦常用 13 番。</p>
-          </div>
-
-          <fieldset id="setupMahjongRules" hidden>
-            <legend>今局香港牌規則（開局前設定）</legend>
-            <div class="settings-grid">
-              <label class="field-label">最低起糊番數
-                <input class="text-input" name="mahjongMinFan" type="number" min="0" max="99" value="3" inputmode="numeric" />
-              </label>
-              <label class="field-label">基本分（1番）
-                <input class="text-input" name="mahjongBasePoints" type="number" min="0" max="999999" value="1" inputmode="numeric" />
-              </label>
-              <label class="field-label">倍增倍率（倍增模式）
-                <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" value="2" inputmode="decimal" />
-              </label>
-              <label class="field-label">番數轉分方式
-                <select class="text-input" name="mahjongScoringMode">
-                  <option value="doubling" selected>倍增：底分 × 倍率^(番數−1)</option>
-                  <option value="linear">線性：底分 × 番數</option>
+          <section class="mahjong-setup" id="setupMahjongRules" hidden aria-label="香港麻雀快速設定">
+            <div class="mahjong-setup-heading">
+              <h3>快速設定</h3>
+              <span>香港常用計分已預設好，揀三項就可以開局</span>
+            </div>
+            <div class="mahjong-quick-grid">
+              <label class="field-label">幾多番先可以食糊？
+                <select class="text-input" name="mahjongMinFan">
+                  <option value="1">1 番</option><option value="3" selected>3 番</option><option value="5">5 番</option>
                 </select>
+                <small class="settings-help">牌型最少達到所選番數先可以食糊。</small>
               </label>
-              <label class="field-label">封頂分數（0＝不限）
-                <input class="text-input" name="mahjongMaxPoints" type="number" min="0" max="999999" value="0" inputmode="numeric" />
-              </label>
-              <label class="field-label">自摸加番
-                <input class="text-input" name="mahjongSelfDrawFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
-              </label>
-              <label class="field-label">每隻花牌加番
-                <input class="text-input" name="mahjongFlowerFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
-              </label>
-              <label class="field-label">莊家勝出倍數
-                <input class="text-input" name="mahjongDealerWinMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
-              </label>
-              <label class="field-label">莊家輸款倍數
-                <input class="text-input" name="mahjongDealerLoseMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
-              </label>
-              <label class="field-label">自摸每家倍數
-                <input class="text-input" name="mahjongSelfDrawMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
-              </label>
-              <label class="field-label">出銃者倍數
-                <input class="text-input" name="mahjongDiscardMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
-              </label>
-              <label class="field-label">出銃時其他人付款
-                <select class="text-input" name="mahjongRonPaymentMode">
-                  <option value="discarder" selected>只由出銃者付款</option>
-                  <option value="all">三家都付款</option>
+              <label class="field-label">最高計到幾多番？
+                <select class="text-input" name="mahjongMaxFan">
+                  <option value="8">最高計8番</option><option value="10">最高計10番</option><option value="13" selected>最高計13番</option>
                 </select>
+                <small class="settings-help" id="mahjongCapHelp">實際超過13番，都會按13番封頂。</small>
+              </label>
+              <label class="field-label">打幾多圈？
+                <select class="text-input" id="setupMahjongLengthMode" name="mahjongLengthMode">
+                  <option value="east" selected>東圈</option><option value="half">半莊</option><option value="custom-hands">自訂局數</option>
+                </select>
+                <small class="settings-help" id="setupMahjongLengthHelp">東圈代表四位玩家最少各做一次莊；連莊時局數會增加。</small>
+                <span class="custom-hands-field" id="setupMahjongCustomHandsField" hidden>
+                  <span>預計局數</span>
+                  <input class="text-input" name="mahjongCustomHands" type="number" min="1" max="999" value="16" inputmode="numeric" />
+                </span>
               </label>
             </div>
-            <div class="mahjong-pattern-settings">
-              <p class="field-label">牌型番種及分值</p>
-              <div class="mahjong-pattern-editor" id="setupMahjongPatternEditor"></div>
+            <div class="mahjong-common-scoring">
+              <strong>香港常用計分</strong>
+              <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
+                <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
+                <tbody>
+                  <tr><td>3番</td><td>1倍</td></tr><tr><td>4番</td><td>2倍</td></tr>
+                  <tr><td>5–6番</td><td>4倍</td></tr><tr><td>7–9番</td><td>8倍</td></tr>
+                  <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
+                </tbody>
+              </table>
+              <button class="outline-button" id="mahjongCommonDefaults" type="button">套用香港常用計分</button>
             </div>
-            <p class="settings-help">所有牌型番數、最低起糊、封頂、倍數及付款方式都可以按今局玩法設定。</p>
-          </fieldset>
+            <div class="mahjong-setup-preview" id="mahjongSetupPreview" aria-live="polite"></div>
+            <details class="settings-advanced" id="setupMahjongAdvanced">
+              <summary>進階設定 <small>只建議熟悉計分規則的玩家使用。</small></summary>
+              <div class="settings-grid">
+                <label class="field-label">底數（每1倍值幾多分）
+                  <input class="text-input" name="mahjongBasePoints" type="number" min="1" max="999999" value="1" inputmode="numeric" />
+                </label>
+                <label class="field-label">自訂番數計分方式
+                  <select class="text-input" name="mahjongScoringMode"><option value="hk-table" selected>香港常用計分表</option><option value="doubling">自訂逐番倍增</option><option value="linear">自訂線性計分</option></select>
+                </label>
+                <label class="field-label">自訂倍增幅度
+                  <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" value="2" inputmode="decimal" />
+                </label>
+                <label class="field-label">封頂分數（0＝不限）
+                  <input class="text-input" name="mahjongMaxPoints" type="number" min="0" max="999999" value="0" inputmode="numeric" />
+                </label>
+                <label class="field-label">開始圈風
+                  <select class="text-input" name="mahjongWind"><option value="east" selected>東圈</option><option value="south">南圈</option><option value="west">西圈</option><option value="north">北圈</option></select>
+                  <small class="settings-help">圈風會影響番數計算，一般遊戲由東圈開始。</small>
+                </label>
+                <label class="field-label">自摸額外加幾番
+                  <input class="text-input" name="mahjongSelfDrawFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
+                </label>
+                <label class="field-label">每隻花牌加幾番
+                  <input class="text-input" name="mahjongFlowerFan" type="number" min="0" max="99" value="1" inputmode="numeric" />
+                </label>
+                <label class="field-label">莊家勝出倍數
+                  <input class="text-input" name="mahjongDealerWinMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+                </label>
+                <label class="field-label">莊家輸款倍數
+                  <input class="text-input" name="mahjongDealerLoseMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+                </label>
+                <label class="field-label">自摸每家倍數
+                  <input class="text-input" name="mahjongSelfDrawMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+                </label>
+                <label class="field-label">出銃者倍數
+                  <input class="text-input" name="mahjongDiscardMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+                </label>
+                <label class="field-label">出銃時其他人付款
+                  <select class="text-input" name="mahjongRonPaymentMode"><option value="discarder" selected>只由出銃者付款</option><option value="all">三家都付款</option></select>
+                </label>
+              </div>
+              <p class="settings-help">只建議熟悉計分規則的玩家使用；一般玩法會直接用上方香港常用計分表。</p>
+              <div class="mahjong-pattern-settings"><p class="field-label">自訂牌型及番數</p><div class="mahjong-pattern-editor" id="setupMahjongPatternEditor"></div></div>
+            </details>
+          </section>
 
           <div class="form-row participant-count-row" id="participantCountRow" hidden>
             <span class="field-label">人數／隊數</span>
@@ -405,6 +433,50 @@
             <button class="outline-button wide" id="addParticipantButton" type="button">＋ 加一位／一隊</button>
           </fieldset>
 
+          <section class="mahjong-setup" id="settingsMahjongQuickFields" hidden aria-label="香港麻雀快速設定">
+            <div class="mahjong-setup-heading">
+              <h3>快速設定</h3>
+              <span>改完按「儲存設定」套用，平時用預設即可</span>
+            </div>
+            <div class="mahjong-quick-grid">
+              <label class="field-label">幾多番先可以食糊？
+                <select class="text-input" name="mahjongMinFan">
+                  <option value="1">1 番</option><option value="3">3 番</option><option value="5">5 番</option>
+                </select>
+                <small class="settings-help">牌型最少達到所選番數先可以食糊。</small>
+              </label>
+              <label class="field-label">最高計到幾多番？
+                <select class="text-input" name="mahjongMaxFan">
+                  <option value="8">最高計8番</option><option value="10">最高計10番</option><option value="13">最高計13番</option>
+                </select>
+                <small class="settings-help" id="settingsMahjongCapHelp"></small>
+              </label>
+              <label class="field-label">打幾多圈？
+                <select class="text-input" id="settingsMahjongLengthMode" name="mahjongLengthMode">
+                  <option value="east">東圈</option><option value="half">半莊</option><option value="custom-hands">自訂局數</option>
+                </select>
+                <small class="settings-help" id="settingsMahjongLengthHelp">東圈代表四位玩家最少各做一次莊；連莊時局數會增加。</small>
+                <span class="custom-hands-field" id="settingsMahjongCustomHandsField" hidden>
+                  <span>預計局數</span>
+                  <input class="text-input" name="mahjongCustomHands" type="number" min="1" max="999" value="16" inputmode="numeric" />
+                </span>
+              </label>
+            </div>
+            <div class="mahjong-common-scoring">
+              <strong>香港常用計分</strong>
+              <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
+                <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
+                <tbody>
+                  <tr><td>3番</td><td>1倍</td></tr><tr><td>4番</td><td>2倍</td></tr>
+                  <tr><td>5–6番</td><td>4倍</td></tr><tr><td>7–9番</td><td>8倍</td></tr>
+                  <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
+                </tbody>
+              </table>
+              <button class="outline-button" id="settingsMahjongCommonDefaults" type="button">套用香港常用計分</button>
+            </div>
+            <div class="mahjong-setup-preview" id="settingsMahjongSetupPreview" aria-live="polite"></div>
+          </section>
+
           <fieldset id="standardSettingsFields">
             <legend>完成一局後，總分點計？</legend>
             <div class="segmented-control">
@@ -414,42 +486,34 @@
             </div>
           </fieldset>
 
-          <fieldset id="mahjongSettingsFields" hidden>
-            <legend>香港牌規則（全部可以自己改）</legend>
+          <details class="settings-advanced" id="mahjongSettingsFields" hidden>
+            <summary>進階設定 <small>只建議熟悉計分規則的玩家使用。</small></summary>
             <div class="settings-grid">
-              <label class="field-label">最低起糊番數
-                <input class="text-input" name="mahjongMinFan" type="number" min="0" max="99" inputmode="numeric" />
+              <label class="field-label">底數（每1倍值幾多分）
+                <input class="text-input" name="mahjongBasePoints" type="number" min="1" max="999999" inputmode="numeric" />
               </label>
-              <label class="field-label">基本分（1番）
-                <input class="text-input" name="mahjongBasePoints" type="number" min="0" max="999999" inputmode="numeric" />
+              <label class="field-label">自訂番數計分方式
+                <select class="text-input" name="mahjongScoringMode"><option value="hk-table">香港常用計分表</option><option value="doubling">自訂逐番倍增</option><option value="linear">自訂線性計分</option></select>
               </label>
-              <label class="field-label">倍增倍率（倍增模式）
+              <label class="field-label">自訂倍增幅度
                 <input class="text-input" name="mahjongFanStep" type="number" min="1" max="10" step="0.1" inputmode="decimal" />
               </label>
-              <label class="field-label">番數轉分方式
-                <select class="text-input" name="mahjongScoringMode">
-                  <option value="doubling">倍增：底分 × 倍率^(番數−1)</option>
-                  <option value="linear">線性：底分 × 番數</option>
-                </select>
-              </label>
-              <label class="field-label">封頂番數（0＝不限）
-                <input class="text-input" name="mahjongMaxFan" type="number" min="0" max="99" inputmode="numeric" />
-              </label>
-              <label class="field-label">大圈／圈風
+              <label class="field-label">開始圈風
                 <select class="text-input" name="mahjongPrevailingWind">
                   <option value="east">東圈</option>
                   <option value="south">南圈</option>
                   <option value="west">西圈</option>
                   <option value="north">北圈</option>
                 </select>
+                <small class="settings-help">圈風會影響番數計算，一般遊戲由東圈開始。</small>
               </label>
               <label class="field-label">封頂分數（0＝不限）
                 <input class="text-input" name="mahjongMaxPoints" type="number" min="0" max="999999" inputmode="numeric" />
               </label>
-              <label class="field-label">自摸加番
+              <label class="field-label">自摸額外加幾番
                 <input class="text-input" name="mahjongSelfDrawFan" type="number" min="0" max="99" inputmode="numeric" />
               </label>
-              <label class="field-label">每隻花牌加番
+              <label class="field-label">每隻花牌加幾番
                 <input class="text-input" name="mahjongFlowerFan" type="number" min="0" max="99" inputmode="numeric" />
               </label>
               <label class="field-label">莊家勝出倍數
@@ -472,11 +536,11 @@
               </label>
             </div>
             <div class="mahjong-pattern-settings">
-              <p class="field-label">牌型番種及分值</p>
+              <p class="field-label">自訂牌型及番數</p>
               <div class="mahjong-pattern-editor" id="mahjongPatternEditor"></div>
             </div>
-            <p class="settings-help">預設採用常見清章做法：3 番起糊、每番乘 2、自摸另加 1 番。你可以將「番數轉分方式」改成線性，倍增並非必需；花牌數、自摸加番及每個牌型番數亦全部可以自行改。牌型本身已包括自摸時，程式不會重複加番。</p>
-          </fieldset>
+            <p class="settings-help">只建議熟悉計分規則的玩家使用；牌型本身已包括自摸時，程式不會重複加番。</p>
+          </details>
 
           <fieldset id="winnerRuleFields">
             <legend>勝負規則</legend>
@@ -501,6 +565,16 @@
           <button class="secondary-button" id="confirmCancel" type="button">取消</button>
           <button class="primary-button" id="confirmAccept" type="button">確定</button>
         </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="mahjongRecordModal" role="dialog" aria-modal="true" aria-labelledby="mahjongRecordTitle" aria-hidden="true">
+      <div class="modal confirm-modal mahjong-record-modal">
+        <button class="modal-close" data-close="mahjongRecordModal" type="button" aria-label="關閉紀錄">×</button>
+        <span class="confirm-icon">麻</span>
+        <h2 id="mahjongRecordTitle">麻雀對局紀錄</h2>
+        <div id="mahjongRecordContent"></div>
+        <button class="secondary-button wide" data-close="mahjongRecordModal" type="button">關閉</button>
       </div>
     </div>
 
@@ -534,6 +608,7 @@
       </article>
     </template>
 
-    <script src="app.js?v=35" defer></script>
+    <script src="mahjong-core.js?v=38" defer></script>
+    <script src="app.js?v=38" defer></script>
   </body>
 </html>
