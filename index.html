@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#101820" />
     <meta name="description" content="適合球類及卡牌遊戲的靈活計分板" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=46" />
+    <link rel="stylesheet" href="style.css?v=47" />
   </head>
   <body>
     <div class="app-shell">
@@ -204,6 +204,7 @@
             <strong id="mahjongProgress">第 1／4 圈・東風東</strong>
             <div class="mahjong-session-actions">
               <button class="primary-button" id="mahjongOpenScoringButton" type="button"><span aria-hidden="true">🀄</span> 有人食糊／計番</button>
+              <button class="outline-button mahjong-draw-button" id="mahjongDrawButton" type="button" hidden><span aria-hidden="true">○</span> 流局・過莊</button>
               <button class="mahjong-icon-action" id="mahjongEndButton" type="button" aria-label="結束並結算" title="結束並結算">✓</button>
             </div>
           </div>
@@ -781,9 +782,9 @@
       </article>
     </template>
 
-    <script src="mahjong-core.js?v=46" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=46" defer></script>
-    <script src="big-two-core.js?v=46" defer></script>
-    <script src="app.js?v=46" defer></script>
+    <script src="mahjong-core.js?v=47" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=47" defer></script>
+    <script src="big-two-core.js?v=47" defer></script>
+    <script src="app.js?v=47" defer></script>
   </body>
 </html>

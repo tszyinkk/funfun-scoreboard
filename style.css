@@ -33,6 +33,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html,
+body,
+button,
+input,
+select,
+textarea { touch-action: manipulation; }
+
 body.modal-open {
   position: fixed;
   width: 100%;
@@ -1834,6 +1841,7 @@ legend,
 .mahjong-session-bar .outline-button { min-height: 42px; flex: 0 0 auto; }
 .mahjong-session-actions { display: flex; align-items: center; gap: 8px; }
 .mahjong-session-actions .primary-button { min-height: 44px; padding: 0 18px; }
+.mahjong-session-actions .mahjong-draw-button { min-height: 44px; padding: 0 15px; background: white; white-space: nowrap; }
 .mahjong-icon-action {
   width: 44px;
   height: 44px;
@@ -2051,6 +2059,9 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
   overflow: hidden;
   background: var(--paper);
   color: var(--ink);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .sports-landscape-side { min-width: 0; min-height: 0; }

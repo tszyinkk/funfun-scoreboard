@@ -77,6 +77,7 @@ const elements = {
   mahjongRecordContent: $("#mahjongRecordContent"),
   mahjongScoringModal: $("#mahjongScoringModal"),
   mahjongOpenScoringButton: $("#mahjongOpenScoringButton"),
+  mahjongDrawButton: $("#mahjongDrawButton"),
   matchTitle: $("#matchTitle"),
   roundLabel: $("#roundLabel"),
   playerCountLabel: $("#playerCountLabel"),
@@ -168,6 +169,7 @@ const STATIC_TRANSLATIONS = {
   "香港牌計番": "Hong Kong Mahjong Scoring",
   "每局輸入番數及食糊方式，分數會按你設定的規則自動分配。": "Enter the winning pattern and method; scores are distributed automatically.",
   "有人食糊／計番": "Score a win",
+  "流局・過莊": "Draw · Pass dealer",
   "今局計番": "Score this hand",
   "揀食糊者、食糊方式同牌型，確認後先會更新四位玩家分數。": "Choose the winner, win type and patterns. Scores update only after confirmation.",
   "食糊者": "Winner",
@@ -1033,7 +1035,8 @@ function requestSportsLandscape() {
 
 function requestAppFullscreen() {
   try {
-    const request = document.documentElement.requestFullscreen?.();
+    const request = document.documentElement.requestFullscreen?.()
+      || document.documentElement.webkitRequestFullscreen?.();
     return request ? request.catch(() => {}) : Promise.resolve();
   } catch {
     return Promise.resolve();
@@ -1491,6 +1494,7 @@ function renderMahjongEntry() {
   const settled = session.status === "settled";
   elements.mahjongEntryForm.hidden = settled;
   elements.mahjongSessionBar.hidden = settled;
+  elements.mahjongDrawButton.hidden = settled || state.mahjong.drawDealerAction !== "pass";
   elements.mahjongSettlement.hidden = !settled;
   if (settled) {
     if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
@@ -2649,6 +2653,12 @@ elements.mahjongEntryForm.addEventListener("change", (event) => {
 });
 
 elements.mahjongOpenScoringButton.addEventListener("click", () => openMahjongScoring());
+elements.mahjongDrawButton.addEventListener("click", () => {
+  if (state?.kind !== "mahjong" || state.mahjongSession?.status !== "active" || state.mahjong.drawDealerAction !== "pass") return;
+  renderMahjongEntry();
+  elements.mahjongWinType.value = "draw";
+  elements.mahjongEntryForm.requestSubmit();
+});
 $("#mahjongEndButton").addEventListener("click", requestMahjongSettlement);
 $("#mahjongOpenAnalyzerButton").addEventListener("click", openMahjongAnalyzer);
 elements.mahjongAnalyzerMeldType.addEventListener("change", updateMahjongAnalyzerMeldOptions);
