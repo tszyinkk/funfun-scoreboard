@@ -104,6 +104,27 @@
     return `${cycleLabel}${secondLap}・${handLabel}`;
   }
 
+  function friendlyProgressLabel(session, participants, language = "zh") {
+    const players = Array.isArray(participants) ? participants : [];
+    const ids = players.map((player) => String(typeof player === "object" ? player.id : player));
+    const names = Object.fromEntries(players.map((player, index) => [ids[index], typeof player === "object" ? String(player.name || "") : String(player)]));
+    const completed = Math.max(0, Math.floor(Number(session?.completedCycles) || 0));
+    const planned = Math.max(0, Math.floor(Number(session?.plannedCycles) || 0));
+    const cycle = completed + 1;
+    const wind = windForCycle(session?.startingWind || "east", completed);
+    const fallbackDealer = ids[Math.max(0, Math.floor(Number(session?.handsInCycle) || 0)) % Math.max(1, ids.length)] || ids[0] || "";
+    const dealerId = String(session?.nextDealerId || fallbackDealer);
+    const dealerName = names[dealerId] || (language === "en" ? "Player" : "玩家");
+    const streak = Math.max(0, Math.floor(Number(session?.dealerStreak) || 0));
+    const hands = Math.max(0, Math.floor(Number(session?.completedHands) || 0));
+    const cycleText = planned > 0 ? `${cycle}/${planned}` : String(cycle);
+    if (language === "en") {
+      const windText = { east: "East Round", south: "South Round", west: "West Round", north: "North Round" }[wind] || "East Round";
+      return `Round ${cycleText} | ${windText} | ${dealerName} deals${streak ? ` | ${streak} repeat${streak === 1 ? "" : "s"}` : ""} | ${hands} hands played`;
+    }
+    return `第${cycleText}圈｜${WIND_NAMES[wind] || "東圈"}｜${dealerName}做莊${streak ? `｜連莊${streak}次` : ""}｜已玩${hands}局`;
+  }
+
   function advanceProgress(session, dealerId, participantIds, nextDealerId = "") {
     const players = Array.isArray(participantIds) ? participantIds.map(String) : [];
     const ids = [...new Set([...(session?.dealerIdsInCycle || []).map(String), String(dealerId || "")].filter((id) => players.includes(id)))];
@@ -125,6 +146,10 @@
       completedCycles,
       handsInCycle,
       dealerIdsInCycle,
+      dealerStreak: String(nextDealerId || "") === String(dealerId || "")
+        ? Math.max(0, Math.floor(Number(session?.dealerStreak) || 0)) + 1
+        : 0,
+      lastDealerId: String(dealerId || ""),
     };
   }
 
@@ -150,6 +175,7 @@
     windForCycle,
     handWindLabel,
     progressLabel,
+    friendlyProgressLabel,
     advanceProgress,
     hasCompletedPlan,
   };

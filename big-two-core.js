@@ -13,7 +13,7 @@
     return { cards: remaining, multiplier, points: remaining * multiplier };
   }
 
-  function scoreRound(participantIds, winnerId, remainingById = {}) {
+  function scoreRound(participantIds, winnerId, remainingById = {}, mode = "money") {
     const players = Array.isArray(participantIds) ? participantIds.map(String) : [];
     const winner = String(winnerId || "");
     if (!players.includes(winner)) return { valid: false, reason: "winner" };
@@ -31,8 +31,9 @@
       gain += penalties[id].points;
     });
     if (!valid) return { valid: false, reason: "remaining", penalties };
-    const net = Object.fromEntries(players.map((id) => [id, id === winner ? gain : -penalties[id].points]));
-    return { valid: true, winnerId: winner, penalties, gain, net };
+    const scoringMode = mode === "ranking" ? "ranking" : "money";
+    const net = Object.fromEntries(players.map((id) => [id, id === winner ? (scoringMode === "money" ? gain : 0) : -penalties[id].points]));
+    return { valid: true, winnerId: winner, penalties, gain, net, mode: scoringMode };
   }
 
   const api = { multiplierForCards, penaltyForCards, scoreRound };

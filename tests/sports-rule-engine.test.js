@@ -2,99 +2,104 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const Engine = require("../sports-rule-engine.js");
 
-function score(config, sequence) {
-  let state = Engine.createGameState(config);
-  sequence.forEach(([team, count]) => {
-    for (let point = 0; point < count; point += 1) state = Engine.applyPoint(config, state, team).state;
-  });
-  return state;
+function points(config, state, team, count, amount = 1) {
+  let next = state;
+  for (let index = 0; index < count; index += 1) next = Engine.applyPoint(config, next, team, amount).state;
+  return next;
 }
 
-test("排球 Standard 在24比24後要領先兩分", () => {
-  const config = Engine.volleyballPreset("standard");
-  let state = score(config, [[0, 24], [1, 24]]);
-  assert.equal(Engine.evaluate(config, state).status, "deuce");
-  state = Engine.applyPoint(config, state, 0).state;
-  assert.equal(state.completedGames.length, 0);
-  state = Engine.applyPoint(config, state, 0).state;
-  assert.deepEqual(state.completedGames[0].scores, [26, 24]);
-  assert.deepEqual(state.currentScore, [0, 0]);
-});
+function winGame(config, state, team, score, opponent = 0) {
+  let next = points(config, state, 1 - team, opponent);
+  next = points(config, next, team, score);
+  return next.status === "game-complete" ? Engine.advanceGame(config, next) : next;
+}
 
-test("排球決勝局使用15分並於14比14後打到16比14", () => {
+test("排球25:24不完局，26:24保留比分等候確認", () => {
   const config = Engine.volleyballPreset("standard");
   let state = Engine.createGameState(config);
-  [[0, 25], [1, 25]].forEach(([team, count]) => {
-    for (let point = 0; point < count; point += 1) state = Engine.applyPoint(config, state, team).state;
-  });
-  assert.equal(state.currentGame, 3);
-  assert.equal(Engine.targetForGame(config, 3), 15);
-  for (let point = 0; point < 14; point += 1) {
-    state = Engine.applyPoint(config, state, 0).state;
-    state = Engine.applyPoint(config, state, 1).state;
-  }
-  state = Engine.applyPoint(config, state, 0).state;
-  assert.equal(state.status, "playing");
-  state = Engine.applyPoint(config, state, 0).state;
-  assert.equal(state.status, "finished");
+  state = points(config, state, 0, 24); state = points(config, state, 1, 24);
+  assert.equal(Engine.evaluate(config, state).status, "deuce");
+  state = points(config, state, 0, 1); assert.equal(state.status, "playing");
+  state = points(config, state, 0, 1); assert.equal(state.status, "game-complete");
+  assert.deepEqual(state.currentScore, [26, 24]);
+  state = Engine.advanceGame(config, state); assert.deepEqual(state.currentScore, [0, 0]);
+});
+
+test("排球三局兩勝決勝局15分並於14:14打到16:14", () => {
+  const config = Engine.volleyballPreset("standard");
+  let state = Engine.createGameState(config);
+  state = winGame(config, state, 0, 25); state = winGame(config, state, 1, 25);
+  assert.equal(state.currentGame, 3); assert.equal(Engine.targetForGame(config, 3), 15);
+  state = points(config, state, 0, 14); state = points(config, state, 1, 14);
+  state = points(config, state, 0, 1); assert.equal(state.status, "playing");
+  state = points(config, state, 0, 1); assert.equal(state.status, "finished");
   assert.deepEqual(state.completedGames[2].scores, [16, 14]);
 });
 
-test("30分一局制不要求領先兩分時30比29完場", () => {
-  const config = Engine.sanitizeConfig({ ...Engine.volleyballPreset("single"), targetScore: 30, winBy: 1 });
-  const state = score(config, [[0, 29], [1, 29], [0, 1]]);
-  assert.equal(state.status, "finished");
-  assert.deepEqual(state.currentScore, [30, 29]);
-});
-
-test("30分一局制要求領先兩分時30比29不完場", () => {
-  const config = Engine.sanitizeConfig({ ...Engine.volleyballPreset("single"), targetScore: 30, winBy: 2 });
-  let state = score(config, [[0, 29], [1, 29], [0, 1]]);
-  assert.equal(state.status, "playing");
-  state = Engine.applyPoint(config, state, 0).state;
-  assert.equal(state.status, "finished");
-  assert.deepEqual(state.currentScore, [31, 29]);
-});
-
-test("Custom Best of 5會由設定推算三局勝出", () => {
-  const config = Engine.sanitizeConfig({ preset: "custom", matchFormat: "best-of-5", targetScore: 21, winBy: 2, decidingGameTargetScore: 15 });
-  assert.equal(config.numberOfGames, 5);
-  assert.equal(config.gamesToWin, 3);
-  assert.equal(Engine.targetForGame(config, 5), 15);
-});
-
-test("有最高分上限時到達上限會立即完局", () => {
-  const config = Engine.sanitizeConfig({ preset: "custom", matchFormat: "single", targetScore: 21, winBy: 2, maxScore: 30 });
+test("排球正式五局三勝", () => {
+  const config = Engine.volleyballPreset("alternate");
   let state = Engine.createGameState(config);
-  for (let point = 0; point < 29; point += 1) {
-    state = Engine.applyPoint(config, state, 0).state;
-    state = Engine.applyPoint(config, state, 1).state;
-  }
-  state = Engine.applyPoint(config, state, 0).state;
-  assert.equal(state.status, "finished");
-  assert.deepEqual(state.currentScore, [30, 29]);
+  state = winGame(config, state, 0, 25); state = winGame(config, state, 1, 25);
+  state = winGame(config, state, 0, 25); state = winGame(config, state, 0, 25);
+  assert.equal(state.status, "finished"); assert.deepEqual(state.gamesWon, [3, 1]);
 });
 
-test("重設本局會保留之前已完成局數，重設比賽則全部清除", () => {
-  const config = Engine.sanitizeConfig({ ...Engine.volleyballPreset("standard"), targetScore: 3, decidingGameTargetScore: 2 });
-  let state = score(config, [[0, 3], [1, 2]]);
-  assert.deepEqual(state.gamesWon, [1, 0]);
-  state = Engine.resetCurrentGame(config, state);
-  assert.deepEqual(state.currentScore, [0, 0]);
-  assert.deepEqual(state.gamesWon, [1, 0]);
-  state = Engine.resetMatch(config);
-  assert.deepEqual(state.gamesWon, [0, 0]);
-  assert.equal(state.completedGames.length, 0);
+test("單局30分先到即完；領先2分時30:29未完", () => {
+  const firstTo = Engine.sanitizeConfig({ ...Engine.volleyballPreset("single"), targetScore: 30, winBy: 1 });
+  let state = Engine.createGameState(firstTo);
+  state = points(firstTo, state, 1, 29); state = points(firstTo, state, 0, 30); assert.equal(state.status, "finished");
+  const winByTwo = Engine.sanitizeConfig({ ...firstTo, winBy: 2 });
+  state = Engine.createGameState(winByTwo); state = points(winByTwo, state, 1, 29); state = points(winByTwo, state, 0, 30);
+  assert.equal(state.status, "playing"); state = points(winByTwo, state, 0, 1); assert.equal(state.status, "finished");
 });
 
-test("比賽完結後禁止再加分，重新開啟會返回致勝分前", () => {
+test("羽毛球20:20後領先2分，29:29後30分封頂", () => {
+  const config = Engine.badmintonPreset("standard");
+  let state = Engine.createGameState(config);
+  state = points(config, state, 0, 20); state = points(config, state, 1, 20); state = points(config, state, 0, 1);
+  assert.equal(state.status, "playing"); state = points(config, state, 0, 1); assert.equal(state.status, "game-complete");
+  state = Engine.createGameState(config);
+  for (let index = 0; index < 29; index += 1) { state = points(config, state, 0, 1); state = points(config, state, 1, 1); }
+  state = points(config, state, 0, 1);
+  assert.equal(state.status, "game-complete"); assert.deepEqual(state.currentScore, [30, 29]);
+});
+
+test("乒乓球10:10後領先2分，支援三及五局", () => {
+  const bo5 = Engine.tableTennisPreset("standard"); const bo3 = Engine.tableTennisPreset("alternate");
+  assert.deepEqual([bo5.numberOfGames, bo5.gamesToWin], [5, 3]); assert.deepEqual([bo3.numberOfGames, bo3.gamesToWin], [3, 2]);
+  let state = Engine.createGameState(bo3); state = points(bo3, state, 0, 10); state = points(bo3, state, 1, 10); state = points(bo3, state, 0, 1);
+  assert.equal(state.status, "playing"); state = points(bo3, state, 0, 1); assert.equal(state.status, "game-complete");
+});
+
+test("街場籃球11及20分支援+1/+2/+3及無計時", () => {
+  const eleven = Engine.basketballPreset("standard"); let state = Engine.createGameState(eleven);
+  state = Engine.applyPoint(eleven, state, 0, 3).state; state = Engine.applyPoint(eleven, state, 0, 2).state; state = Engine.applyPoint(eleven, state, 0, 1).state;
+  assert.deepEqual(state.currentScore, [6, 0]); state = points(eleven, state, 0, 5); assert.equal(state.status, "finished");
+  const twenty = Engine.basketballPreset("alternate"); state = Engine.createGameState(twenty); state = points(twenty, state, 0, 20);
+  assert.equal(state.status, "finished"); assert.equal(twenty.timedMode, false);
+});
+
+test("籃球計時模式分節、平手加時及完場", () => {
+  const config = Engine.basketballPreset("single"); let state = Engine.createGameState(config);
+  state = Engine.applyPoint(config, state, 0, 2).state; state = Engine.applyPoint(config, state, 1, 2).state;
+  for (let period = 0; period < 4; period += 1) state = Engine.endPeriod(config, state);
+  state = Engine.addOvertime(config, state); assert.equal(state.overtimeCount, 1);
+  state = Engine.applyPoint(config, state, 0, 3).state; state = Engine.endPeriod(config, state); state = Engine.finishMatch(config, state, "score");
+  assert.equal(state.winnerIndex, 0);
+});
+
+test("重設本局保留已完成局；修改舊局會重算", () => {
+  const config = Engine.sanitizeConfig({ ...Engine.volleyballPreset("standard"), targetScore: 3, decidingGameTargetScore: 2, winBy: 1 });
+  let state = Engine.createGameState(config); state = winGame(config, state, 0, 3); state = points(config, state, 1, 2);
+  state = Engine.resetCurrentGame(config, state); assert.deepEqual(state.currentScore, [0, 0]); assert.deepEqual(state.gamesWon, [1, 0]);
+  state = Engine.editCompletedGame(config, state, 0, [1, 3]); assert.deepEqual(state.gamesWon, [0, 1]);
+});
+
+test("提早結束、禁止再加分及重開", () => {
   const config = Engine.sanitizeConfig({ ...Engine.volleyballPreset("single"), targetScore: 3, winBy: 1 });
-  let state = score(config, [[0, 3]]);
-  assert.equal(state.status, "finished");
-  const blocked = Engine.applyPoint(config, state, 1);
-  assert.equal(blocked.event.reason, "match-finished");
-  assert.deepEqual(blocked.state.currentScore, [3, 0]);
-  state = Engine.reopenMatch(config, state);
-  assert.equal(state.status, "playing");
-  assert.deepEqual(state.currentScore, [2, 0]);
+  let state = Engine.createGameState(config); state = points(config, state, 0, 2);
+  const saved = Engine.finishMatch(config, state, "none"); assert.equal(saved.noWinner, true);
+  assert.equal(Engine.applyPoint(config, saved, 1).event.reason, "match-finished");
+  state = points(config, state, 0, 1); state = Engine.reopenMatch(config, state);
+  assert.equal(state.status, "playing"); assert.deepEqual(state.currentScore, [2, 0]);
 });

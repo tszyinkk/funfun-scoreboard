@@ -33,6 +33,8 @@ let chooserCountdownTimer = null;
 let chooserCountdown = 0;
 let nextFingerNumber = 1;
 let mahjongAnalyzerDraft = { concealed: [], melds: [], result: null };
+let editingMahjongRoundIndex = -1;
+let editingBigTwoRoundIndex = -1;
 let gameLibrary = [];
 let activeLibraryCategory = "mahjong";
 let uiLanguage = "zh";
@@ -110,10 +112,15 @@ const elements = {
   mahjongWinType: $("#mahjongWinType"),
   mahjongDiscarderField: $("#mahjongDiscarderField"),
   mahjongPatternChoices: $("#mahjongPatternChoices"),
+  mahjongMorePatternChoices: $("#mahjongMorePatternChoices"),
+  mahjongSpecialPatternChoices: $("#mahjongSpecialPatternChoices"),
+  mahjongSelectedPatterns: $("#mahjongSelectedPatterns"),
+  mahjongPatternSearch: $("#mahjongPatternSearch"),
   mahjongPatternEditor: $("#mahjongPatternEditor"),
   setupMahjongPatternEditor: $("#setupMahjongPatternEditor"),
   mahjongPreview: $("#mahjongPreview"),
   mahjongProgress: $("#mahjongProgress"),
+  mahjongTraditionalProgress: $("#mahjongTraditionalProgress"),
   mahjongSessionBar: $("#mahjongSessionBar"),
   mahjongSettlement: $("#mahjongSettlement"),
   mahjongAnalyzerModal: $("#mahjongAnalyzerModal"),
@@ -133,12 +140,23 @@ const elements = {
   bigTwoWinner: $("#bigTwoWinner"),
   bigTwoRemainingList: $("#bigTwoRemainingList"),
   bigTwoPreview: $("#bigTwoPreview"),
+  bigTwoEndButton: $("#bigTwoEndButton"),
+  bigTwoSettlement: $("#bigTwoSettlement"),
+  bigTwoHistoryList: $("#bigTwoHistoryList"),
+  bigTwoHistoryCount: $("#bigTwoHistoryCount"),
   sportsResetGameButton: $("#sportsResetGameButton"),
   sportsResetMatchButton: $("#sportsResetMatchButton"),
   sportsSummaryButton: $("#sportsSummaryButton"),
+  sportsEndButton: $("#sportsEndButton"),
+  sportsNextGameButton: $("#sportsNextGameButton"),
+  sportsPeriodButton: $("#sportsPeriodButton"),
+  sportsResetClockButton: $("#sportsResetClockButton"),
+  sportsEndModal: $("#sportsEndModal"),
   sportsSummaryModal: $("#sportsSummaryModal"),
   sportsSummaryContent: $("#sportsSummaryContent"),
   sportsReopenButton: $("#sportsReopenButton"),
+  sportsEditGameModal: $("#sportsEditGameModal"),
+  sportsEditGameForm: $("#sportsEditGameForm"),
   setupSportsRules: $("#setupSportsRules"),
   sportsSetupPreview: $("#sportsSetupPreview"),
 };
@@ -164,6 +182,7 @@ const STATIC_TRANSLATIONS = {
   "鋤大D 四人計分": "Big Two Scoring",
   "自動計起炒、雙炒、三炒": "Automatic penalty multipliers",
   "每個玩法都會分開儲存多個紀錄；按入分類就可以繼續或刪除。安裝到主畫面後，離線都可以用。": "Each mode keeps its own saved games. Open a category to continue or delete one. The installed app also works offline.",
+  "各種計分玩法會分開儲存多個紀錄；首家抽籤即開即用。安裝到主畫面後，離線都可以用。": "Each scoring mode keeps separate saved games; the first-player chooser opens instantly. The installed app also works offline.",
   "請將手機橫放": "Rotate your phone",
   "球類計分板會以全螢幕左右比分顯示。": "The two-team scoreboard uses a full-screen landscape layout.",
   "開始計時": "Start timer",
@@ -269,6 +288,8 @@ const STATIC_TRANSLATIONS = {
   "每隻花牌加幾番": "Fan per flower tile",
   "莊家勝出倍數": "Dealer win multiplier",
   "莊家輸款倍數": "Dealer loss multiplier",
+  "每次連莊額外加幾分": "Extra points per dealer repeat",
+  "預設0即關閉；連莊後下一局先會套用。": "0 turns this off; it applies from the next repeated-dealer hand.",
   "自摸每家倍數": "Self-draw payment multiplier",
   "出銃者倍數": "Discarder payment multiplier",
   "出銃時其他人付款": "Payments on a discard win",
@@ -353,6 +374,67 @@ const STATIC_TRANSLATIONS = {
   "重新開啟／修改賽果": "Reopen / edit match",
   "完成": "Done",
   "關閉比賽結果": "Close match result",
+  "球類比賽計分": "Sports Scoring",
+  "排球、籃球、羽毛球及乒乓球": "Volleyball, basketball, badminton and table tennis",
+  "排球 Volleyball": "Volleyball",
+  "籃球 Basketball": "Basketball",
+  "羽毛球 Badminton": "Badminton",
+  "乒乓球 Table Tennis": "Table Tennis",
+  "休閒三局兩勝": "Casual Best of 3",
+  "正式五局三勝": "Official Best of 5",
+  "單局決勝": "Single Game",
+  "自訂玩法": "Custom Rules",
+  "最高計8番": "Maximum 8 fan",
+  "最高計10番": "Maximum 10 fan",
+  "最高計13番": "Maximum 13 fan",
+  "不設上限": "No limit",
+  "1圈（東圈）": "1 round (East)",
+  "2圈（東圈＋南圈／半莊）": "2 rounds (East + South / half game)",
+  "4圈（東、南、西、北）": "4 rounds (E, S, W, N)",
+  "8圈（兩輪）": "8 rounds (two laps)",
+  "自訂圈數": "Custom rounds",
+  "不限圈數，玩到自行結束": "No round limit",
+  "計分方式": "Scoring style",
+  "簡易娛樂計分": "Simple social scoring",
+  "傳統香港計分（半辣上）": "Traditional HK scoring (half-spicy)",
+  "逐番倍增（辣辣上）": "Double every fan (full-spicy)",
+  "計分預覽": "Scoring preview",
+  "按目前設定": "Using current settings",
+  "重新套用簡易娛樂計分": "Reset simple social scoring",
+  "一般玩家毋須修改。": "Most players do not need to change this.",
+  "已選牌型": "Selected patterns",
+  "未選擇牌型": "No patterns selected",
+  "搜尋牌型": "Search patterns",
+  "常用牌型（可多選）": "Common patterns (select all that apply)",
+  "更多牌型": "More patterns",
+  "特殊大牌": "Special limit hands",
+  "計分模式": "Scoring mode",
+  "計錢／零和模式": "Money / zero-sum mode",
+  "娛樂排名模式": "Social ranking mode",
+  "每分金額": "Amount per point",
+  "只計分": "Points only",
+  "每鋪紀錄": "Hand history",
+  "結束並結算鋤大D？": "Finish and settle Big Two?",
+  "返回繼續比賽": "Return to match",
+  "不設勝方，只保存": "Save with no winner",
+  "按目前比分結算": "Settle using current score",
+  "開始下一局": "Start next game",
+  "完成本節": "End period",
+  "重設計時": "Reset clock",
+  "選擇後會即時顯示番數同分數預覽。": "The fan and score preview updates immediately.",
+  "簡易級別": "Simple tiers",
+  "半辣上": "Half-spicy progression",
+  "辣辣上": "Full-spicy progression",
+  "自訂逐番倍增": "Custom fan-by-fan doubling",
+  "自訂線性計分": "Custom linear scoring",
+  "南圈": "South round",
+  "西圈": "West round",
+  "北圈": "North round",
+  "一般玩法會直接用上方香港常用計分表。": "Normal games use the preview table above.",
+  "比賽節數": "Periods",
+  "每節時間（分鐘）": "Minutes per period",
+  "2節": "2 periods",
+  "4節": "4 periods",
 };
 
 const MAHJONG_PATTERN_LABELS_EN = {
@@ -468,8 +550,33 @@ function applyLanguage() {
   elements.homeButton.title = t("返回主頁", "Back to home");
   elements.undoButton.setAttribute("aria-label", t("撤銷上一步", "Undo last action"));
   elements.undoButton.title = t("撤銷上一步", "Undo last action");
+  [["mahjongPlayer1", "坐東位嘅玩家", "East seat player"], ["mahjongPlayer2", "坐南位嘅玩家", "South seat player"], ["mahjongPlayer3", "坐西位嘅玩家", "West seat player"], ["mahjongPlayer4", "坐北位嘅玩家", "North seat player"]].forEach(([name, zh, en]) => {
+    const input = $(`[name="${name}"]`, $("#setupForm"));
+    if (input) input.placeholder = t(zh, en);
+  });
+  elements.mahjongPatternSearch.placeholder = t("例如：清一色、對對糊", "e.g. Full flush, All pungs");
   $("#settingsButton").setAttribute("aria-label", t("計分設定", "Score settings"));
   $("#settingsButton").title = t("計分設定", "Score settings");
+  const homeNote = $(".home-note p");
+  if (homeNote) homeNote.textContent = t(
+    "各種計分玩法會分開儲存多個紀錄；首家抽籤即開即用。安裝到主畫面後，離線都可以用。",
+    "Each scoring mode keeps separate saved games; the first-player chooser opens instantly. The installed app also works offline.",
+  );
+  const closeButtonCopy = {
+    mahjongScoringModal: ["關閉計番頁面", "Close hand scoring"],
+    settingsModal: ["關閉設定", "Close settings"],
+    sportsSummaryModal: ["關閉比賽結果", "Close match result"],
+    sportsEditGameModal: ["關閉修改比分", "Close score editor"],
+    mahjongRecordModal: ["關閉紀錄", "Close record"],
+    gameLibraryModal: ["關閉對局紀錄", "Close saved games"],
+    mahjongAnalyzerModal: ["關閉自動計番", "Close automatic fan checker"],
+    bigTwoRoundModal: ["關閉鋤大D計分", "Close Big Two scoring"],
+  };
+  $$('[data-close]').forEach((button) => {
+    const copy = closeButtonCopy[button.dataset.close];
+    if (copy) button.setAttribute("aria-label", t(copy[0], copy[1]));
+  });
+  if (elements.setupCloseButton) elements.setupCloseButton.setAttribute("aria-label", t("關閉設定", "Close settings"));
 }
 
 function uid() {
@@ -482,6 +589,7 @@ function participant(name, index) {
 
 function defaultMahjongRules() {
   return {
+    dataVersion: 2,
     gameId: uid(),
     updatedAt: new Date().toISOString(),
     prevailingWind: "east",
@@ -489,7 +597,7 @@ function defaultMahjongRules() {
     basePoints: 1,
     fanStep: 2,
     scoringMode: "hk-table",
-    maxFan: 13,
+    maxFan: 10,
     maxPoints: 0,
     selfDrawFan: 1,
     flowerFan: 1,
@@ -497,6 +605,7 @@ function defaultMahjongRules() {
     dealerLoseMultiplier: 1,
     selfDrawMultiplier: 1,
     discardMultiplier: 1,
+    dealerStreakBonus: 0,
     drawDealerAction: "stay",
     ronPaymentMode: "discarder",
     patterns: [
@@ -574,6 +683,7 @@ function sanitizeMahjongRules(rules = {}) {
     dealerLoseMultiplier: number("dealerLoseMultiplier", 0, 20),
     selfDrawMultiplier: number("selfDrawMultiplier", 0, 20),
     discardMultiplier: number("discardMultiplier", 0, 20),
+    dealerStreakBonus: number("dealerStreakBonus", 0, 999999),
     drawDealerAction: rules.drawDealerAction === "pass" ? "pass" : "stay",
     ronPaymentMode: rules.ronPaymentMode === "all" ? "all" : "discarder",
     patterns,
@@ -606,6 +716,8 @@ function freshState(preset, title, count = 2, teamNames = {}) {
     history: [],
     sportConfig: null,
     sportGame: null,
+    bigTwoRules: { mode: "money", moneyPerPoint: 0 },
+    bigTwoSession: isBigTwo ? { status: "active", earlyEnded: false, startedAt: new Date().toISOString(), settledAt: null } : null,
     mahjong: defaultMahjongRules(),
     mahjongSession: null,
     chooser: { resultId: "", resultName: "", resultFingerNumber: 0, resultX: 0, resultY: 0, drawnAt: null },
@@ -655,7 +767,18 @@ function sanitizeState(candidate) {
       player.total = sportGame.gamesWon[index];
     });
   }
+  const bigTwoRules = {
+    mode: candidate.bigTwoRules?.mode === "ranking" ? "ranking" : "money",
+    moneyPerPoint: Math.max(0, Math.min(9999, Number(candidate.bigTwoRules?.moneyPerPoint) || 0)),
+  };
+  const bigTwoSession = kind === "bigtwo" ? {
+    status: candidate.bigTwoSession?.status === "settled" ? "settled" : "active",
+    earlyEnded: candidate.bigTwoSession?.earlyEnded === true,
+    startedAt: candidate.bigTwoSession?.startedAt || history[0]?.createdAt || new Date().toISOString(),
+    settledAt: candidate.bigTwoSession?.settledAt || null,
+  } : null;
   return {
+    dataVersion: 2,
     gameId: String(candidate.gameId || uid()),
     updatedAt: candidate.updatedAt || candidate.mahjongSession?.settledAt || new Date().toISOString(),
     title: String(candidate.title || "我的計分板").slice(0, 30),
@@ -663,11 +786,13 @@ function sanitizeState(candidate) {
     totalMode: ["winner", "cumulative", "manual"].includes(candidate.totalMode) ? candidate.totalMode : "manual",
     winnerRule: candidate.winnerRule === "lowest" ? "lowest" : "highest",
     round: Math.max(1, Number(candidate.round) || 1),
-    timer: { elapsed, running: timerIsRunning, startedAt: timerIsRunning ? startedAt : null },
+    timer: { elapsed, running: timerIsRunning, startedAt: timerIsRunning ? startedAt : null, countdown: candidate.timer?.countdown === true },
     participants,
     history,
     sportConfig,
     sportGame,
+    bigTwoRules,
+    bigTwoSession,
     mahjong,
     mahjongSession,
     chooser: {
@@ -683,11 +808,11 @@ function sanitizeState(candidate) {
   };
 }
 
-function newMahjongSession({ plannedCycles = 1, lengthMode = "east", plannedHands = 0, startingWind = "east", startedAt = new Date().toISOString() } = {}) {
-  const cleanLengthMode = ["east", "half", "custom-hands", "legacy-cycles"].includes(lengthMode) ? lengthMode : "east";
+function newMahjongSession({ plannedCycles = 1, lengthMode = "one", plannedHands = 0, startingWind = "east", startedAt = new Date().toISOString() } = {}) {
+  const cleanLengthMode = ["one", "two", "four", "eight", "custom-cycles", "unlimited", "east", "half", "custom-hands", "legacy-cycles"].includes(lengthMode) ? lengthMode : "one";
   return {
     lengthMode: cleanLengthMode,
-    plannedCycles: [0, 1, 2, 4, 8].includes(Number(plannedCycles)) ? Number(plannedCycles) : 1,
+    plannedCycles: Math.min(99, Math.max(0, Math.floor(Number(plannedCycles) || 0))) || (cleanLengthMode === "unlimited" ? 0 : 1),
     plannedHands: cleanLengthMode === "custom-hands"
       ? Math.min(999, Math.max(1, Math.floor(Number(plannedHands) || 16)))
       : 0,
@@ -699,6 +824,8 @@ function newMahjongSession({ plannedCycles = 1, lengthMode = "east", plannedHand
     lastPromptedCycles: 0,
     lastPromptedHands: 0,
     nextDealerId: "",
+    dealerStreak: 0,
+    lastDealerId: "",
     startedAt,
     settledAt: null,
     durationMs: 0,
@@ -735,13 +862,13 @@ function sanitizeMahjongSession(saved, history, participants, startingWind = "ea
   const base = hasSavedProgress
     ? session
     : { ...progress, lengthMode: "legacy-cycles", plannedCycles: 4, lastPromptedCycles: progress.completedCycles };
-  const lengthMode = ["east", "half", "custom-hands", "legacy-cycles"].includes(base.lengthMode) ? base.lengthMode : "legacy-cycles";
+  const lengthMode = ["one", "two", "four", "eight", "custom-cycles", "unlimited", "east", "half", "custom-hands", "legacy-cycles"].includes(base.lengthMode) ? base.lengthMode : "legacy-cycles";
   const savedPlannedCycles = Number(base.plannedCycles);
   return {
     ...derived,
     ...base,
     lengthMode,
-    plannedCycles: [0, 1, 2, 4, 8].includes(savedPlannedCycles) ? savedPlannedCycles : 4,
+    plannedCycles: Number.isFinite(savedPlannedCycles) ? Math.min(99, Math.max(0, Math.floor(savedPlannedCycles))) : 4,
     plannedHands: lengthMode === "custom-hands"
       ? Math.min(999, Math.max(1, Math.floor(Number(base.plannedHands) || 16)))
       : 0,
@@ -753,6 +880,8 @@ function sanitizeMahjongSession(saved, history, participants, startingWind = "ea
     lastPromptedCycles: Math.max(0, Math.floor(Number(base.lastPromptedCycles) || 0)),
     lastPromptedHands: Math.max(0, Math.floor(Number(base.lastPromptedHands) || 0)),
     nextDealerId: ids.includes(base.nextDealerId) ? base.nextDealerId : "",
+    dealerStreak: Math.max(0, Math.floor(Number(base.dealerStreak) || 0)),
+    lastDealerId: ids.includes(base.lastDealerId) ? base.lastDealerId : "",
     startedAt: base.startedAt || derived.startedAt,
     settledAt: base.settledAt || null,
     durationMs: Math.max(0, Number(base.durationMs) || 0),
@@ -808,7 +937,7 @@ function saveState() {
   } catch {
     // The scoreboard still works if storage is unavailable (for example in private browsing).
   }
-  upsertCurrentGame();
+  if (state.kind !== "chooser") upsertCurrentGame();
 }
 
 function clearStoredState() {
@@ -908,10 +1037,13 @@ function gameRecordMeta(game) {
     return `${settled ? t("已結算", "Finished") : t("進行中", "In progress")}・${MahjongCore.progressLabel(game.mahjongSession, game.participants.map((player) => player.id), uiLanguage)}${updated ? `・${updated}` : ""}`;
   }
   if (game.kind === "chooser") return `${t("首家抽籤", "First player draw")}${updated ? `・${updated}` : ""}`;
-  if (game.kind === "bigtwo" || game.kind === "cards") return `${t("完成", "Completed")} ${game.history.length} ${t("鋪", "hands")}${updated ? `・${updated}` : ""}`;
+  if (game.kind === "bigtwo" || game.kind === "cards") {
+    const status = game.bigTwoSession?.status === "settled" ? t("已完成", "Finished") : t("進行中", "In progress");
+    return `${status}・${game.history.length} ${t("鋪", "hands")}${updated ? `・${updated}` : ""}`;
+  }
   if (game.kind === "sports" && game.sportConfig && game.sportGame) {
     const status = game.sportGame.status === "finished" ? t("已完成", "Finished") : t("進行中", "In progress");
-    const sport = game.sportConfig.sportType === "volleyball" ? t("排球", "Volleyball") : t("運動比賽", "Sports match");
+    const sport = sportName(game.sportConfig);
     return `${sport}・${status}・${game.sportGame.gamesWon?.[0] || 0}–${game.sportGame.gamesWon?.[1] || 0}${updated ? `・${updated}` : ""}`;
   }
   return uiLanguage === "en"
@@ -1063,7 +1195,12 @@ function reloadForServiceWorkerUpdateIfSafe() {
 }
 
 function showHome() {
-  if (state) saveState();
+  if (state?.kind === "chooser") {
+    state = null;
+    clearStoredState();
+    cancelChooserCountdown();
+    chooserTouches.clear();
+  } else if (state) saveState();
   if (elements.setupModal.classList.contains("is-open")) closeModal("setupModal");
   if (elements.settingsModal.classList.contains("is-open")) closeModal("settingsModal");
   if (elements.mahjongScoringModal.classList.contains("is-open")) closeModal("mahjongScoringModal");
@@ -1149,6 +1286,16 @@ function beginNewActivity(preset = "sports") {
   openModal("setupModal");
 }
 
+function startChooserTool() {
+  if (state) saveState();
+  undoStack = [];
+  cancelChooserCountdown();
+  state = freshState("chooser", t("首家抽籤", "First Player Chooser"));
+  chooserTouches.clear();
+  nextFingerNumber = 1;
+  showScoreboard();
+}
+
 function snapshot() {
   undoStack.push(JSON.stringify(state));
   if (undoStack.length > 50) undoStack.shift();
@@ -1160,7 +1307,12 @@ function hasSportRuleEngine(game = state) {
 }
 
 function sportName(config = state?.sportConfig) {
-  return config?.sportType === "volleyball" ? t("排球", "Volleyball") : t("運動比賽", "Sports Match");
+  return ({
+    volleyball: t("排球", "Volleyball"),
+    basketball: t("籃球", "Basketball"),
+    badminton: t("羽毛球", "Badminton"),
+    "table-tennis": t("乒乓球", "Table Tennis"),
+  })[config?.sportType] || t("運動比賽", "Sports Match");
 }
 
 function sportFormatLabel(config = state?.sportConfig) {
@@ -1190,8 +1342,15 @@ function sportStatusCopy() {
   const names = state.participants.map((player) => player.name);
   const sets = state.sportGame.gamesWon;
   if (state.sportGame.status === "finished") {
-    return t(`${names[state.sportGame.winnerIndex]} 勝出・${sets[0]}–${sets[1]}`, `${names[state.sportGame.winnerIndex]} wins · ${sets[0]}–${sets[1]}`);
+    if (state.sportGame.noWinner || state.sportGame.winnerIndex === null) return t("比賽完成・不設勝方", "Match finished · no winner");
+    const finalScore = state.sportConfig.timedMode ? state.sportGame.currentScore : sets;
+    return t(`比賽完成：${names[state.sportGame.winnerIndex]} ${finalScore[0]}：${finalScore[1]} 勝出`, `Match finished: ${names[state.sportGame.winnerIndex]} wins ${finalScore[0]}–${finalScore[1]}`);
   }
+  if (state.sportConfig.timedMode) {
+    const period = state.sportGame.currentPeriod > state.sportConfig.periodCount ? t(`加時${state.sportGame.overtimeCount}`, `Overtime ${state.sportGame.overtimeCount}`) : t(`第${state.sportGame.currentPeriod}節`, `Period ${state.sportGame.currentPeriod}`);
+    return `${period}・${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}`;
+  }
+  if (state.sportGame.status === "game-complete") return t(`第${state.sportGame.currentGame}局完成・請開始下一局`, `Game ${state.sportGame.currentGame} complete · start the next game`);
   if (signal.status === "match-point") return t(`${names[signal.matchPointFor[0]]} 賽點`, `Match point · ${names[signal.matchPointFor[0]]}`);
   if (signal.status === "game-point") return t(`${names[signal.gamePointFor[0]]} 局點`, `Game point · ${names[signal.gamePointFor[0]]}`);
   if (signal.status === "deuce") return t("平分 Deuce・要領先2分", "Deuce · win by 2");
@@ -1209,19 +1368,31 @@ function renderSportsSummary() {
   const sport = document.createElement("span");
   sport.textContent = sportName();
   const result = document.createElement("strong");
+  const summaryScore = summary.timedMode ? summary.currentScore : summary.gamesWon;
   result.textContent = summary.status === "finished" && winner
-    ? t(`${winner.name} 勝出 ${summary.gamesWon[0]}–${summary.gamesWon[1]}`, `${winner.name} wins ${summary.gamesWon[0]}–${summary.gamesWon[1]}`)
+    ? t(`${winner.name} 勝出 ${summaryScore[0]}–${summaryScore[1]}${summary.earlyEnded ? "・提早結束" : ""}`, `${winner.name} wins ${summaryScore[0]}–${summaryScore[1]}${summary.earlyEnded ? " · ended early" : ""}`)
+    : summary.status === "finished" && summary.noWinner
+      ? t("已保存比分・不設勝方", "Score saved · no winner")
     : t("比賽進行中", "Match in progress");
   heading.append(sport, result);
   const games = document.createElement("ol");
   games.className = "sports-summary-games";
-  summary.completedGames.forEach((game) => {
+  const rows = summary.timedMode ? summary.periodScores : summary.completedGames;
+  rows.forEach((game) => {
     const item = document.createElement("li");
     const label = document.createElement("span");
-    label.textContent = t(`第 ${game.number} 局`, `Game ${game.number}`);
+    label.textContent = summary.timedMode ? (game.overtime ? t(`加時 ${game.number - state.sportConfig.periodCount}`, `Overtime ${game.number - state.sportConfig.periodCount}`) : t(`第 ${game.number} 節`, `Period ${game.number}`)) : t(`第 ${game.number} 局`, `Game ${game.number}`);
     const score = document.createElement("b");
     score.textContent = `${game.scores[0]}–${game.scores[1]}`;
     item.append(label, score);
+    if (!summary.timedMode) {
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "text-button sports-edit-game";
+      edit.dataset.editSportGame = String(game.number - 1);
+      edit.textContent = t("修改", "Edit");
+      item.appendChild(edit);
+    }
     games.appendChild(item);
   });
   elements.sportsSummaryContent.replaceChildren(heading, games);
@@ -1234,21 +1405,114 @@ function openSportsSummary() {
   openModal("sportsSummaryModal");
 }
 
-function applySportPoint(teamIndex) {
+function finishSportsEarly(winnerMode) {
+  if (!hasSportRuleEngine()) return;
+  snapshot();
+  state.sportGame = SportsRuleEngine.finishMatch(state.sportConfig, state.sportGame, winnerMode);
+  stopSportTimer();
+  syncSportStateToScoreboard();
+  closeModal("sportsEndModal");
+  render();
+  openSportsSummary();
+}
+
+function requestSportsEnd() {
+  if (!hasSportRuleEngine() || state.sportGame.status === "finished") return;
+  $("#sportsEndMessage").textContent = t(
+    `目前比分 ${state.participants[0].name} ${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]} ${state.participants[1].name}。你可以按比分決定勝方，或者只保存比分。`,
+    `Current score: ${state.participants[0].name} ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]} ${state.participants[1].name}. Choose a winner by score, or save without a winner.`,
+  );
+  openModal("sportsEndModal");
+}
+
+function resetTimedClock() {
+  if (!hasSportRuleEngine() || !state.sportConfig.timedMode) return;
+  openConfirm({
+    title: t("重設本節計時？", "Reset this period clock?"),
+    message: t("計時會回復到本節設定時間，比分不受影響。", "The clock returns to the full period time. Scores are kept."),
+    cancelText: t("取消", "Cancel"), acceptText: t("重設計時", "Reset clock"), icon: "↻",
+    action: () => {
+      state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+      render();
+    },
+  });
+}
+
+function endTimedPeriod() {
+  if (!hasSportRuleEngine() || !state.sportConfig.timedMode || state.sportGame.status === "finished") return;
+  if (state.sportGame.status === "regulation-complete") {
+    state.sportGame = SportsRuleEngine.finishMatch(state.sportConfig, state.sportGame, "score");
+    state.sportGame.earlyEnded = false;
+    stopSportTimer();
+    render();
+    openSportsSummary();
+    return;
+  }
+  const beforePeriod = state.sportGame.currentPeriod;
+  snapshot();
+  state.sportGame = SportsRuleEngine.endPeriod(state.sportConfig, state.sportGame);
+  stopSportTimer();
+  if (beforePeriod >= state.sportConfig.periodCount && state.sportGame.currentScore[0] === state.sportGame.currentScore[1]) {
+    openConfirm({
+      title: t("法定時間平手", "Tied after regulation"),
+      message: t("要加入加時，定係先返回比賽？", "Start overtime, or return to the match?"),
+      cancelText: t("返回比賽", "Return"), acceptText: t("開始加時", "Start overtime"), icon: "+",
+      action: () => {
+        state.sportGame = SportsRuleEngine.addOvertime(state.sportConfig, state.sportGame);
+        state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+        render();
+      },
+    });
+  } else if (state.sportGame.status === "regulation-complete") {
+    endTimedPeriod();
+  } else {
+    state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+    render();
+    showToast(t(`第${beforePeriod}節已完成`, `Period ${beforePeriod} completed`));
+  }
+}
+
+function stopSportTimer() {
+  if (!state?.timer) return;
+  state.timer.elapsed = currentElapsedSeconds();
+  state.timer.running = false;
+  state.timer.startedAt = null;
+}
+
+function advanceSportGame() {
+  if (!hasSportRuleEngine() || state.sportGame.status !== "game-complete") return;
+  state.sportGame = SportsRuleEngine.advanceGame(state.sportConfig, state.sportGame);
+  syncSportStateToScoreboard();
+  render();
+}
+
+function applySportPoint(teamIndex, points = 1) {
   if (!hasSportRuleEngine()) return;
   if (state.sportGame.status === "finished") {
     showToast(t("比賽已完成；可查看賽果或重新開啟", "Match finished; view the result or reopen it"));
     return;
   }
   snapshot();
-  const outcome = SportsRuleEngine.applyPoint(state.sportConfig, state.sportGame, teamIndex, 1);
+  const outcome = SportsRuleEngine.applyPoint(state.sportConfig, state.sportGame, teamIndex, points);
   state.sportGame = outcome.state;
   syncSportStateToScoreboard();
   render();
   if (outcome.event.matchWon) {
+    stopSportTimer();
+    saveState();
     openSportsSummary();
   } else if (outcome.event.gameWon) {
-    showToast(t(`第 ${outcome.event.completedGame.number} 局完成`, `Game ${outcome.event.completedGame.number} completed`));
+    const game = outcome.event.completedGame;
+    const winner = state.participants[game.winnerIndex]?.name || t("勝方", "Winner");
+    openConfirm({
+      title: t(`${winner}以${game.scores[game.winnerIndex]}：${game.scores[1 - game.winnerIndex]}勝出第${game.number}局`, `${winner} wins game ${game.number}, ${game.scores[game.winnerIndex]}–${game.scores[1 - game.winnerIndex]}`),
+      message: t("比分會保留到你確認開始下一局。", "The final score stays visible until you start the next game."),
+      cancelText: t("按錯？撤銷完局", "Undo game point"),
+      acceptText: t("開始下一局", "Start next game"),
+      icon: "✓",
+      cancelAction: undoLastSportPoint,
+      action: advanceSportGame,
+    });
   }
 }
 
@@ -1285,12 +1549,36 @@ function render() {
   elements.matchControls.hidden = specialMode;
   elements.sportsMatchStatus.hidden = !hasSportRuleEngine();
   elements.sportsMatchStatus.textContent = sportStatusCopy();
+  elements.matchControls.setAttribute("aria-label", t("本局控制", "Match controls"));
   $("#finishRoundButton").hidden = hasSportRuleEngine();
   elements.sportsResetGameButton.hidden = !hasSportRuleEngine() || state.sportGame.status === "finished";
   elements.sportsResetMatchButton.hidden = !hasSportRuleEngine();
-  elements.sportsSummaryButton.hidden = !hasSportRuleEngine() || state.sportGame.status !== "finished";
+  elements.sportsSummaryButton.hidden = !hasSportRuleEngine() || (state.sportGame.status !== "finished" && state.sportGame.completedGames.length === 0 && state.sportGame.periodScores.length === 0);
+  elements.sportsEndButton.hidden = !hasSportRuleEngine() || state.sportGame.status === "finished";
+  elements.sportsNextGameButton.hidden = !hasSportRuleEngine() || state.sportGame.status !== "game-complete";
+  const timedSport = hasSportRuleEngine() && state.sportConfig.timedMode;
+  elements.sportsPeriodButton.hidden = !timedSport || state.sportGame.status === "finished";
+  elements.sportsResetClockButton.hidden = !timedSport || state.sportGame.status === "finished";
+  const setSportsControlCopy = (button, zh, en) => {
+    if (!button) return;
+    const label = t(zh, en);
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    const visibleLabel = $(".landscape-control-label", button);
+    if (visibleLabel) visibleLabel.textContent = label;
+  };
+  setSportsControlCopy(elements.sportsResetGameButton, "重設本局", "Reset game");
+  setSportsControlCopy(elements.sportsResetMatchButton, "重設比賽", "Reset match");
+  setSportsControlCopy(elements.sportsSummaryButton, "比賽結果", "Match result");
+  setSportsControlCopy(elements.sportsEndButton, "結束並結算", "Finish and settle");
+  setSportsControlCopy(elements.sportsNextGameButton, "開始下一局", "Start next game");
+  setSportsControlCopy(elements.sportsPeriodButton,
+    state.sportGame?.status === "regulation-complete" ? "結束比賽" : "完成本節",
+    state.sportGame?.status === "regulation-complete" ? "End game" : "End period");
+  setSportsControlCopy(elements.sportsResetClockButton, "重設計時", "Reset clock");
+  elements.timerToggleButton.disabled = hasSportRuleEngine() && state.sportGame.status === "finished";
   const mahjongSettled = state.kind === "mahjong" && state.mahjongSession?.status === "settled";
-  elements.roundHistory.hidden = state.kind === "chooser" || state.kind === "mahjong" || state.kind === "bigtwo" || sportsLandscape;
+  elements.roundHistory.hidden = state.kind === "chooser" || state.kind === "bigtwo" || sportsLandscape || mahjongSettled;
   elements.scoreGrid.hidden = state.kind === "chooser" || sportsLandscape || mahjongSettled;
   elements.mahjongPanel.hidden = state.kind !== "mahjong";
   elements.chooserPanel.hidden = state.kind !== "chooser";
@@ -1359,6 +1647,7 @@ function renderScoreCards() {
     $(".player-index", card).textContent = String(index + 1).padStart(2, "0");
     $(".player-name", card).textContent = player.name;
     $(".score-number", card).textContent = player.score;
+    $(".score-label", card).textContent = t("本局", "Current");
     $(".total-score strong", card).textContent = player.total;
     $(".total-score span", card).textContent = sportRules ? t("勝局", "Games won") : t("總分", "Total");
     const scoreDisplay = $(".score-display", card);
@@ -1366,8 +1655,16 @@ function renderScoreCards() {
       ? t(`${player.name} 比賽已完成`, `${player.name}, match finished`)
       : t(`${player.name} 現時 ${player.score} 分，按一下加一分`, `${player.name}, ${player.score} points. Tap to add one`));
     scoreDisplay.classList.toggle("is-disabled", matchFinished);
-    scoreDisplay.disabled = matchFinished;
+    scoreDisplay.disabled = matchFinished || (sportRules && state.sportGame.status !== "playing");
     $(".score-tap-hint", card).textContent = matchFinished ? t("比賽已完成", "Match finished") : t("按一下 ＋1", "Tap +1");
+    const pointActions = $(".sports-point-actions", card);
+    const basketballActions = sportRules && state.sportConfig.sportType === "basketball";
+    pointActions.hidden = !basketballActions;
+    if (basketballActions) {
+      $$('[data-sport-points]', pointActions).forEach((button) => {
+        button.disabled = matchFinished || state.sportGame.status !== "playing";
+      });
+    }
     const minusButton = $(".minus-button", card);
     minusButton.textContent = sportRules ? t("按錯？撤銷上一分", "Undo last point") : t("按錯？減 1 分", "Undo: -1 point");
     minusButton.setAttribute("aria-label", sportRules ? t("撤銷上一分", "Undo last point") : `${player.name} 減一分`);
@@ -1384,7 +1681,8 @@ function renderScoreCards() {
 function currentElapsedSeconds() {
   if (!state?.timer) return 0;
   if (!state.timer.running || !state.timer.startedAt) return state.timer.elapsed;
-  return state.timer.elapsed + Math.max(0, Math.floor((Date.now() - state.timer.startedAt) / 1000));
+  const delta = Math.max(0, Math.floor((Date.now() - state.timer.startedAt) / 1000));
+  return state.timer.countdown ? Math.max(0, state.timer.elapsed - delta) : state.timer.elapsed + delta;
 }
 
 function formatTime(totalSeconds) {
@@ -1407,11 +1705,13 @@ function updateTimerDisplay() {
 }
 
 function toggleTimer() {
+  if (hasSportRuleEngine() && state.sportGame.status === "finished") return;
   if (state.timer.running) {
     state.timer.elapsed = currentElapsedSeconds();
     state.timer.running = false;
     state.timer.startedAt = null;
   } else {
+    if (state.timer.countdown && state.timer.elapsed <= 0) state.timer.elapsed = state.sportConfig?.periodDurationSeconds || 600;
     state.timer.running = true;
     state.timer.startedAt = Date.now();
   }
@@ -1649,6 +1949,8 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
   const fan = score.fan;
   if (!score.valid) return { valid: false, fan, bonusFan, reason: t(`未夠 ${rules.minimumFan} 番起糊`, `At least ${rules.minimumFan} fan is required to win`) };
   const cappedPoints = score.points;
+  const streakBonus = Math.max(0, Number(rules.dealerStreakBonus) || 0) * Math.max(0, Number(state.mahjongSession?.dealerStreak) || 0);
+  const paymentPoints = cappedPoints + streakBonus;
   const winner = state.participants.find((player) => player.id === winnerId);
   const discarder = state.participants.find((player) => player.id === discarderId);
   if (!winner) return { valid: false, reason: t("請選擇食糊者", "Choose the winner") };
@@ -1660,7 +1962,7 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     state.participants.forEach((player) => {
       if (player.id === winner.id) return;
       const dealerMultiplier = player.id === dealerId ? rules.dealerLoseMultiplier : 1;
-      const payment = cappedPoints * rules.selfDrawMultiplier * dealerWinMultiplier * dealerMultiplier;
+      const payment = paymentPoints * rules.selfDrawMultiplier * dealerWinMultiplier * dealerMultiplier;
       net[player.id] -= payment;
       net[winner.id] += payment;
     });
@@ -1669,13 +1971,13 @@ function calculateMahjongHand({ winnerId, winType, discarderId, dealerId, handFa
     payers.forEach((player) => {
       const dealerMultiplier = player.id === dealerId ? rules.dealerLoseMultiplier : 1;
       const discardMultiplier = player.id === discarder.id ? rules.discardMultiplier : rules.selfDrawMultiplier;
-      const payment = cappedPoints * discardMultiplier * dealerWinMultiplier * dealerMultiplier;
+      const payment = paymentPoints * discardMultiplier * dealerWinMultiplier * dealerMultiplier;
       net[player.id] -= payment;
       net[winner.id] += payment;
     });
   }
 
-  return { valid: true, fan, rawFan, cappedByLimit: fan < rawFan, bonusFan, patternFan: cleanPatternFan, multiplier: score.multiplier, points: cappedPoints, net, winner, discarder };
+  return { valid: true, fan, rawFan, cappedByLimit: fan < rawFan, bonusFan, patternFan: cleanPatternFan, multiplier: score.multiplier, points: paymentPoints, streakBonus, net, winner, discarder };
 }
 
 function renderMahjongEntry() {
@@ -1692,7 +1994,11 @@ function renderMahjongEntry() {
     return;
   }
 
-  elements.mahjongProgress.textContent = MahjongCore.progressLabel(session, state.participants.map((player) => player.id), uiLanguage);
+  elements.mahjongProgress.textContent = MahjongCore.friendlyProgressLabel(session, state.participants, uiLanguage);
+  elements.mahjongTraditionalProgress.textContent = t(
+    `傳統標示：${MahjongCore.handWindLabel(session, state.participants.map((player) => player.id), "zh")}局`,
+    `Traditional notation: ${MahjongCore.handWindLabel(session, state.participants.map((player) => player.id), "en")}`,
+  );
   const draft = session.draft;
   const draftValues = draft?.touched ? draft.values || {} : {};
   const winnerValue = elements.mahjongWinner.value;
@@ -1700,7 +2006,7 @@ function renderMahjongEntry() {
   const dealerValue = draft?.touched
     ? (draftValues.dealer || elements.mahjongDealer.value || session.nextDealerId || state.participants[0]?.id)
     : (session.nextDealerId || elements.mahjongDealer.value || state.participants[0]?.id);
-  const selectedPatternIds = new Set(draftValues.patterns || $$("input[name='patterns']:checked", elements.mahjongPatternChoices).map((input) => input.value));
+  const selectedPatternIds = new Set(draftValues.patterns || $$("input[name='patterns']:checked", elements.mahjongEntryForm).map((input) => input.value));
   [elements.mahjongWinner, elements.mahjongDiscarder, elements.mahjongDealer].forEach((select) => {
     select.replaceChildren();
     state.participants.forEach((player, index) => {
@@ -1733,9 +2039,15 @@ function renderMahjongEntry() {
   $("#mahjongPatternFieldset").hidden = elements.mahjongWinType.value === "draw";
   $("#mahjongOpenAnalyzerButton").hidden = elements.mahjongWinType.value === "draw";
   elements.mahjongPatternChoices.replaceChildren();
+  elements.mahjongMorePatternChoices.replaceChildren();
+  elements.mahjongSpecialPatternChoices.replaceChildren();
   const currentWind = MahjongCore.windForCycle(session.startingWind || state.mahjong.prevailingWind, session.completedCycles);
   const windLabels = MahjongCore.WIND_NAMES;
+  const commonPatternIds = new Set(["chicken", "pinghu", "no-flower", "proper-flower", "concealed", "dragon-pung", "seat-wind", "prevailing-wind", "all-pungs", "half-flush", "full-flush"]);
+  const search = String(elements.mahjongPatternSearch.value || "").trim().toLowerCase();
   state.mahjong.patterns.filter((pattern) => pattern.enabled).forEach((pattern) => {
+    const englishName = MAHJONG_PATTERN_LABELS_EN[pattern.id] || "";
+    if (search && !`${pattern.label} ${englishName}`.toLowerCase().includes(search)) return;
     const label = document.createElement("label");
     label.className = "mahjong-pattern-choice";
     const input = document.createElement("input");
@@ -1761,8 +2073,20 @@ function renderMahjongEntry() {
       ? t(`${pattern.fan}→${state.mahjong.maxFan} 番`, `${pattern.fan}→${state.mahjong.maxFan} fan`)
       : t(`${pattern.fan} 番`, `${pattern.fan} fan`);
     label.append(input, text, fan);
-    elements.mahjongPatternChoices.appendChild(label);
+    const target = pattern.fan >= 8
+      ? elements.mahjongSpecialPatternChoices
+      : commonPatternIds.has(pattern.id) ? elements.mahjongPatternChoices : elements.mahjongMorePatternChoices;
+    target.appendChild(label);
   });
+  $("#mahjongMorePatterns").open = Boolean(search);
+  $("#mahjongSpecialPatterns").open = Boolean(search);
+  const selectedPatterns = state.mahjong.patterns.filter((pattern) => selectedPatternIds.has(pattern.id));
+  const selectedFan = selectedPatterns.reduce((sum, pattern) => sum + pattern.fan, 0);
+  const summaryName = elements.mahjongSelectedPatterns.querySelector("span");
+  summaryName.textContent = selectedPatterns.length
+    ? `${selectedPatterns.map((pattern) => uiLanguage === "en" ? (MAHJONG_PATTERN_LABELS_EN[pattern.id] || pattern.label) : displayMahjongPatternLabel(pattern, currentWind)).join("、")}・${selectedFan}${t("番", " fan")}`
+    : t("未選擇牌型", "No patterns selected");
+  elements.mahjongSelectedPatterns.classList.toggle("is-valid", selectedFan + Math.max(0, Number($("#mahjongHandFan").value) || 0) >= state.mahjong.minimumFan);
   const limitLabel = state.mahjong.maxFan > 0
     ? t(`${state.mahjong.maxFan} 番封頂`, `${state.mahjong.maxFan} fan cap`)
     : t("不限番", "No fan cap");
@@ -1775,6 +2099,7 @@ function renderMahjongEntry() {
 
 function openMahjongScoring(winnerId = "") {
   if (state?.kind !== "mahjong" || state.mahjongSession?.status !== "active") return;
+  editingMahjongRoundIndex = -1;
   renderMahjongEntry();
   if (winnerId && state.participants.some((player) => player.id === winnerId)) {
     elements.mahjongWinner.value = winnerId;
@@ -1796,7 +2121,8 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   const maxFan = Number(data.get("mahjongMaxFan")) || 0;
   const basePoints = Math.max(1, Number(data.get("mahjongBasePoints")) || 1);
   const fanStep = Math.max(1, Number(data.get("mahjongFanStep")) || 2);
-  const scoringMode = data.get("mahjongScoringPreset") || data.get("mahjongAdvancedScoringMode") || "hk-table";
+  const scoringPreset = data.get("mahjongScoringPreset");
+  const scoringMode = scoringPreset === "custom" ? (data.get("mahjongAdvancedScoringMode") || "hk-table") : (scoringPreset || "hk-table");
   const drawRule = data.get("mahjongDrawDealerAction") === "pass"
     ? t("流局過莊", "dealer passes after a draw")
     : t("流局留莊", "dealer stays after a draw");
@@ -1850,16 +2176,20 @@ function setMahjongScoringControls(form, scoringMode) {
   const mode = [...HK_SCORING_MODES, "doubling", "linear"].includes(scoringMode) ? scoringMode : "hk-table";
   const preset = $("[name='mahjongScoringPreset']", form);
   const advanced = $("[name='mahjongAdvancedScoringMode']", form);
-  if (preset) preset.value = mode;
+  if (preset) preset.value = HK_SCORING_MODES.includes(mode) ? mode : "custom";
   if (advanced) advanced.value = mode;
 }
 
 function syncMahjongScoringControls(event) {
   const form = event.currentTarget;
   if (event.target.name === "mahjongScoringPreset") {
-    setMahjongScoringControls(form, event.target.value);
+    if (event.target.value === "custom") {
+      const details = form.id === "setupForm" ? $("#setupMahjongAdvanced") : $("#mahjongSettingsFields");
+      if (details) details.open = true;
+    } else setMahjongScoringControls(form, event.target.value);
   } else if (event.target.name === "mahjongAdvancedScoringMode") {
-    setMahjongScoringControls(form, event.target.value);
+    const preset = $("[name='mahjongScoringPreset']", form);
+    if (preset?.value !== "custom") setMahjongScoringControls(form, event.target.value);
   }
 }
 
@@ -1868,10 +2198,14 @@ function updateMahjongLengthFields(form, prefix) {
   const mode = $(`[name="mahjongLengthMode"]`, form)?.value || "east";
   const customField = $(`#${prefix}MahjongCustomHandsField`);
   const help = $(`#${prefix}MahjongLengthHelp`);
-  if (customField) customField.hidden = mode !== "custom-hands";
+  if (customField) customField.hidden = !["custom-hands", "custom-cycles"].includes(mode);
   if (!help) return;
-  help.textContent = mode === "half"
-    ? t("半莊代表東圈加南圈；有人連莊，實際局數會增加。", "A half game includes the East and South rounds; dealer repeats can add hands.")
+  help.textContent = ["two", "half"].includes(mode)
+    ? t("2圈代表東圈加南圈；有人連莊，實際局數會增加。", "Two rounds include East and South; dealer repeats can add hands.")
+    : mode === "custom-cycles"
+      ? t("自訂想玩幾多圈；達到後會詢問是否結算。", "Choose the number of rounds; the app will ask to settle when reached.")
+      : mode === "unlimited"
+        ? t("不設預定圈數，任何時間都可以結束並結算。", "No planned limit; you can settle at any time.")
     : mode === "custom-hands"
       ? t("設定牌局總數；達到局數後會詢問是否結算。", "Set a hand limit; the app will ask to settle when it is reached.")
       : mode === "legacy-cycles"
@@ -1916,7 +2250,7 @@ function updateMahjongPreview() {
   }
   elements.mahjongPreview.classList.remove("is-invalid");
   if (formData.get("winType") === "draw") {
-    elements.mahjongPreview.textContent = "流局：今局不計分，莊家留莊。";
+    elements.mahjongPreview.textContent = state.mahjong.drawDealerAction === "pass" ? t("流局：今局不計分，會過莊。", "Draw: no score; dealer passes.") : t("流局：今局不計分，莊家留莊。", "Draw: no score; dealer stays.");
     return;
   }
   const winnerLine = `${result.winner.name} +${Math.round(result.net[result.winner.id])}`;
@@ -1958,7 +2292,14 @@ function renderMahjongHistory() {
     const patternLine = round.patternNames?.length ? `｜${round.patternNames.join("＋")}` : "";
     const place = round.wind ? `${MahjongCore.WIND_NAMES[round.wind] || "東圈"}・` : "";
     detail.textContent = `${place}${round.winnerName || "流局"}${patternLine}${round.note ? `｜${round.note}` : ""}　${netLine}`;
-    item.append(title, detail);
+    const actions = document.createElement("div");
+    actions.className = "mahjong-history-actions";
+    const edit = document.createElement("button");
+    edit.type = "button"; edit.className = "text-button"; edit.dataset.editMahjong = String(state.history.indexOf(round)); edit.textContent = t("修改", "Edit");
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "text-button danger-text"; remove.dataset.deleteMahjong = String(state.history.indexOf(round)); remove.textContent = t("刪除", "Delete");
+    actions.append(edit, remove);
+    item.append(title, detail, actions);
     list.appendChild(item);
   });
   elements.historyContent.replaceChildren(list);
@@ -1989,6 +2330,38 @@ function nextDealerAfterHand(dealerId, winnerId, winType, drawDealerAction = "st
   if ((winType !== "draw" && winnerId === dealerId) || (winType === "draw" && drawDealerAction !== "pass")) return dealerId;
   const index = state.participants.findIndex((player) => player.id === dealerId);
   return state.participants[(index + 1) % state.participants.length]?.id || dealerId;
+}
+
+function recalculateMahjongHistory() {
+  const old = state.mahjongSession;
+  const hands = state.history;
+  let session = newMahjongSession({ plannedCycles: old.plannedCycles, lengthMode: old.lengthMode, plannedHands: old.plannedHands, startingWind: old.startingWind, startedAt: old.startedAt });
+  session.nextDealerId = state.participants[0]?.id || "";
+  state.participants.forEach((player) => { player.score = 0; player.total = 0; });
+  hands.forEach((hand, index) => {
+    const payload = { ...(hand.mahjong || {}) };
+    const result = calculateMahjongHand(payload);
+    if (!result.valid) return;
+    const currentWind = MahjongCore.windForCycle(session.startingWind, session.completedCycles);
+    const handWindLabel = MahjongCore.handWindLabel({ ...session, nextDealerId: payload.dealerId }, state.participants.map((player) => player.id));
+    state.participants.forEach((player) => { player.score = Math.round(result.net[player.id] || 0); player.total += player.score; });
+    const patterns = state.mahjong.patterns.filter((pattern) => (payload.patternIds || []).includes(pattern.id));
+    Object.assign(hand, {
+      number: index + 1, handWindLabel, cycleNumber: session.completedCycles + 1, handInCycle: session.handsInCycle + 1, wind: currentWind,
+      scores: state.participants.map((player) => ({ id: player.id, name: player.name, score: player.score })),
+      winners: result.winner ? [result.winner.name] : [], winnerName: result.winner?.name || t("流局", "Draw"), winType: payload.winType,
+      fan: result.fan, multiplier: result.multiplier, points: result.points,
+      patternNames: patterns.map((pattern) => displayMahjongPatternLabel(pattern, currentWind)),
+      net: state.participants.map((player) => ({ id: player.id, name: player.name, amount: Math.round(result.net[player.id] || 0) })), mahjong: payload,
+    });
+    const nextDealerId = nextDealerAfterHand(payload.dealerId, payload.winnerId, payload.winType, state.mahjong.drawDealerAction);
+    session = MahjongCore.advanceProgress(session, payload.dealerId, state.participants.map((player) => player.id), nextDealerId);
+    session.nextDealerId = nextDealerId;
+  });
+  session.lastPromptedCycles = Math.min(old.lastPromptedCycles || 0, session.completedCycles);
+  session.lastPromptedHands = Math.min(old.lastPromptedHands || 0, session.completedHands);
+  state.mahjongSession = session;
+  state.round = hands.length + 1;
 }
 
 function completedCycleLabel(cycles) {
@@ -2132,11 +2505,13 @@ function recordMahjongHand(event) {
     patternIncludesSelfDraw: state.mahjong.patterns.some((pattern) => formData.getAll("patterns").includes(pattern.id) && pattern.selfDrawIncluded),
     flowers: formData.get("flowers"),
     fanAdjustment: 0,
+    patternIds: formData.getAll("patterns"),
   };
   const result = calculateMahjongHand(payload);
   if (!result.valid) return showToast(result.reason || "請檢查番數設定");
   snapshot();
-  state.participants.forEach((player) => {
+  const editing = editingMahjongRoundIndex >= 0;
+  if (!editing) state.participants.forEach((player) => {
     player.score = Math.round(result.net[player.id] || 0);
     player.total += Math.round(result.net[player.id] || 0);
   });
@@ -2145,8 +2520,8 @@ function recordMahjongHand(event) {
   const handWindLabel = MahjongCore.handWindLabel({ ...session, nextDealerId: payload.dealerId }, state.participants.map((player) => player.id));
   const cycleNumber = session.completedCycles + 1;
   const handInCycle = session.handsInCycle + 1;
-  state.history.push({
-    number: state.round,
+  const handRecord = {
+    number: editing ? editingMahjongRoundIndex + 1 : state.round,
     handWindLabel,
     cycleNumber,
     handInCycle,
@@ -2163,25 +2538,33 @@ function recordMahjongHand(event) {
     net: state.participants.map((player) => ({ id: player.id, name: player.name, amount: Math.round(result.net[player.id] || 0) })),
     mahjong: { ...payload },
     createdAt: new Date().toISOString(),
-  });
+  };
+  if (editing) state.history[editingMahjongRoundIndex] = handRecord;
+  else state.history.push(handRecord);
   const nextDealerId = nextDealerAfterHand(payload.dealerId, payload.winnerId, payload.winType, state.mahjong.drawDealerAction);
-  Object.assign(session, MahjongCore.advanceProgress(session, payload.dealerId, state.participants.map((player) => player.id), nextDealerId));
-  session.nextDealerId = nextDealerId;
+  if (editing) {
+    recalculateMahjongHistory();
+  } else {
+    Object.assign(session, MahjongCore.advanceProgress(session, payload.dealerId, state.participants.map((player) => player.id), nextDealerId));
+    session.nextDealerId = nextDealerId;
+    state.round += 1;
+  }
+  editingMahjongRoundIndex = -1;
   session.draft = { touched: false, values: {} };
-  state.round += 1;
   elements.mahjongEntryForm.reset();
   closeModal("mahjongScoringModal");
   render();
   showToast(payload.winType === "draw" ? `${handWindLabel}已記錄：流局` : `${handWindLabel}已記錄：${result.fan} 番`);
-  const marker = session.lengthMode === "custom-hands" ? session.completedHands : session.completedCycles;
-  const lastMarker = session.lengthMode === "custom-hands" ? session.lastPromptedHands : session.lastPromptedCycles;
-  const completedAsPlanned = MahjongCore.hasCompletedPlan(session) && lastMarker < marker;
+  const activeSession = state.mahjongSession;
+  const marker = activeSession.lengthMode === "custom-hands" ? activeSession.completedHands : activeSession.completedCycles;
+  const lastMarker = activeSession.lengthMode === "custom-hands" ? activeSession.lastPromptedHands : activeSession.lastPromptedCycles;
+  const completedAsPlanned = MahjongCore.hasCompletedPlan(activeSession) && lastMarker < marker;
   if (completedAsPlanned) {
-    if (session.lengthMode === "custom-hands") session.lastPromptedHands = marker;
-    else session.lastPromptedCycles = marker;
+    if (activeSession.lengthMode === "custom-hands") activeSession.lastPromptedHands = marker;
+    else activeSession.lastPromptedCycles = marker;
     saveState();
     openConfirm({
-      title: `已完成預定${session.lengthMode === "custom-hands" ? "局數" : "圈數"}，是否結算？`,
+      title: `已完成預定${activeSession.lengthMode === "custom-hands" ? "局數" : "圈數"}，是否結算？`,
       message: `${mahjongSettlementSummary(false)}\n\n你可以結算，或者繼續記錄之後的牌局。`,
       cancelText: "繼續玩",
       acceptText: "立即結算",
@@ -2216,13 +2599,14 @@ function renderChooser() {
   }
   elements.chooserResult.hidden = !result;
   elements.chooserHomeButton.hidden = !result;
+  $("#chooserResetButton").hidden = !result;
   if (result) elements.chooserResult.textContent = t(`✦ 今次首家：手指 ${state.chooser.resultFingerNumber}`, `✦ First player: finger ${state.chooser.resultFingerNumber}`);
   if (chooserCountdown > 0) {
     elements.chooserStatus.textContent = `${chooserCountdown}…`;
   } else if (result) {
     elements.chooserStatus.textContent = t("抽籤完成", "Done");
   } else {
-    elements.chooserStatus.textContent = chooserTouches.size ? t(`已按住 ${chooserTouches.size} 隻手指`, `${chooserTouches.size} fingers touching`) : t("等大家喺任何位置按住", "Waiting for everyone to touch");
+    elements.chooserStatus.textContent = chooserTouches.size ? t(`已加入${chooserTouches.size}隻手指${chooserTouches.size < 2 ? "・最少要2隻" : ""}`, `${chooserTouches.size} finger${chooserTouches.size === 1 ? "" : "s"} joined${chooserTouches.size < 2 ? " · need at least 2" : ""}`) : t("等大家喺任何位置按住・最少2隻手指", "Waiting for at least 2 fingers");
   }
 }
 
@@ -2254,7 +2638,9 @@ function readBigTwoRound() {
     const multiplier = bigTwoMultiplier(cleanCards);
     penalties[player.id] = { cards: cleanCards, multiplier, points: cleanCards * multiplier };
   });
-  return { valid, winnerId, penalties };
+  const remainingById = Object.fromEntries(Object.entries(penalties).map(([id, value]) => [id, value.cards]));
+  const scored = BigTwoCore.scoreRound(state.participants.map((player) => player.id), winnerId, remainingById, state.bigTwoRules?.mode);
+  return { ...scored, valid: valid && scored.valid, winnerId, penalties: scored.penalties || penalties };
 }
 
 function updateBigTwoPreview() {
@@ -2272,7 +2658,9 @@ function updateBigTwoPreview() {
   });
   const winner = state.participants.find((player) => player.id === round.winnerId);
   const gain = Object.values(round.penalties).reduce((sum, entry) => sum + entry.points, 0);
-  elements.bigTwoPreview.textContent = `${lines.join("｜")}｜${winner?.name || ""} +${gain}`;
+  elements.bigTwoPreview.textContent = state.bigTwoRules?.mode === "ranking"
+    ? `${lines.join("｜")}｜${winner?.name || ""} 0`
+    : `${lines.join("｜")}｜${winner?.name || ""} +${gain}`;
 }
 
 function renderBigTwoRoundForm(winnerId = "") {
@@ -2312,13 +2700,91 @@ function renderBigTwoRoundForm(winnerId = "") {
 }
 
 function openBigTwoRound(winnerId = "") {
-  if (state?.kind !== "bigtwo") return;
+  if (state?.kind !== "bigtwo" || state.bigTwoSession?.status === "settled") return;
+  editingBigTwoRoundIndex = -1;
   renderBigTwoRoundForm(winnerId);
   openModal("bigTwoRoundModal");
 }
 
 function renderBigTwo() {
-  elements.bigTwoProgress.textContent = t(`第 ${state.round} 鋪`, `Hand ${state.round}`);
+  const settled = state.bigTwoSession?.status === "settled";
+  elements.bigTwoProgress.textContent = settled ? t("已完成結算", "Final result saved") : t(`第 ${state.round} 鋪`, `Hand ${state.round}`);
+  elements.bigTwoOpenRoundButton.hidden = settled;
+  elements.bigTwoEndButton.hidden = settled;
+  elements.bigTwoSettlement.hidden = !settled;
+  elements.bigTwoHistoryCount.textContent = String(state.history.length);
+  if (settled) renderBigTwoSettlement();
+  renderBigTwoHistory();
+}
+
+function recalculateBigTwoHistory() {
+  state.participants.forEach((player) => { player.score = 0; player.total = 0; });
+  state.history.forEach((hand, index) => {
+    const winnerId = hand.winnerId || state.participants.find((player) => player.name === hand.winnerName)?.id;
+    const remainingById = Object.fromEntries((hand.remaining || []).map((entry) => [entry.id, entry.cards]));
+    const scored = BigTwoCore.scoreRound(state.participants.map((player) => player.id), winnerId, remainingById, hand.mode || state.bigTwoRules.mode);
+    if (!scored.valid) return;
+    hand.number = index + 1;
+    hand.winnerId = winnerId;
+    hand.mode = hand.mode || state.bigTwoRules.mode;
+    hand.net = state.participants.map((player) => ({ id: player.id, name: player.name, amount: scored.net[player.id] }));
+    hand.scores = state.participants.map((player) => ({ id: player.id, name: player.name, score: scored.net[player.id] }));
+    state.participants.forEach((player) => { player.score = scored.net[player.id]; player.total += scored.net[player.id]; });
+  });
+  state.round = state.history.length + 1;
+}
+
+function renderBigTwoHistory() {
+  elements.bigTwoHistoryList.replaceChildren();
+  if (!state.history.length) {
+    const empty = document.createElement("p");
+    empty.className = "settings-help";
+    empty.textContent = t("完成第一鋪後會顯示喺呢度。", "Completed hands appear here.");
+    elements.bigTwoHistoryList.appendChild(empty);
+    return;
+  }
+  const undo = document.createElement("button");
+  undo.type = "button";
+  undo.className = "outline-button big-two-undo-hand";
+  undo.dataset.undoBigTwo = "true";
+  undo.textContent = t("撤銷最後一鋪", "Undo last hand");
+  elements.bigTwoHistoryList.appendChild(undo);
+  [...state.history].reverse().forEach((hand) => {
+    const item = document.createElement("article");
+    item.className = "big-two-history-item";
+    const info = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = t(`第${hand.number}鋪・${hand.winnerName}勝`, `Hand ${hand.number} · ${hand.winnerName} wins`);
+    const details = document.createElement("small");
+    details.textContent = (hand.remaining || []).filter((entry) => entry.id !== hand.winnerId && entry.cards > 0).map((entry) => `${entry.name} ${entry.cards}${t("張", " cards")}×${entry.multiplier}＝-${entry.points}`).join("｜");
+    info.append(title, details);
+    const actions = document.createElement("div");
+    const edit = document.createElement("button");
+    edit.type = "button"; edit.className = "text-button"; edit.dataset.editBigTwo = String(hand.number - 1); edit.textContent = t("修改", "Edit");
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "text-button danger-text"; remove.dataset.deleteBigTwo = String(hand.number - 1); remove.textContent = t("刪除", "Delete");
+    actions.append(edit, remove); item.append(info, actions); elements.bigTwoHistoryList.appendChild(item);
+  });
+}
+
+function renderBigTwoSettlement() {
+  const ranked = [...state.participants].sort((a, b) => b.total - a.total);
+  const rate = state.bigTwoRules.moneyPerPoint || 0;
+  const heading = document.createElement("h3");
+  heading.textContent = state.bigTwoSession.earlyEnded ? t("提早結束・最終排名", "Ended early · Final ranking") : t("完成・最終排名", "Finished · Final ranking");
+  const list = document.createElement("ol");
+  ranked.forEach((player) => {
+    const item = document.createElement("li");
+    const money = state.bigTwoRules.mode === "money" && rate > 0 ? `・${player.total >= 0 ? "+" : "-"}$${Math.abs(player.total * rate).toFixed(2)}` : "";
+    item.textContent = `${player.name}　${formatPoints(player.total)}${t("分", " pts")}${money}`;
+    list.appendChild(item);
+  });
+  const check = document.createElement("p");
+  const total = state.participants.reduce((sum, player) => sum + player.total, 0);
+  check.textContent = state.bigTwoRules.mode === "money" ? t(`四人總和：${total}（零和檢查）`, `Four-player total: ${total} (zero-sum check)`) : t("娛樂排名模式不直接計算付款。", "Ranking mode does not calculate payments.");
+  const reopen = document.createElement("button");
+  reopen.type = "button"; reopen.className = "secondary-button"; reopen.dataset.reopenBigTwo = "true"; reopen.textContent = t("重新開啟／修改", "Reopen / edit");
+  elements.bigTwoSettlement.replaceChildren(heading, list, check, reopen);
 }
 
 function recordBigTwoRound(event) {
@@ -2326,22 +2792,20 @@ function recordBigTwoRound(event) {
   const round = readBigTwoRound();
   if (!round.valid) return showToast(t("請檢查每位輸家嘅剩牌數", "Check each losing player's remaining cards"));
   const winner = state.participants.find((player) => player.id === round.winnerId);
-  const gain = Object.values(round.penalties).reduce((sum, entry) => sum + entry.points, 0);
   snapshot();
-  state.participants.forEach((player) => {
-    const amount = player.id === round.winnerId ? gain : -round.penalties[player.id].points;
-    player.score = amount;
-    player.total += amount;
-  });
-  state.history.push({
-    number: state.round,
-    scores: state.participants.map((player) => ({ id: player.id, name: player.name, score: player.score })),
+  const record = {
+    number: editingBigTwoRoundIndex >= 0 ? editingBigTwoRoundIndex + 1 : state.round,
+    winnerId: round.winnerId,
     winners: [winner.name],
     winnerName: winner.name,
+    mode: state.bigTwoRules.mode,
     remaining: state.participants.map((player) => ({ id: player.id, name: player.name, ...(round.penalties[player.id] || { cards: 0, multiplier: 1, points: 0 }) })),
     createdAt: new Date().toISOString(),
-  });
-  state.round += 1;
+  };
+  if (editingBigTwoRoundIndex >= 0) state.history[editingBigTwoRoundIndex] = record;
+  else state.history.push(record);
+  editingBigTwoRoundIndex = -1;
+  recalculateBigTwoHistory();
   closeModal("bigTwoRoundModal");
   render();
   showToast(t("今鋪鋤大D分數已記錄", "Big Two hand saved"));
@@ -2362,11 +2826,11 @@ function randomIndex(max) {
 }
 
 function startChooserCountdown() {
-  if (chooserCountdownTimer || state.chooser?.resultName || chooserTouches.size === 0) return;
+  if (chooserCountdownTimer || state.chooser?.resultName || chooserTouches.size < 2) return;
   chooserCountdown = 3;
   renderChooser();
   chooserCountdownTimer = window.setInterval(() => {
-    if (chooserTouches.size === 0) {
+    if (chooserTouches.size < 2) {
       cancelChooserCountdown();
       renderChooser();
       return;
@@ -2390,6 +2854,18 @@ function startChooserCountdown() {
     };
     renderChooser();
     saveState();
+    try { navigator.vibrate?.(120); } catch { /* Vibration is optional. */ }
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        const context = new AudioContextClass();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        gain.gain.value = 0.04;
+        oscillator.frequency.value = 660;
+        oscillator.connect(gain); gain.connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + 0.12);
+      }
+    } catch { /* Sound is optional. */ }
     showToast(`手指 ${selected.fingerNumber} 做首家`);
   }, 1000);
 }
@@ -2580,9 +3056,11 @@ function openSettings() {
     mahjongDealerLoseMultiplier: rules.dealerLoseMultiplier,
     mahjongSelfDrawMultiplier: rules.selfDrawMultiplier,
     mahjongDiscardMultiplier: rules.discardMultiplier,
+    mahjongDealerStreakBonus: rules.dealerStreakBonus,
     mahjongDrawDealerAction: rules.drawDealerAction,
     mahjongLengthMode: session.lengthMode,
     mahjongCustomHands: session.plannedHands,
+    mahjongCustomCycles: session.plannedCycles,
   };
   Object.entries(ruleFields).forEach(([name, value]) => { $(`[name="${name}"]`, $("#settingsForm")).value = value; });
   setMahjongScoringControls($("#settingsForm"), rules.scoringMode);
@@ -2611,28 +3089,24 @@ function isMahjongEarly(session) {
 }
 
 function applyMahjongLengthSelection(session, formData) {
-  const mode = formData.get("mahjongLengthMode") || "east";
+  const mode = formData.get("mahjongLengthMode") || "one";
   if (mode === "legacy-cycles") {
     session.lengthMode = "legacy-cycles";
     return;
   }
   session.lengthMode = mode;
-  if (mode === "east") {
-    session.plannedCycles = 1;
-    session.plannedHands = 0;
-  } else if (mode === "half") {
-    session.plannedCycles = 2;
-    session.plannedHands = 0;
-  } else {
-    session.plannedCycles = 0;
-    session.plannedHands = Math.min(999, Math.max(1, Math.floor(Number(formData.get("mahjongCustomHands")) || 16)));
-  }
+  const cycleMap = { one: 1, east: 1, two: 2, half: 2, four: 4, eight: 8 };
+  session.plannedCycles = Object.prototype.hasOwnProperty.call(cycleMap, mode)
+    ? cycleMap[mode]
+    : mode === "custom-cycles" ? Math.min(99, Math.max(1, Math.floor(Number(formData.get("mahjongCustomCycles")) || 3))) : 0;
+  session.plannedHands = mode === "custom-hands" ? Math.min(999, Math.max(1, Math.floor(Number(formData.get("mahjongCustomHands")) || 16))) : 0;
 }
 
 function mahjongPlanLabel(session) {
   if (session?.lengthMode === "custom-hands") return `原訂 ${session.plannedHands} 局`;
-  if (session?.lengthMode === "east") return "原訂東圈";
-  if (session?.lengthMode === "half") return "原訂半莊";
+  if (session?.lengthMode === "unlimited") return "不限圈數";
+  if (["one", "east"].includes(session?.lengthMode)) return "原訂1圈";
+  if (["two", "half"].includes(session?.lengthMode)) return "原訂2圈";
   return session?.plannedCycles > 0 ? `原訂 ${session.plannedCycles} 圈` : "不限局數";
 }
 
@@ -2722,22 +3196,32 @@ function setupTarget(selectId, customId) {
 }
 
 function sportsConfigFromForm(formData) {
-  const preset = String(formData.get("volleyballPreset") || "standard");
-  if (preset === "standard") return SportsRuleEngine.volleyballPreset("standard");
+  const sportType = String(formData.get("sportType") || "volleyball");
+  const preset = String(formData.get("sportPreset") || "standard");
+  if (preset === "standard" || preset === "alternate") return SportsRuleEngine.presetForSport(sportType, preset);
   if (preset === "single") {
+    if (sportType === "basketball") {
+      return SportsRuleEngine.sanitizeConfig({
+        ...SportsRuleEngine.basketballPreset("single"),
+        periodCount: formData.get("sportsPeriodCount"),
+        periodDurationSeconds: Number(formData.get("sportsPeriodMinutes")) * 60,
+      });
+    }
     const targetScore = setupTarget("sportsSingleTarget", "sportsSingleCustomTarget");
     return SportsRuleEngine.sanitizeConfig({
-      ...SportsRuleEngine.volleyballPreset("single"),
+      ...SportsRuleEngine.presetForSport(sportType, "single"),
       targetScore,
       decidingGameTargetScore: targetScore,
       winBy: formData.get("sportsSingleWinBy"),
+      maxScore: formData.get("sportsSingleMaxScore"),
     });
   }
   const targetScore = setupTarget("sportsCustomTarget", "sportsCustomTargetValue");
-  const useDifferentDecidingGame = formData.get("sportsUseDecider") === "on" && formData.get("sportsCustomFormat") !== "single";
+  const format = sportType === "basketball" ? "single" : formData.get("sportsCustomFormat");
+  const useDifferentDecidingGame = sportType === "volleyball" && formData.get("sportsUseDecider") === "on" && format !== "single";
   return SportsRuleEngine.sanitizeConfig({
-    ...SportsRuleEngine.volleyballPreset("custom"),
-    matchFormat: formData.get("sportsCustomFormat"),
+    ...SportsRuleEngine.presetForSport(sportType, "custom"),
+    matchFormat: format,
     targetScore,
     winBy: formData.get("sportsCustomWinBy"),
     maxScore: formData.get("sportsCustomMaxScore"),
@@ -2748,24 +3232,42 @@ function sportsConfigFromForm(formData) {
 
 function updateSportsSetupFields() {
   const setupForm = $("#setupForm");
-  const preset = $("input[name='volleyballPreset']:checked", setupForm)?.value || "standard";
-  $("#sportsSingleFields").hidden = preset !== "single";
+  const sportType = $("[name='sportType']", setupForm).value;
+  const sportPlaceholder = { volleyball: t("例如：星期五排球", "e.g. Friday Volleyball"), basketball: t("例如：星期五籃球", "e.g. Friday Basketball"), badminton: t("例如：星期五羽毛球", "e.g. Friday Badminton"), "table-tennis": t("例如：星期五乒乓球", "e.g. Friday Table Tennis") }[sportType];
+  if (sportPlaceholder && $("input[name='preset']:checked", setupForm)?.value === "sports") $("#setupName").placeholder = sportPlaceholder;
+  if ($("input[name='preset']:checked", setupForm)?.value === "sports") {
+    $("#setupDescription").textContent = t(`輸入兩隊名稱，再揀一個${sportName({ sportType })}玩法就可以開始。`, `Enter both team names, then choose a ${sportName({ sportType })} format.`);
+  }
+  const preset = $("input[name='sportPreset']:checked", setupForm)?.value || "standard";
+  const labels = {
+    volleyball: [["休閒三局兩勝", "25／25／15・領先2分"], ["正式五局三勝", "25／25／25／25／15・領先2分"], ["單局決勝", "15／21／25／30分"], ["自訂玩法", "自訂局數、目標分及勝出條件"]],
+    basketball: [["街場11分", "先到11分・＋1／＋2／＋3"], ["街場20分", "先到20分・＋1／＋2／＋3"], ["計時比賽", "2節或4節・自訂每節時間"], ["自訂街場玩法", "自訂完場分數及領先規則"]],
+    badminton: [["三局兩勝", "21分・領先2分・30分封頂"], ["單局21分", "一局決勝・30分封頂"], ["單局決勝", "自選目標分數"], ["自訂玩法", "自訂局數及目標分數"]],
+    "table-tennis": [["五局三勝", "11分・領先2分"], ["三局兩勝", "11分・領先2分"], ["單局決勝", "11分或21分"], ["自訂玩法", "三／五／七局及自訂分數"]],
+  }[sportType];
+  const englishTitles = { volleyball: ["Casual Best of 3", "Official Best of 5", "Single Game", "Custom"], basketball: ["Street 11", "Street 20", "Timed Game", "Custom Street Game"], badminton: ["Best of 3", "Single 21", "Single Game", "Custom"], "table-tennis": ["Best of 5", "Best of 3", "Single Game", "Custom"] }[sportType];
+  labels.forEach((copy, index) => {
+    $(`#sportsPresetTitle${index + 1}`).textContent = t(copy[0], englishTitles[index]);
+    $(`#sportsPresetHelp${index + 1}`).textContent = copy[1];
+  });
+  $("#sportsSingleFields").hidden = preset !== "single" || sportType === "basketball";
+  $("#sportsTimedFields").hidden = !(sportType === "basketball" && preset === "single");
   $("#sportsCustomFields").hidden = preset !== "custom";
   $("#sportsSingleCustomTarget").hidden = $("#sportsSingleTarget").value !== "custom";
   $("#sportsCustomTargetValue").hidden = $("#sportsCustomTarget").value !== "custom";
   const customFormat = $("#sportsCustomFormat").value;
-  const canUseDecider = customFormat !== "single";
+  const canUseDecider = sportType === "volleyball" && customFormat !== "single";
   $("#sportsUseDecider").closest("label").hidden = !canUseDecider;
   $("#sportsDeciderTargetField").hidden = !canUseDecider || !$("#sportsUseDecider").checked;
 
   const config = sportsConfigFromForm(new FormData(setupForm));
-  const format = config.matchFormat === "single" ? t("一局定勝負", "Single Game") : t(`${config.numberOfGames}局${config.gamesToWin}勝`, `Best of ${config.numberOfGames}`);
+  const format = config.timedMode ? t(`${config.periodCount}節・每節${Math.round(config.periodDurationSeconds / 60)}分鐘`, `${config.periodCount} periods · ${Math.round(config.periodDurationSeconds / 60)} min`) : config.matchFormat === "single" ? t("一局定勝負", "Single Game") : t(`${config.numberOfGames}局${config.gamesToWin}勝`, `Best of ${config.numberOfGames}`);
   const winRule = config.winBy > 1 ? t(`領先${config.winBy}分`, `win by ${config.winBy}`) : t("先到即完", "first to target wins");
   const cap = config.maxScore > 0 ? t(`最高${config.maxScore}分`, `cap ${config.maxScore}`) : t("不設上限", "no score cap");
   const decider = config.useDifferentDecidingGame ? t(`・決勝局${config.decidingGameTargetScore}分`, ` · deciding game ${config.decidingGameTargetScore}`) : "";
   elements.sportsSetupPreview.textContent = t(
-    `目前玩法：排球・${format}・普通局${config.targetScore}分${decider}・${winRule}・${cap}`,
-    `Current rules: Volleyball · ${format} · ${config.targetScore} points${decider} · ${winRule} · ${cap}`,
+    config.timedMode ? `目前玩法：${sportName(config)}・${format}・正常籃球＋1／＋2／＋3分` : `目前玩法：${sportName(config)}・${format}・${config.targetScore}分${decider}・${winRule}・${cap}`,
+    config.timedMode ? `Current rules: ${sportName(config)} · ${format} · +1 / +2 / +3` : `Current rules: ${sportName(config)} · ${format} · ${config.targetScore} points${decider} · ${winRule} · ${cap}`,
   );
 }
 
@@ -2774,6 +3276,7 @@ function updateSetupFromPreset() {
   const isMahjong = preset === "mahjong";
   const isBigTwo = preset === "bigtwo";
   $("#setupTeamNamesRow").hidden = preset !== "sports";
+  $("#setupNameRow").hidden = preset === "chooser";
   $("#setupMahjongPlayers").hidden = !isMahjong;
   $("#setupBigTwoPlayers").hidden = !isBigTwo;
   $("#setupTitle").textContent = isMahjong ? t("香港麻雀開局設定", "Hong Kong Mahjong Setup") : isBigTwo ? t("鋤大D 計分設定", "Big Two Setup") : t("今次點樣計？", "What are you scoring?");
@@ -2789,6 +3292,9 @@ function updateSetupFromPreset() {
   $("#setupMahjongRules").hidden = !isMahjong;
   elements.setupSportsRules.hidden = preset !== "sports";
   const nameInput = $("#setupName");
+  nameInput.placeholder = isMahjong
+    ? t("例如：星期五雀局", "e.g. Friday Mahjong")
+    : isBigTwo ? t("例如：今晚鋤大D", "e.g. Big Two Tonight") : nameInput.placeholder;
   if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
   if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤", "今晚鋤大D"].includes(nameInput.value)) nameInput.value = "今晚開枱";
   if (preset === "bigtwo" && ["今晚開波", "今晚開枱", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚鋤大D";
@@ -2847,7 +3353,7 @@ document.addEventListener("pointermove", (event) => {
 document.addEventListener("pointerup", (event) => {
   if (chooserTouches.has(event.pointerId)) {
     chooserTouches.delete(event.pointerId);
-    if (!chooserTouches.size && !state?.chooser?.resultName) cancelChooserCountdown();
+    if (chooserTouches.size < 2 && !state?.chooser?.resultName) cancelChooserCountdown();
     renderChooser();
     return;
   }
@@ -2858,7 +3364,7 @@ document.addEventListener("pointerup", (event) => {
 
 document.addEventListener("pointercancel", (event) => {
   if (chooserTouches.delete(event.pointerId)) {
-    if (!chooserTouches.size && !state?.chooser?.resultName) cancelChooserCountdown();
+    if (chooserTouches.size < 2 && !state?.chooser?.resultName) cancelChooserCountdown();
     renderChooser();
     return;
   }
@@ -2878,6 +3384,11 @@ document.addEventListener("click", (event) => {
   const card = event.target.closest(".score-card");
   if (!card) return;
   const id = card.dataset.id;
+  const sportsPointButton = event.target.closest("[data-sport-points]");
+  if (sportsPointButton && hasSportRuleEngine()) {
+    applySportPoint(state.participants.findIndex((entry) => entry.id === id), Number(sportsPointButton.dataset.sportPoints));
+    return;
+  }
   if (event.target.closest(".score-display")) {
     if (suppressScoreClick) {
       event.preventDefault();
@@ -2901,8 +3412,42 @@ elements.mahjongEntryForm.addEventListener("submit", recordMahjongHand);
 elements.mahjongEntryForm.addEventListener("input", () => { captureMahjongDraft(); updateMahjongPreview(); });
 elements.mahjongEntryForm.addEventListener("change", (event) => {
   captureMahjongDraft();
-  if (event.target === elements.mahjongWinType) renderMahjongEntry();
+  if (event.target === elements.mahjongWinType || event.target.name === "patterns") renderMahjongEntry();
   else updateMahjongPreview();
+});
+elements.mahjongPatternSearch.addEventListener("input", renderMahjongEntry);
+elements.historyContent.addEventListener("click", (event) => {
+  if (state?.kind !== "mahjong") return;
+  const edit = event.target.closest("[data-edit-mahjong]");
+  if (edit) {
+    const index = Number(edit.dataset.editMahjong);
+    const hand = state.history[index];
+    if (!hand?.mahjong) return showToast(t("呢個舊紀錄資料不足，暫時未能修改", "This legacy record does not contain enough detail to edit"));
+    if (state.mahjongSession.status === "settled") state.mahjongSession.status = "active";
+    editingMahjongRoundIndex = index;
+    state.mahjongSession.draft = {
+      touched: true,
+      values: {
+        winner: hand.mahjong.winnerId, winType: hand.mahjong.winType, discarder: hand.mahjong.discarderId,
+        dealer: hand.mahjong.dealerId, handFan: hand.mahjong.handFan, flowers: hand.mahjong.flowers,
+        patterns: hand.mahjong.patternIds || [], note: hand.note || "",
+      },
+    };
+    renderMahjongEntry();
+    $("#mahjongScoringTitle").textContent = t(`修改第${index + 1}局`, `Edit hand ${index + 1}`);
+    openModal("mahjongScoringModal");
+    return;
+  }
+  const remove = event.target.closest("[data-delete-mahjong]");
+  if (remove) {
+    const index = Number(remove.dataset.deleteMahjong);
+    openConfirm({
+      title: t("刪除呢局麻雀紀錄？", "Delete this Mahjong hand?"),
+      message: t("刪除後會由第一局重新計算所有分數、莊位同圈數。", "Scores, dealer position and round progress will be recalculated from the first hand."),
+      cancelText: t("取消", "Cancel"), acceptText: t("刪除", "Delete"), icon: "×",
+      action: () => { snapshot(); state.history.splice(index, 1); recalculateMahjongHistory(); render(); },
+    });
+  }
 });
 
 elements.mahjongOpenScoringButton.addEventListener("click", () => openMahjongScoring());
@@ -2953,6 +3498,60 @@ elements.bigTwoOpenRoundButton.addEventListener("click", () => openBigTwoRound()
 elements.bigTwoWinner.addEventListener("change", () => renderBigTwoRoundForm(elements.bigTwoWinner.value));
 elements.bigTwoRemainingList.addEventListener("input", updateBigTwoPreview);
 elements.bigTwoRoundForm.addEventListener("submit", recordBigTwoRound);
+elements.bigTwoEndButton.addEventListener("click", () => {
+  if (state?.kind !== "bigtwo" || state.bigTwoSession?.status === "settled") return;
+  openConfirm({
+    title: t("結束並結算鋤大D？", "Finish and settle Big Two?"),
+    message: t(`已完成${state.history.length}鋪，只會計算已儲存嘅鋪數。`, `${state.history.length} completed hands will be included.`),
+    cancelText: t("返回繼續", "Keep playing"), acceptText: t("結束並結算", "Finish and settle"), icon: "✓",
+    action: () => {
+      state.bigTwoSession.status = "settled";
+      state.bigTwoSession.settledAt = new Date().toISOString();
+      state.bigTwoSession.earlyEnded = false;
+      render();
+    },
+  });
+});
+elements.bigTwoHistoryList.addEventListener("click", (event) => {
+  const reopen = event.target.closest("[data-reopen-big-two]");
+  if (reopen) {
+    state.bigTwoSession.status = "active";
+    state.bigTwoSession.settledAt = null;
+    render();
+    return;
+  }
+  const undo = event.target.closest("[data-undo-big-two]");
+  if (undo && state.history.length) {
+    openConfirm({ title: t("撤銷最後一鋪？", "Undo the last hand?"), message: t("最後一鋪會移除，所有累積分數會重新計算。", "The last hand will be removed and totals recalculated."), cancelText: t("取消", "Cancel"), acceptText: t("撤銷", "Undo"), icon: "↶", action: () => { snapshot(); state.history.pop(); recalculateBigTwoHistory(); render(); } });
+    return;
+  }
+  const edit = event.target.closest("[data-edit-big-two]");
+  if (edit) {
+    editingBigTwoRoundIndex = Number(edit.dataset.editBigTwo);
+    const hand = state.history[editingBigTwoRoundIndex];
+    if (!hand) return;
+    if (state.bigTwoSession.status === "settled") state.bigTwoSession.status = "active";
+    renderBigTwoRoundForm(hand.winnerId || "");
+    (hand.remaining || []).forEach((entry) => {
+      const input = $(`[data-bigtwo-player-id="${CSS.escape(entry.id)}"]`, elements.bigTwoRemainingList);
+      if (input && entry.cards > 0) input.value = String(entry.cards);
+    });
+    updateBigTwoPreview();
+    openModal("bigTwoRoundModal");
+    return;
+  }
+  const remove = event.target.closest("[data-delete-big-two]");
+  if (remove) {
+    const index = Number(remove.dataset.deleteBigTwo);
+    openConfirm({ title: t("刪除呢鋪紀錄？", "Delete this hand?"), message: t("刪除後所有累積分數會重新計算。", "Totals will be recalculated after deletion."), cancelText: t("取消", "Cancel"), acceptText: t("刪除", "Delete"), icon: "×", action: () => { snapshot(); state.history.splice(index, 1); recalculateBigTwoHistory(); render(); } });
+  }
+});
+elements.bigTwoSettlement.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-reopen-big-two]")) return;
+  state.bigTwoSession.status = "active";
+  state.bigTwoSession.settledAt = null;
+  render();
+});
 
 $$('[data-close="bigTwoRoundModal"]').forEach((button) => {
   button.addEventListener("click", () => closeModal("bigTwoRoundModal"));
@@ -2965,11 +3564,13 @@ $$('[data-close="mahjongScoringModal"]').forEach((button) => {
 $("#setupForm").addEventListener("input", () => {
   updateMahjongSetupPreview();
   updateSportsSetupFields();
+  $("#bigTwoCustomMoneyRate").hidden = $("#bigTwoMoneyRate").value !== "custom";
 });
 $("#setupForm").addEventListener("change", (event) => {
   syncMahjongScoringControls(event);
   updateMahjongSetupPreview();
   updateSportsSetupFields();
+  $("#bigTwoCustomMoneyRate").hidden = $("#bigTwoMoneyRate").value !== "custom";
 });
 $("#settingsForm").addEventListener("input", updateMahjongSettingsPreview);
 $("#settingsForm").addEventListener("change", (event) => {
@@ -2980,23 +3581,23 @@ $("#settingsForm").addEventListener("change", (event) => {
 $("#mahjongCommonDefaults").addEventListener("click", () => {
   const form = $("#setupForm");
   $("[name='mahjongMinFan']", form).value = "3";
-  $("[name='mahjongMaxFan']", form).value = "13";
+  $("[name='mahjongMaxFan']", form).value = "10";
   $("[name='mahjongBasePoints']", form).value = "1";
   $("[name='mahjongFanStep']", form).value = "2";
   setMahjongScoringControls(form, "hk-table");
   updateMahjongSetupPreview();
-  showToast(t("已套用香港常用計分", "Common Hong Kong scoring applied"));
+  showToast(t("已套用簡易娛樂計分", "Simple social scoring applied"));
 });
 
 $("#settingsMahjongCommonDefaults").addEventListener("click", () => {
   const form = $("#settingsForm");
   $("[name='mahjongMinFan']", form).value = "3";
-  $("[name='mahjongMaxFan']", form).value = "13";
+  $("[name='mahjongMaxFan']", form).value = "10";
   $("[name='mahjongBasePoints']", form).value = "1";
   $("[name='mahjongFanStep']", form).value = "2";
   setMahjongScoringControls(form, "hk-table");
   updateMahjongSettingsPreview();
-  showToast(t("已套用香港常用計分", "Common Hong Kong scoring applied"));
+  showToast(t("已套用簡易娛樂計分", "Simple social scoring applied"));
 });
 
 $("#chooserResetButton").addEventListener("click", resetChooser);
@@ -3026,6 +3627,7 @@ $("#setupForm").addEventListener("submit", (event) => {
   if (state.kind === "sports") {
     state.sportConfig = sportsConfigFromForm(form);
     state.sportGame = SportsRuleEngine.createGameState(state.sportConfig);
+    if (state.sportConfig.timedMode) state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
     syncSportStateToScoreboard();
   } else if (state.kind === "mahjong") {
     state.participants.forEach((player, index) => {
@@ -3038,7 +3640,7 @@ $("#setupForm").addEventListener("submit", (event) => {
       minimumFan: form.get("mahjongMinFan"),
       basePoints: form.get("mahjongBasePoints"),
       fanStep: form.get("mahjongFanStep"),
-      scoringMode: form.get("mahjongScoringPreset") || form.get("mahjongAdvancedScoringMode"),
+      scoringMode: form.get("mahjongScoringPreset") === "custom" ? form.get("mahjongAdvancedScoringMode") : form.get("mahjongScoringPreset"),
       maxFan: form.get("mahjongMaxFan"),
       maxPoints: form.get("mahjongMaxPoints"),
       selfDrawFan: form.get("mahjongSelfDrawFan"),
@@ -3047,6 +3649,7 @@ $("#setupForm").addEventListener("submit", (event) => {
       dealerLoseMultiplier: form.get("mahjongDealerLoseMultiplier"),
       selfDrawMultiplier: form.get("mahjongSelfDrawMultiplier"),
       discardMultiplier: form.get("mahjongDiscardMultiplier"),
+      dealerStreakBonus: form.get("mahjongDealerStreakBonus"),
       drawDealerAction: form.get("mahjongDrawDealerAction"),
       ronPaymentMode: form.get("mahjongRonPaymentMode"),
       patterns: defaultRules.patterns.map((pattern) => ({
@@ -3067,6 +3670,10 @@ $("#setupForm").addEventListener("submit", (event) => {
     state.participants.forEach((player, index) => {
       player.name = String(form.get(`bigTwoPlayer${index + 1}`) || "").trim().slice(0, 18) || t(`玩家 ${index + 1}`, `Player ${index + 1}`);
     });
+    state.bigTwoRules = {
+      mode: form.get("bigTwoMode") === "ranking" ? "ranking" : "money",
+      moneyPerPoint: Math.max(0, Number(form.get("bigTwoMoneyRate") === "custom" ? form.get("bigTwoCustomMoneyRate") : form.get("bigTwoMoneyRate")) || 0),
+    };
   }
   undoStack = [];
   closeModal("setupModal");
@@ -3094,7 +3701,9 @@ elements.languageToggle.addEventListener("click", () => {
 });
 $("#homeModeGrid").addEventListener("click", (event) => {
   const card = event.target.closest("[data-home-preset]");
-  if (card) openGameLibrary(gameCategory(card.dataset.homePreset));
+  if (!card) return;
+  if (card.dataset.homePreset === "chooser") startChooserTool();
+  else openGameLibrary(gameCategory(card.dataset.homePreset));
 });
 
 elements.gameLibraryNewButton.addEventListener("click", () => {
@@ -3167,6 +3776,7 @@ elements.sportsResetGameButton.addEventListener("click", () => {
     action: () => {
       snapshot();
       state.sportGame = SportsRuleEngine.resetCurrentGame(state.sportConfig, state.sportGame);
+      if (state.sportConfig.timedMode) state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
       syncSportStateToScoreboard();
       render();
       showToast(t("本局已重設", "Current game reset"));
@@ -3184,6 +3794,9 @@ elements.sportsResetMatchButton.addEventListener("click", () => {
     action: () => {
       snapshot();
       state.sportGame = SportsRuleEngine.resetMatch(state.sportConfig);
+      state.timer = state.sportConfig.timedMode
+        ? { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true }
+        : { elapsed: 0, running: false, startedAt: null, countdown: false };
       syncSportStateToScoreboard();
       render();
       showToast(t("比賽已重設", "Match reset"));
@@ -3191,6 +3804,13 @@ elements.sportsResetMatchButton.addEventListener("click", () => {
   });
 });
 elements.sportsSummaryButton.addEventListener("click", openSportsSummary);
+elements.sportsNextGameButton.addEventListener("click", advanceSportGame);
+elements.sportsEndButton.addEventListener("click", requestSportsEnd);
+elements.sportsPeriodButton.addEventListener("click", endTimedPeriod);
+elements.sportsResetClockButton.addEventListener("click", resetTimedClock);
+$("#sportsEndReturn").addEventListener("click", () => closeModal("sportsEndModal"));
+$("#sportsEndNoWinner").addEventListener("click", () => finishSportsEarly("none"));
+$("#sportsEndWithWinner").addEventListener("click", () => finishSportsEarly("score"));
 elements.sportsReopenButton.addEventListener("click", () => {
   if (!hasSportRuleEngine() || state.sportGame.status !== "finished") return;
   snapshot();
@@ -3203,6 +3823,34 @@ elements.sportsReopenButton.addEventListener("click", () => {
 $$('[data-close="sportsSummaryModal"]').forEach((button) => {
   button.addEventListener("click", () => closeModal("sportsSummaryModal"));
 });
+elements.sportsSummaryContent.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-edit-sport-game]");
+  if (!button || !hasSportRuleEngine()) return;
+  const index = Number(button.dataset.editSportGame);
+  const game = state.sportGame.completedGames[index];
+  if (!game) return;
+  const form = elements.sportsEditGameForm;
+  form.elements.gameIndex.value = String(index);
+  form.elements.team0.value = String(game.scores[0]);
+  form.elements.team1.value = String(game.scores[1]);
+  $("#sportsEditTeam1").textContent = state.participants[0].name;
+  $("#sportsEditTeam2").textContent = state.participants[1].name;
+  openModal("sportsEditGameModal");
+});
+elements.sportsEditGameForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const before = JSON.stringify(state.sportGame.completedGames);
+  const edited = SportsRuleEngine.editCompletedGame(state.sportConfig, state.sportGame, form.get("gameIndex"), [form.get("team0"), form.get("team1")]);
+  if (JSON.stringify(edited.completedGames) === before) return showToast(t("比分未符合呢局嘅勝出規則", "The score does not satisfy the winning rule"));
+  snapshot();
+  state.sportGame = edited;
+  syncSportStateToScoreboard();
+  closeModal("sportsEditGameModal");
+  render();
+  openSportsSummary();
+});
+$$('[data-close="sportsEditGameModal"]').forEach((button) => button.addEventListener("click", () => closeModal("sportsEditGameModal")));
 elements.timerToggleButton.addEventListener("click", toggleTimer);
 
 $("#clearHistoryButton").addEventListener("click", () => {
@@ -3264,7 +3912,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
       minimumFan: form.get("mahjongMinFan"),
       basePoints: form.get("mahjongBasePoints"),
       fanStep: form.get("mahjongFanStep"),
-      scoringMode: form.get("mahjongScoringPreset") || form.get("mahjongAdvancedScoringMode"),
+      scoringMode: form.get("mahjongScoringPreset") === "custom" ? form.get("mahjongAdvancedScoringMode") : form.get("mahjongScoringPreset"),
       maxFan: form.get("mahjongMaxFan"),
       maxPoints: form.get("mahjongMaxPoints"),
       selfDrawFan: form.get("mahjongSelfDrawFan"),
@@ -3273,6 +3921,7 @@ $("#settingsForm").addEventListener("submit", (event) => {
       dealerLoseMultiplier: form.get("mahjongDealerLoseMultiplier"),
       selfDrawMultiplier: form.get("mahjongSelfDrawMultiplier"),
       discardMultiplier: form.get("mahjongDiscardMultiplier"),
+      dealerStreakBonus: form.get("mahjongDealerStreakBonus"),
       drawDealerAction: form.get("mahjongDrawDealerAction"),
       ronPaymentMode: form.get("mahjongRonPaymentMode"),
       patterns: state.mahjong.patterns.map((pattern) => ({
@@ -3365,6 +4014,10 @@ window.addEventListener("offline", () => {
 prepareStaticTranslations();
 applyLanguage();
 state = loadState();
+if (state?.kind === "chooser") {
+  state = null;
+  clearStoredState();
+}
 migrateLegacyRecords();
 if (state) {
   saveState();
@@ -3386,7 +4039,16 @@ window.matchMedia("(orientation: portrait) and (max-width: 850px)").addEventList
 });
 
 timerTicker = window.setInterval(() => {
-  if (state?.timer?.running) updateTimerDisplay();
+  if (state?.timer?.running) {
+    updateTimerDisplay();
+    if (state.timer.countdown && currentElapsedSeconds() <= 0) {
+      state.timer.elapsed = 0;
+      state.timer.running = false;
+      state.timer.startedAt = null;
+      saveState();
+      showToast(t("本節時間到，可以完成本節", "Period time is up; end the period when ready"));
+    }
+  }
 }, 250);
 
 updateConnectionStatus();

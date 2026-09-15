@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=48" />
+    <link rel="stylesheet" href="style.css?v=50" />
   </head>
   <body>
     <div class="app-shell">
@@ -82,7 +82,7 @@
         <div class="home-mode-grid" id="homeModeGrid">
           <button class="home-mode-card" type="button" data-home-preset="sports">
             <span class="home-mode-icon home-mode-icon-orange">＋</span>
-            <span class="home-mode-copy"><strong>兩隊比賽計分</strong><small>排球、籃球、羽毛球等對賽</small></span>
+            <span class="home-mode-copy"><strong>球類比賽計分</strong><small>排球、籃球、羽毛球及乒乓球</small></span>
             <span class="home-mode-arrow">→</span>
           </button>
           <button class="home-mode-card" type="button" data-home-preset="mahjong">
@@ -102,7 +102,7 @@
           </button>
         </div>
 
-        <div class="home-note"><span>i</span><p>每個玩法都會分開儲存多個紀錄；按入分類就可以繼續或刪除。安裝到主畫面後，離線都可以用。</p></div>
+        <div class="home-note"><span>i</span><p>各種計分玩法會分開儲存多個紀錄；首家抽籤即開即用。安裝到主畫面後，離線都可以用。</p></div>
       </section>
 
       <section class="sports-landscape-board" id="sportsLandscapeBoard" hidden aria-label="橫向球類計分板">
@@ -188,8 +188,10 @@
           </div>
           <div class="big-two-session-bar">
             <strong id="bigTwoProgress">第 1 鋪</strong>
-            <button class="primary-button" id="bigTwoOpenRoundButton" type="button">完成一鋪／計分</button>
+            <div class="big-two-session-actions"><button class="primary-button" id="bigTwoOpenRoundButton" type="button">完成一鋪／計分</button><button class="outline-button" id="bigTwoEndButton" type="button">結束並結算</button></div>
           </div>
+          <section class="big-two-settlement" id="bigTwoSettlement" hidden></section>
+          <details class="big-two-history-panel" id="bigTwoHistoryPanel"><summary>每鋪紀錄 <span id="bigTwoHistoryCount">0</span></summary><div id="bigTwoHistoryList"></div></details>
         </section>
 
         <section class="mahjong-panel" id="mahjongPanel" hidden aria-labelledby="mahjongTitle">
@@ -202,7 +204,7 @@
             <span class="mahjong-rule-badge" id="mahjongRuleBadge">3 番起糊</span>
           </div>
           <div class="mahjong-session-bar" id="mahjongSessionBar">
-            <strong id="mahjongProgress">第 1／4 圈・東風東</strong>
+            <div class="mahjong-progress-copy"><strong id="mahjongProgress">第1／1圈｜東圈｜玩家1做莊｜已玩0局</strong><small id="mahjongTraditionalProgress">傳統標示：東風東局</small></div>
             <div class="mahjong-session-actions">
               <button class="primary-button" id="mahjongOpenScoringButton" type="button"><span aria-hidden="true">🀄</span> 有人食糊／計番</button>
               <button class="outline-button mahjong-draw-button" id="mahjongDrawButton" type="button" hidden><span aria-hidden="true">○</span> 流局・過莊</button>
@@ -255,9 +257,15 @@
               <span><strong>唔知幾多番？</strong><small>輸入整副牌，自動檢查牌型同建議番數</small></span>
               <span aria-hidden="true">→</span>
             </button>
+            <section class="mahjong-selected-patterns" id="mahjongSelectedPatterns" aria-live="polite"><strong>已選牌型</strong><span>未選擇牌型</span></section>
+            <label class="field-label mahjong-pattern-search">搜尋牌型
+              <input class="text-input" id="mahjongPatternSearch" type="search" placeholder="例如：清一色、對對糊" autocomplete="off" />
+            </label>
             <fieldset class="mahjong-pattern-fieldset" id="mahjongPatternFieldset">
-              <legend>食咩牌型？（可多選）</legend>
+              <legend>常用牌型（可多選）</legend>
               <div class="mahjong-pattern-choices" id="mahjongPatternChoices"></div>
+              <details class="mahjong-pattern-group" id="mahjongMorePatterns"><summary>更多牌型</summary><div class="mahjong-pattern-choices" id="mahjongMorePatternChoices"></div></details>
+              <details class="mahjong-pattern-group" id="mahjongSpecialPatterns"><summary>特殊大牌</summary><div class="mahjong-pattern-choices" id="mahjongSpecialPatternChoices"></div></details>
             </fieldset>
             <p class="mahjong-preview" id="mahjongPreview">輸入番數後會顯示今局計算結果。</p>
             <button class="primary-button wide" type="submit">記錄呢局麻雀</button>
@@ -284,6 +292,19 @@
           <button class="primary-button" id="sportsSummaryButton" type="button" hidden aria-label="查看比賽結果" title="查看比賽結果">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4a5 5 0 0 1-10 0V3Z" /><path d="M7 5H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4M12 12v5m-4 4h8m-6-4h4" /></svg>
             <span class="landscape-control-label">比賽結果</span>
+          </button>
+          <button class="secondary-button" id="sportsEndButton" type="button" hidden aria-label="提早結束並結算" title="提早結束並結算">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            <span class="landscape-control-label">結束並結算</span>
+          </button>
+          <button class="primary-button" id="sportsNextGameButton" type="button" hidden aria-label="開始下一局" title="開始下一局">
+            <span aria-hidden="true">→</span><span class="landscape-control-label">開始下一局</span>
+          </button>
+          <button class="secondary-button" id="sportsPeriodButton" type="button" hidden aria-label="完成本節" title="完成本節">
+            <span aria-hidden="true">◷</span><span class="landscape-control-label">完成本節</span>
+          </button>
+          <button class="secondary-button" id="sportsResetClockButton" type="button" hidden aria-label="重設本節計時" title="重設本節計時">
+            <span aria-hidden="true">↻</span><span class="landscape-control-label">重設計時</span>
           </button>
         </section>
 
@@ -352,7 +373,7 @@
             </div>
           </fieldset>
 
-          <div class="form-row">
+          <div class="form-row" id="setupNameRow">
             <label class="field-label" for="setupName">活動名稱</label>
             <input class="text-input" id="setupName" name="title" type="text" maxlength="30" value="今晚開波" placeholder="例如：星期五排球" />
           </div>
@@ -377,27 +398,32 @@
             <label class="field-label">選擇運動
               <select class="text-input" name="sportType">
                 <option value="volleyball" selected>排球 Volleyball</option>
-                <option value="basketball" disabled>籃球 Basketball（下一步加入）</option>
-                <option value="badminton" disabled>羽毛球 Badminton（下一步加入）</option>
-                <option value="table-tennis" disabled>乒乓球 Table Tennis（下一步加入）</option>
+                  <option value="basketball">籃球 Basketball</option>
+                  <option value="badminton">羽毛球 Badminton</option>
+                  <option value="table-tennis">乒乓球 Table Tennis</option>
               </select>
             </label>
             <fieldset class="sports-preset-fieldset">
               <legend>選擇玩法</legend>
               <div class="sports-preset-grid">
-                <label class="sports-preset-card">
-                  <input type="radio" name="volleyballPreset" value="standard" checked />
-                  <span><strong>Standard</strong><small>三局兩勝・25／25／15・領先2分</small></span>
+                <label class="sports-preset-card" id="sportsPresetCard1">
+                  <input type="radio" name="sportPreset" value="standard" checked />
+                  <span><strong id="sportsPresetTitle1">休閒三局兩勝</strong><small id="sportsPresetHelp1">25／25／15・領先2分</small></span>
                   <b>✓</b>
                 </label>
-                <label class="sports-preset-card">
-                  <input type="radio" name="volleyballPreset" value="single" />
-                  <span><strong>Single Game</strong><small>一局定勝負，適合朋友局或練習</small></span>
+                <label class="sports-preset-card" id="sportsPresetCard2">
+                  <input type="radio" name="sportPreset" value="alternate" />
+                  <span><strong id="sportsPresetTitle2">正式五局三勝</strong><small id="sportsPresetHelp2">25／25／25／25／15・領先2分</small></span>
                   <b>✓</b>
                 </label>
-                <label class="sports-preset-card">
-                  <input type="radio" name="volleyballPreset" value="custom" />
-                  <span><strong>Custom</strong><small>自訂局數、目標分及決勝局</small></span>
+                <label class="sports-preset-card" id="sportsPresetCard3">
+                  <input type="radio" name="sportPreset" value="single" />
+                  <span><strong id="sportsPresetTitle3">單局決勝</strong><small id="sportsPresetHelp3">一局定勝負，適合朋友局</small></span>
+                  <b>✓</b>
+                </label>
+                <label class="sports-preset-card" id="sportsPresetCard4">
+                  <input type="radio" name="sportPreset" value="custom" />
+                  <span><strong id="sportsPresetTitle4">自訂玩法</strong><small id="sportsPresetHelp4">自訂局數、目標分及勝出條件</small></span>
                   <b>✓</b>
                 </label>
               </div>
@@ -406,7 +432,7 @@
             <div class="sports-option-panel" id="sportsSingleFields" hidden>
               <label class="field-label">一局打幾多分？
                 <select class="text-input" id="sportsSingleTarget" name="sportsSingleTarget">
-                  <option value="15">15分</option><option value="21" selected>21分</option><option value="25">25分</option><option value="30">30分</option><option value="custom">自訂</option>
+                  <option value="11">11分</option><option value="15">15分</option><option value="20">20分</option><option value="21" selected>21分</option><option value="25">25分</option><option value="30">30分</option><option value="custom">自訂</option>
                 </select>
                 <input class="text-input sports-inline-custom" id="sportsSingleCustomTarget" name="sportsSingleCustomTarget" type="number" min="1" max="999" value="30" inputmode="numeric" hidden />
               </label>
@@ -416,18 +442,31 @@
                   <option value="2">必須領先2分</option>
                 </select>
               </label>
+              <label class="field-label">最高分上限
+                <input class="text-input" name="sportsSingleMaxScore" type="number" min="0" max="999" value="0" inputmode="numeric" />
+                <small class="settings-help">填0代表不設上限。</small>
+              </label>
+            </div>
+
+            <div class="sports-option-panel" id="sportsTimedFields" hidden>
+              <label class="field-label">比賽節數
+                <select class="text-input" name="sportsPeriodCount"><option value="2">2節</option><option value="4" selected>4節</option></select>
+              </label>
+              <label class="field-label">每節時間（分鐘）
+                <input class="text-input" name="sportsPeriodMinutes" type="number" min="1" max="99" value="10" inputmode="numeric" />
+              </label>
             </div>
 
             <div class="sports-option-panel sports-custom-panel" id="sportsCustomFields" hidden>
               <div class="settings-grid">
                 <label class="field-label">幾局幾勝？
                   <select class="text-input" id="sportsCustomFormat" name="sportsCustomFormat">
-                    <option value="single">Single Game</option><option value="best-of-3" selected>Best of 3</option><option value="best-of-5">Best of 5</option>
+                    <option value="single">單局決勝</option><option value="best-of-3" selected>三局兩勝</option><option value="best-of-5">五局三勝</option><option value="best-of-7">七局四勝</option>
                   </select>
                 </label>
                 <label class="field-label">普通局目標分數
                   <select class="text-input" id="sportsCustomTarget" name="sportsCustomTarget">
-                    <option value="15">15分</option><option value="21">21分</option><option value="25" selected>25分</option><option value="30">30分</option><option value="custom">自訂</option>
+                    <option value="11">11分</option><option value="15">15分</option><option value="20">20分</option><option value="21">21分</option><option value="25" selected>25分</option><option value="30">30分</option><option value="custom">自訂</option>
                   </select>
                   <input class="text-input sports-inline-custom" id="sportsCustomTargetValue" name="sportsCustomTargetValue" type="number" min="1" max="999" value="25" inputmode="numeric" hidden />
                 </label>
@@ -481,6 +520,16 @@
               <strong>炒牌計分</strong>
               <span>1–7 張 ×1・8–9 張起炒 ×2・10–12 張雙炒 ×3・13 張三炒 ×4</span>
             </div>
+            <div class="big-two-setup-options">
+              <label class="field-label">計分模式
+                <select class="text-input" name="bigTwoMode"><option value="money" selected>計錢／零和模式</option><option value="ranking">娛樂排名模式</option></select>
+                <small class="settings-help">計錢模式四人總分會保持為0；娛樂模式只用累積分數排名。</small>
+              </label>
+              <label class="field-label">每分金額
+                <select class="text-input" id="bigTwoMoneyRate" name="bigTwoMoneyRate"><option value="0" selected>只計分</option><option value="1">$1</option><option value="2">$2</option><option value="5">$5</option><option value="custom">自訂</option></select>
+                <input class="text-input" id="bigTwoCustomMoneyRate" name="bigTwoCustomMoneyRate" type="number" min="0" max="9999" step="0.01" value="1" hidden />
+              </label>
+            </div>
           </fieldset>
 
           <section class="mahjong-setup" id="setupMahjongRules" hidden aria-label="香港麻雀快速設定">
@@ -497,19 +546,25 @@
               </label>
               <label class="field-label">最高計到幾多番？
                 <select class="text-input" name="mahjongMaxFan">
-                  <option value="8">最高計8番</option><option value="10">最高計10番</option><option value="13" selected>最高計13番</option>
+                  <option value="8">最高計8番</option><option value="10" selected>最高計10番</option><option value="13">最高計13番</option><option value="0">不設上限</option>
                 </select>
                 <small class="settings-help" id="mahjongCapHelp">實際超過13番，都會按13番封頂。</small>
               </label>
               <label class="field-label">打幾多圈？
                 <select class="text-input" id="setupMahjongLengthMode" name="mahjongLengthMode">
-                  <option value="east" selected>東圈</option><option value="half">半莊</option><option value="custom-hands">自訂局數</option>
+                  <option value="one" selected>1圈（東圈）</option><option value="two">2圈（東圈＋南圈／半莊）</option><option value="four">4圈（東、南、西、北）</option><option value="eight">8圈（兩輪）</option><option value="custom-cycles">自訂圈數</option><option value="unlimited">不限圈數，玩到自行結束</option>
                 </select>
-                <small class="settings-help" id="setupMahjongLengthHelp">東圈代表四位玩家最少各做一次莊；連莊時局數會增加。</small>
+                <small class="settings-help" id="setupMahjongLengthHelp">一圈代表四位玩家最少各做一次莊；連莊可能令實際局數增加。</small>
                 <span class="custom-hands-field" id="setupMahjongCustomHandsField" hidden>
-                  <span>預計局數</span>
-                  <input class="text-input" name="mahjongCustomHands" type="number" min="1" max="999" value="16" inputmode="numeric" />
+                  <span>自訂圈數</span>
+                  <input class="text-input" name="mahjongCustomCycles" type="number" min="1" max="99" value="3" inputmode="numeric" />
                 </span>
+              </label>
+              <label class="field-label">計分方式
+                <select class="text-input" name="mahjongScoringPreset">
+                  <option value="hk-table" selected>簡易娛樂計分</option><option value="hk-half-spicy">傳統香港計分（半辣上）</option><option value="hk-full-spicy">逐番倍增（辣辣上）</option><option value="custom">自訂</option>
+                </select>
+                <small class="settings-help">選擇後會即時顯示番數同分數預覽。</small>
               </label>
               <label class="field-label">流局時會點？
                 <select class="text-input" name="mahjongDrawDealerAction">
@@ -520,8 +575,7 @@
               </label>
             </div>
             <div class="mahjong-common-scoring">
-              <div class="mahjong-common-heading"><strong>香港常用計分</strong><span>✓ 已自動套用</span></div>
-              <input type="hidden" name="mahjongScoringPreset" value="hk-table" />
+              <div class="mahjong-common-heading"><strong>計分預覽</strong><span>按目前設定</span></div>
               <p class="settings-help" data-scoring-style-help>番數會按以下級別自動轉成分數，玩家毋須選公式。</p>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
                 <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
@@ -531,11 +585,11 @@
                   <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
                 </tbody>
               </table>
-              <button class="outline-button" id="mahjongCommonDefaults" type="button">重新套用香港常用計分</button>
+              <button class="outline-button" id="mahjongCommonDefaults" type="button">重新套用簡易娛樂計分</button>
             </div>
             <div class="mahjong-setup-preview" id="mahjongSetupPreview" aria-live="polite"></div>
             <details class="settings-advanced" id="setupMahjongAdvanced">
-              <summary>進階設定 <small>只建議熟悉計分規則的玩家使用。</small></summary>
+              <summary>進階設定 <small>一般玩家毋須修改。</small></summary>
               <div class="settings-grid">
                 <label class="field-label">底數（每1倍值幾多分）
                   <input class="text-input" name="mahjongBasePoints" type="number" min="1" max="999999" value="1" inputmode="numeric" />
@@ -564,6 +618,10 @@
                 </label>
                 <label class="field-label">莊家輸款倍數
                   <input class="text-input" name="mahjongDealerLoseMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
+                </label>
+                <label class="field-label">每次連莊額外加幾分
+                  <input class="text-input" name="mahjongDealerStreakBonus" type="number" min="0" max="999999" value="0" inputmode="numeric" />
+                  <small class="settings-help">預設0即關閉；連莊後下一局先會套用。</small>
                 </label>
                 <label class="field-label">自摸每家倍數
                   <input class="text-input" name="mahjongSelfDrawMultiplier" type="number" min="0" max="20" step="0.1" value="1" inputmode="decimal" />
@@ -627,19 +685,25 @@
               </label>
               <label class="field-label">最高計到幾多番？
                 <select class="text-input" name="mahjongMaxFan">
-                  <option value="8">最高計8番</option><option value="10">最高計10番</option><option value="13">最高計13番</option>
+                  <option value="8">最高計8番</option><option value="10">最高計10番</option><option value="13">最高計13番</option><option value="0">不設上限</option>
                 </select>
                 <small class="settings-help" id="settingsMahjongCapHelp"></small>
               </label>
               <label class="field-label">打幾多圈？
                 <select class="text-input" id="settingsMahjongLengthMode" name="mahjongLengthMode">
-                  <option value="east">東圈</option><option value="half">半莊</option><option value="custom-hands">自訂局數</option>
+                  <option value="one">1圈（東圈）</option><option value="two">2圈（東圈＋南圈／半莊）</option><option value="four">4圈（東、南、西、北）</option><option value="eight">8圈（兩輪）</option><option value="custom-cycles">自訂圈數</option><option value="unlimited">不限圈數，玩到自行結束</option>
                 </select>
-                <small class="settings-help" id="settingsMahjongLengthHelp">東圈代表四位玩家最少各做一次莊；連莊時局數會增加。</small>
+                <small class="settings-help" id="settingsMahjongLengthHelp">一圈代表四位玩家最少各做一次莊；連莊可能令實際局數增加。</small>
                 <span class="custom-hands-field" id="settingsMahjongCustomHandsField" hidden>
-                  <span>預計局數</span>
-                  <input class="text-input" name="mahjongCustomHands" type="number" min="1" max="999" value="16" inputmode="numeric" />
+                  <span>自訂圈數</span>
+                  <input class="text-input" name="mahjongCustomCycles" type="number" min="1" max="99" value="3" inputmode="numeric" />
                 </span>
+              </label>
+              <label class="field-label">計分方式
+                <select class="text-input" name="mahjongScoringPreset">
+                  <option value="hk-table">簡易娛樂計分</option><option value="hk-half-spicy">傳統香港計分（半辣上）</option><option value="hk-full-spicy">逐番倍增（辣辣上）</option><option value="custom">自訂</option>
+                </select>
+                <small class="settings-help">選擇後會即時顯示番數同分數預覽。</small>
               </label>
               <label class="field-label">流局時會點？
                 <select class="text-input" name="mahjongDrawDealerAction">
@@ -650,8 +714,7 @@
               </label>
             </div>
             <div class="mahjong-common-scoring">
-              <div class="mahjong-common-heading"><strong>香港常用計分</strong><span>✓ 已自動套用</span></div>
-              <input type="hidden" name="mahjongScoringPreset" value="hk-table" />
+              <div class="mahjong-common-heading"><strong>計分預覽</strong><span>按目前設定</span></div>
               <p class="settings-help" data-scoring-style-help>番數會按以下級別自動轉成分數，玩家毋須選公式。</p>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
                 <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
@@ -661,7 +724,7 @@
                   <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
                 </tbody>
               </table>
-              <button class="outline-button" id="settingsMahjongCommonDefaults" type="button">重新套用香港常用計分</button>
+              <button class="outline-button" id="settingsMahjongCommonDefaults" type="button">重新套用簡易娛樂計分</button>
             </div>
             <div class="mahjong-setup-preview" id="settingsMahjongSetupPreview" aria-live="polite"></div>
           </section>
@@ -676,7 +739,7 @@
           </fieldset>
 
           <details class="settings-advanced" id="mahjongSettingsFields" hidden>
-            <summary>進階設定 <small>只建議熟悉計分規則的玩家使用。</small></summary>
+            <summary>進階設定 <small>一般玩家毋須修改。</small></summary>
             <div class="settings-grid">
               <label class="field-label">底數（每1倍值幾多分）
                 <input class="text-input" name="mahjongBasePoints" type="number" min="1" max="999999" inputmode="numeric" />
@@ -710,6 +773,10 @@
               </label>
               <label class="field-label">莊家輸款倍數
                 <input class="text-input" name="mahjongDealerLoseMultiplier" type="number" min="0" max="20" step="0.1" inputmode="decimal" />
+              </label>
+              <label class="field-label">每次連莊額外加幾分
+                <input class="text-input" name="mahjongDealerStreakBonus" type="number" min="0" max="999999" inputmode="numeric" />
+                <small class="settings-help">預設0即關閉；連莊後下一局先會套用。</small>
               </label>
               <label class="field-label">自摸每家倍數
                 <input class="text-input" name="mahjongSelfDrawMultiplier" type="number" min="0" max="20" step="0.1" inputmode="decimal" />
@@ -765,6 +832,27 @@
         <div class="sports-summary-actions">
           <button class="secondary-button" id="sportsReopenButton" type="button">重新開啟／修改賽果</button>
           <button class="primary-button" data-close="sportsSummaryModal" type="button">完成</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="sportsEditGameModal" role="dialog" aria-modal="true" aria-labelledby="sportsEditGameTitle" aria-hidden="true">
+      <div class="modal sports-summary-modal">
+        <button class="modal-close" data-close="sportsEditGameModal" type="button" aria-label="關閉修改比分">×</button>
+        <div class="modal-header compact"><p class="eyebrow">EDIT GAME</p><h2 id="sportsEditGameTitle">修改較早一局比分</h2></div>
+        <form id="sportsEditGameForm"><input type="hidden" name="gameIndex" /><div class="team-name-grid"><label class="field-label"><span id="sportsEditTeam1">主隊</span><input class="text-input" name="team0" type="number" min="0" max="9999" required /></label><label class="field-label"><span id="sportsEditTeam2">客隊</span><input class="text-input" name="team1" type="number" min="0" max="9999" required /></label></div><button class="primary-button wide" type="submit">儲存修改</button></form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="sportsEndModal" role="dialog" aria-modal="true" aria-labelledby="sportsEndTitle" aria-hidden="true">
+      <div class="modal confirm-modal sports-end-modal">
+        <span class="confirm-icon">✓</span>
+        <h2 id="sportsEndTitle">提早結束並結算？</h2>
+        <p id="sportsEndMessage">你可以按目前比分決定勝方，或者只保存比分。</p>
+        <div class="sports-end-actions">
+          <button class="secondary-button" id="sportsEndReturn" type="button">返回繼續比賽</button>
+          <button class="secondary-button" id="sportsEndNoWinner" type="button">不設勝方，只保存</button>
+          <button class="primary-button" id="sportsEndWithWinner" type="button">按目前比分結算</button>
         </div>
       </div>
     </div>
@@ -882,15 +970,16 @@
           <span class="score-tap-hint">按一下 ＋1</span>
         </button>
         <div class="score-actions">
+          <div class="sports-point-actions" hidden><button type="button" data-sport-points="1">+1</button><button type="button" data-sport-points="2">+2</button><button type="button" data-sport-points="3">+3</button></div>
           <button class="minus-button" type="button" aria-label="減一分">按錯？減 1 分</button>
         </div>
       </article>
     </template>
 
-    <script src="sports-rule-engine.js?v=48" defer></script>
-    <script src="mahjong-core.js?v=48" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=48" defer></script>
-    <script src="big-two-core.js?v=48" defer></script>
-    <script src="app.js?v=48" defer></script>
+    <script src="sports-rule-engine.js?v=50" defer></script>
+    <script src="mahjong-core.js?v=50" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=50" defer></script>
+    <script src="big-two-core.js?v=50" defer></script>
+    <script src="app.js?v=50" defer></script>
   </body>
 </html>

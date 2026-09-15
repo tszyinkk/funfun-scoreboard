@@ -40,11 +40,11 @@ await evaluate(`(() => {
   beginNewActivity("sports");
   return {
     setupOpen: document.querySelector("#setupModal").classList.contains("is-open"),
-    presets: [...document.querySelectorAll("input[name='volleyballPreset']")].map((input) => input.value),
+    presets: [...document.querySelectorAll("input[name='sportPreset']")].map((input) => input.value),
     rulesVisible: !document.querySelector("#setupSportsRules").hidden,
   };
 })()`)
-  .then((value) => assert.deepEqual(value, { setupOpen: true, presets: ["standard", "single", "custom"], rulesVisible: true }));
+  .then((value) => assert.deepEqual(value, { setupOpen: true, presets: ["standard", "alternate", "single", "custom"], rulesVisible: true }));
 
 await evaluate(`(() => {
   document.querySelector("#setupHomeTeamName").value = "Alpha";
@@ -57,6 +57,7 @@ await evaluate(`(() => {
   const at2524 = [state.sportGame.currentScore, state.sportGame.completedGames.length, state.sportGame.status];
   document.querySelector("#sportsLandscapeLeft .score-display").click();
   const firstGame = [state.sportGame.currentScore, state.sportGame.gamesWon, state.sportGame.completedGames[0].scores];
+  document.querySelector("#confirmAccept").click();
   point("#sportsLandscapeLeft", 25);
   return {
     config: state.sportConfig,
@@ -71,7 +72,7 @@ await evaluate(`(() => {
   assert.equal(value.config.matchFormat, "best-of-3");
   assert.equal(value.config.decidingGameTargetScore, 15);
   assert.deepEqual(value.at2524, [[25, 24], 0, "playing"]);
-  assert.deepEqual(value.firstGame, [[0, 0], [1, 0], [26, 24]]);
+  assert.deepEqual(value.firstGame, [[26, 24], [1, 0], [26, 24]]);
   assert.equal(value.finished, "finished");
   assert.equal(value.winner, "Alpha");
   assert.equal(value.summaryOpen, true);
@@ -87,7 +88,7 @@ await evaluate(`(() => {
 
 await evaluate(`(() => {
   beginNewActivity("sports");
-  document.querySelector("input[name='volleyballPreset'][value='single']").click();
+  document.querySelector("input[name='sportPreset'][value='single']").click();
   document.querySelector("#sportsSingleTarget").value = "30";
   document.querySelector("#sportsSingleTarget").dispatchEvent(new Event("change", { bubbles: true }));
   document.querySelector("#setupForm").requestSubmit();

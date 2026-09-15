@@ -141,3 +141,17 @@ test("進度按圈風及目前莊家顯示東風東、東風南等名稱", () =>
 test("不同開始圈風會按進度循環", () => {
   assert.deepEqual([0, 1, 2, 3, 4].map((circle) => MahjongCore.windForCycle("south", circle)), ["south", "west", "north", "east", "south"]);
 });
+
+test("普通人進度顯示圈數、圈風、莊家、連莊及已玩局數", () => {
+  const players = [{ id: "a", name: "阿明" }, { id: "b", name: "阿寶" }, { id: "c", name: "Chris" }, { id: "d", name: "Dora" }];
+  const label = MahjongCore.friendlyProgressLabel({ plannedCycles: 4, completedCycles: 0, completedHands: 3, nextDealerId: "b", dealerStreak: 2 }, players);
+  assert.equal(label, "第1/4圈｜東圈｜阿寶做莊｜連莊2次｜已玩3局");
+});
+
+test("1、2、4圈會按各自目標完成，不限圈數不會自動完場", () => {
+  [["one", 1], ["two", 2], ["four", 4]].forEach(([lengthMode, plannedCycles]) => {
+    assert.equal(MahjongCore.hasCompletedPlan({ lengthMode, plannedCycles, completedCycles: plannedCycles - 1 }), false);
+    assert.equal(MahjongCore.hasCompletedPlan({ lengthMode, plannedCycles, completedCycles: plannedCycles }), true);
+  });
+  assert.equal(MahjongCore.hasCompletedPlan({ lengthMode: "unlimited", plannedCycles: 0, completedCycles: 99 }), false);
+});
