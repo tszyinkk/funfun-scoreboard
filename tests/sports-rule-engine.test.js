@@ -81,11 +81,35 @@ test("街場籃球11及20分支援+1/+2/+3及無計時", () => {
 
 test("籃球計時模式分節、平手加時及完場", () => {
   const config = Engine.basketballPreset("single"); let state = Engine.createGameState(config);
+  assert.equal(config.periodDurationSeconds, 600); assert.equal(config.overtimeDurationSeconds, 300);
   state = Engine.applyPoint(config, state, 0, 2).state; state = Engine.applyPoint(config, state, 1, 2).state;
   for (let period = 0; period < 4; period += 1) state = Engine.endPeriod(config, state);
   state = Engine.addOvertime(config, state); assert.equal(state.overtimeCount, 1);
   state = Engine.applyPoint(config, state, 0, 3).state; state = Engine.endPeriod(config, state); state = Engine.finishMatch(config, state, "score");
   assert.equal(state.winnerIndex, 0);
+});
+
+test("籃球加時時間可自訂，並可連續進入下一次加時", () => {
+  const config = Engine.sanitizeConfig({ ...Engine.basketballPreset("single"), periodDurationSeconds: 600, overtimeDurationSeconds: 420 });
+  assert.equal(config.overtimeDurationSeconds, 420);
+  let state = Engine.createGameState(config);
+  for (let period = 0; period < 4; period += 1) state = Engine.endPeriod(config, state);
+  state = Engine.addOvertime(config, state); assert.deepEqual([state.currentPeriod, state.overtimeCount], [5, 1]);
+  state = Engine.endPeriod(config, state); state = Engine.addOvertime(config, state);
+  assert.deepEqual([state.currentPeriod, state.overtimeCount], [6, 2]);
+});
+
+test("提早結算預測與最終結算使用同一勝方判定", () => {
+  const volleyball = Engine.volleyballPreset("standard");
+  let state = Engine.createGameState(volleyball);
+  state = winGame(volleyball, state, 0, 25);
+  assert.deepEqual(Engine.settlementOutcome(volleyball, state, "score"), { winnerIndex: 0, noWinner: false });
+  const finished = Engine.finishMatch(volleyball, state, "score"); assert.equal(finished.winnerIndex, 0);
+  state = Engine.createGameState(volleyball);
+  assert.deepEqual(Engine.settlementOutcome(volleyball, state, "score"), { winnerIndex: null, noWinner: true });
+  const basketball = Engine.basketballPreset("single");
+  state = Engine.createGameState(basketball); state = Engine.applyPoint(basketball, state, 1, 2).state;
+  assert.deepEqual(Engine.settlementOutcome(basketball, state, "score"), { winnerIndex: 1, noWinner: false });
 });
 
 test("重設本局保留已完成局；修改舊局會重算", () => {

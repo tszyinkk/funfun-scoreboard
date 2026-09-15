@@ -20,6 +20,13 @@ test("8、10、13番封頂會先截番數，再按香港常用級別計分", () 
   });
 });
 
+test("封頂保留實際番數；不設上限不會暗中按13番封頂", () => {
+  const capped = MahjongCore.scoreForFan({ ...standard, rawFan: 12, maxFan: 10, scoringMode: "hk-full-spicy" });
+  assert.deepEqual({ rawFan: capped.rawFan, fan: capped.fan, capped: capped.cappedByLimit, points: capped.points }, { rawFan: 12, fan: 10, capped: true, points: 128 });
+  const unlimited = MahjongCore.scoreForFan({ ...standard, rawFan: 14, maxFan: 0, scoringMode: "hk-full-spicy" });
+  assert.deepEqual({ rawFan: unlimited.rawFan, fan: unlimited.fan, capped: unlimited.cappedByLimit, points: unlimited.points }, { rawFan: 14, fan: 14, capped: false, points: 2048 });
+});
+
 test("舊牌局仍可沿用舊逐番倍增及線性計分", () => {
   assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 3, maxFan: 0, scoringMode: "doubling" }).points, 4);
   assert.equal(MahjongCore.scoreForFan({ ...standard, rawFan: 4, maxFan: 0, scoringMode: "doubling" }).points, 8);

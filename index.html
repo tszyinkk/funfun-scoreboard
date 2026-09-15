@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=50" />
+    <link rel="stylesheet" href="style.css?v=52" />
   </head>
   <body>
     <div class="app-shell">
@@ -455,6 +455,13 @@
               <label class="field-label">每節時間（分鐘）
                 <input class="text-input" name="sportsPeriodMinutes" type="number" min="1" max="99" value="10" inputmode="numeric" />
               </label>
+              <details class="settings-advanced sports-overtime-settings">
+                <summary>進階設定 <small>一般街場或計時比賽毋須修改。</small></summary>
+                <label class="field-label">每次加時時間（分鐘）
+                  <input class="text-input" name="sportsOvertimeMinutes" type="number" min="1" max="99" value="5" inputmode="numeric" />
+                  <small class="settings-help">法定時間平手後，每次加時會使用這個時間。</small>
+                </label>
+              </details>
             </div>
 
             <div class="sports-option-panel sports-custom-panel" id="sportsCustomFields" hidden>
@@ -546,9 +553,9 @@
               </label>
               <label class="field-label">最高計到幾多番？
                 <select class="text-input" name="mahjongMaxFan">
-                  <option value="8">最高計8番</option><option value="10" selected>最高計10番</option><option value="13">最高計13番</option><option value="0">不設上限</option>
+                  <option value="8">8番（八番爆棚）</option><option value="10" selected>10番（十番爆棚）</option><option value="13">13番（十三番爆棚）</option><option value="0">不設上限</option>
                 </select>
-                <small class="settings-help" id="mahjongCapHelp">實際超過13番，都會按13番封頂。</small>
+                <small class="settings-help" id="mahjongCapHelp">達到所選番數或以上，一律按該番數計算。</small>
               </label>
               <label class="field-label">打幾多圈？
                 <select class="text-input" id="setupMahjongLengthMode" name="mahjongLengthMode">
@@ -578,11 +585,11 @@
               <div class="mahjong-common-heading"><strong>計分預覽</strong><span>按目前設定</span></div>
               <p class="settings-help" data-scoring-style-help>番數會按以下級別自動轉成分數，玩家毋須選公式。</p>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
-                <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
+                <thead><tr><th>番數計算級別</th><th>分數／倍數</th><th>說明</th></tr></thead>
                 <tbody>
                   <tr><td>3番</td><td>1倍</td></tr><tr><td>4番</td><td>2倍</td></tr>
                   <tr><td>5–6番</td><td>4倍</td></tr><tr><td>7–9番</td><td>8倍</td></tr>
-                  <tr><td>10–12番</td><td>16倍</td></tr><tr><td>13番或以上</td><td>32倍／封頂</td></tr>
+                  <tr><td>10番或以上</td><td>16倍</td><td>爆棚</td></tr>
                 </tbody>
               </table>
               <button class="outline-button" id="mahjongCommonDefaults" type="button">重新套用簡易娛樂計分</button>
@@ -685,7 +692,7 @@
               </label>
               <label class="field-label">最高計到幾多番？
                 <select class="text-input" name="mahjongMaxFan">
-                  <option value="8">最高計8番</option><option value="10">最高計10番</option><option value="13">最高計13番</option><option value="0">不設上限</option>
+                  <option value="8">8番（八番爆棚）</option><option value="10">10番（十番爆棚）</option><option value="13">13番（十三番爆棚）</option><option value="0">不設上限</option>
                 </select>
                 <small class="settings-help" id="settingsMahjongCapHelp"></small>
               </label>
@@ -717,7 +724,7 @@
               <div class="mahjong-common-heading"><strong>計分預覽</strong><span>按目前設定</span></div>
               <p class="settings-help" data-scoring-style-help>番數會按以下級別自動轉成分數，玩家毋須選公式。</p>
               <table class="mahjong-score-table" aria-label="香港常用番數倍數表">
-                <thead><tr><th>番數計算級別</th><th>倍數</th></tr></thead>
+                <thead><tr><th>番數計算級別</th><th>分數／倍數</th><th>說明</th></tr></thead>
                 <tbody>
                   <tr><td>3番</td><td>1倍</td></tr><tr><td>4番</td><td>2倍</td></tr>
                   <tr><td>5–6番</td><td>4倍</td></tr><tr><td>7–9番</td><td>8倍</td></tr>
@@ -976,10 +983,10 @@
       </article>
     </template>
 
-    <script src="sports-rule-engine.js?v=50" defer></script>
-    <script src="mahjong-core.js?v=50" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=50" defer></script>
-    <script src="big-two-core.js?v=50" defer></script>
-    <script src="app.js?v=50" defer></script>
+    <script src="sports-rule-engine.js?v=52" defer></script>
+    <script src="mahjong-core.js?v=52" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=52" defer></script>
+    <script src="big-two-core.js?v=52" defer></script>
+    <script src="app.js?v=52" defer></script>
   </body>
 </html>

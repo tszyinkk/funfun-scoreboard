@@ -258,6 +258,9 @@ const STATIC_TRANSLATIONS = {
   "最高計8番": "Maximum 8 fan",
   "最高計10番": "Maximum 10 fan",
   "最高計13番": "Maximum 13 fan",
+  "8番（八番爆棚）": "8 fan (cap)",
+  "10番（十番爆棚）": "10 fan (cap)",
+  "13番（十三番爆棚）": "13 fan (cap)",
   "打幾多圈？": "Game length",
   "東圈": "East round",
   "半莊": "Half game",
@@ -369,6 +372,7 @@ const STATIC_TRANSLATIONS = {
   "勝局": "Games won",
   "按錯？撤銷上一分": "Undo last point",
   "重設本局": "Reset game",
+  "重設本節": "Reset period",
   "重設比賽": "Reset match",
   "比賽結果": "Match result",
   "重新開啟／修改賽果": "Reopen / edit match",
@@ -433,6 +437,11 @@ const STATIC_TRANSLATIONS = {
   "一般玩法會直接用上方香港常用計分表。": "Normal games use the preview table above.",
   "比賽節數": "Periods",
   "每節時間（分鐘）": "Minutes per period",
+  "每次加時時間（分鐘）": "Minutes per overtime",
+  "法定時間平手後，每次加時會使用這個時間。": "Each overtime uses this duration after a regulation tie.",
+  "一般街場或計時比賽毋須修改。": "Most street or timed games do not need this.",
+  "分數／倍數": "Points / multiplier",
+  "說明": "Note",
   "2節": "2 periods",
   "4節": "4 periods",
 };
@@ -1321,6 +1330,22 @@ function sportFormatLabel(config = state?.sportConfig) {
   return t(`${config.numberOfGames}局${config.gamesToWin}勝`, `Best of ${config.numberOfGames}`);
 }
 
+function basketballPeriodLabel(config = state?.sportConfig, game = state?.sportGame) {
+  const period = Math.max(1, Number(game?.currentPeriod) || 1);
+  if (period > (Number(config?.periodCount) || 0)) {
+    const overtime = Math.max(1, Number(game?.overtimeCount) || period - Number(config?.periodCount || 0));
+    return t(`加時第${overtime}節`, `Overtime ${overtime}`);
+  }
+  return t(`第${period}節`, `Period ${period}`);
+}
+
+function sportTimerDuration(config = state?.sportConfig, game = state?.sportGame) {
+  if (!config?.timedMode) return 0;
+  return Number(game?.currentPeriod) > Number(config.periodCount)
+    ? Number(config.overtimeDurationSeconds) || 300
+    : Number(config.periodDurationSeconds) || 600;
+}
+
 function syncSportStateToScoreboard() {
   if (!hasSportRuleEngine()) return;
   state.participants.slice(0, 2).forEach((player, index) => {
@@ -1347,8 +1372,7 @@ function sportStatusCopy() {
     return t(`比賽完成：${names[state.sportGame.winnerIndex]} ${finalScore[0]}：${finalScore[1]} 勝出`, `Match finished: ${names[state.sportGame.winnerIndex]} wins ${finalScore[0]}–${finalScore[1]}`);
   }
   if (state.sportConfig.timedMode) {
-    const period = state.sportGame.currentPeriod > state.sportConfig.periodCount ? t(`加時${state.sportGame.overtimeCount}`, `Overtime ${state.sportGame.overtimeCount}`) : t(`第${state.sportGame.currentPeriod}節`, `Period ${state.sportGame.currentPeriod}`);
-    return `${period}・${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}`;
+    return `${basketballPeriodLabel()}・${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}`;
   }
   if (state.sportGame.status === "game-complete") return t(`第${state.sportGame.currentGame}局完成・請開始下一局`, `Game ${state.sportGame.currentGame} complete · start the next game`);
   if (signal.status === "match-point") return t(`${names[signal.matchPointFor[0]]} 賽點`, `Match point · ${names[signal.matchPointFor[0]]}`);
@@ -1381,7 +1405,9 @@ function renderSportsSummary() {
   rows.forEach((game) => {
     const item = document.createElement("li");
     const label = document.createElement("span");
-    label.textContent = summary.timedMode ? (game.overtime ? t(`加時 ${game.number - state.sportConfig.periodCount}`, `Overtime ${game.number - state.sportConfig.periodCount}`) : t(`第 ${game.number} 節`, `Period ${game.number}`)) : t(`第 ${game.number} 局`, `Game ${game.number}`);
+    label.textContent = summary.timedMode
+      ? (game.overtime ? t(`加時第${game.number - state.sportConfig.periodCount}節`, `Overtime ${game.number - state.sportConfig.periodCount}`) : t(`第${game.number}節`, `Period ${game.number}`))
+      : t(`第 ${game.number} 局`, `Game ${game.number}`);
     const score = document.createElement("b");
     score.textContent = `${game.scores[0]}–${game.scores[1]}`;
     item.append(label, score);
@@ -1418,10 +1444,20 @@ function finishSportsEarly(winnerMode) {
 
 function requestSportsEnd() {
   if (!hasSportRuleEngine() || state.sportGame.status === "finished") return;
-  $("#sportsEndMessage").textContent = t(
-    `目前比分 ${state.participants[0].name} ${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]} ${state.participants[1].name}。你可以按比分決定勝方，或者只保存比分。`,
-    `Current score: ${state.participants[0].name} ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]} ${state.participants[1].name}. Choose a winner by score, or save without a winner.`,
-  );
+  const [home, away] = state.participants;
+  const outcome = SportsRuleEngine.settlementOutcome(state.sportConfig, state.sportGame, "score");
+  const predicted = outcome.noWinner
+    ? t("平手／未能分出勝負", "Tied / no winner can be determined")
+    : t(`${outcome.winnerIndex === 0 ? home.name : away.name}勝出`, `${outcome.winnerIndex === 0 ? home.name : away.name} wins`);
+  $("#sportsEndMessage").textContent = state.sportConfig.timedMode
+    ? t(
+      `目前總分：${home.name}${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}${away.name}\n目前：${basketballPeriodLabel()}\n按目前賽果結算：${predicted}\n\n你可以按目前比分結算，或者只保存比分。`,
+      `Current total: ${home.name} ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]} ${away.name}\nCurrent: ${basketballPeriodLabel()}\nProjected result: ${predicted}\n\nSettle using the current score, or save the score without a winner.`,
+    )
+    : t(
+      `勝局：${home.name}${state.sportGame.gamesWon[0]}：${state.sportGame.gamesWon[1]}${away.name}\n目前一局：${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}\n按目前賽果結算：${predicted}\n\n你可以按目前比分結算，或者只保存比分。`,
+      `Games won: ${home.name} ${state.sportGame.gamesWon[0]}–${state.sportGame.gamesWon[1]} ${away.name}\nCurrent game: ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]}\nProjected result: ${predicted}\n\nSettle using the current score, or save the score without a winner.`,
+    );
   openModal("sportsEndModal");
 }
 
@@ -1432,7 +1468,7 @@ function resetTimedClock() {
     message: t("計時會回復到本節設定時間，比分不受影響。", "The clock returns to the full period time. Scores are kept."),
     cancelText: t("取消", "Cancel"), acceptText: t("重設計時", "Reset clock"), icon: "↻",
     action: () => {
-      state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+      state.timer = { elapsed: sportTimerDuration(), running: false, startedAt: null, countdown: true };
       render();
     },
   });
@@ -1459,16 +1495,17 @@ function endTimedPeriod() {
       cancelText: t("返回比賽", "Return"), acceptText: t("開始加時", "Start overtime"), icon: "+",
       action: () => {
         state.sportGame = SportsRuleEngine.addOvertime(state.sportConfig, state.sportGame);
-        state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+        state.timer = { elapsed: sportTimerDuration(), running: false, startedAt: null, countdown: true };
         render();
+        showToast(t(`${basketballPeriodLabel()}準備開始`, `${basketballPeriodLabel()} ready`));
       },
     });
   } else if (state.sportGame.status === "regulation-complete") {
     endTimedPeriod();
   } else {
-    state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+    state.timer = { elapsed: sportTimerDuration(), running: false, startedAt: null, countdown: true };
     render();
-    showToast(t(`第${beforePeriod}節已完成`, `Period ${beforePeriod} completed`));
+    showToast(t(`${basketballPeriodLabel()}準備開始`, `${basketballPeriodLabel()} ready`));
   }
 }
 
@@ -1535,7 +1572,7 @@ function render() {
   elements.matchTitle.textContent = state.title;
   if (hasSportRuleEngine()) syncSportStateToScoreboard();
   elements.roundLabel.textContent = hasSportRuleEngine()
-    ? `${sportName()}・${t(`第 ${state.sportGame.currentGame} 局`, `Game ${state.sportGame.currentGame}`)}`
+    ? `${sportName()}・${state.sportConfig.timedMode ? basketballPeriodLabel() : t(`第 ${state.sportGame.currentGame} 局`, `Game ${state.sportGame.currentGame}`)}`
     : t(`第 ${state.round} 局`, `Round ${state.round}`);
   elements.playerCountLabel.textContent = state.kind === "chooser"
     ? t("多人手指抽籤", "Multi-touch draw")
@@ -1567,7 +1604,9 @@ function render() {
     const visibleLabel = $(".landscape-control-label", button);
     if (visibleLabel) visibleLabel.textContent = label;
   };
-  setSportsControlCopy(elements.sportsResetGameButton, "重設本局", "Reset game");
+  setSportsControlCopy(elements.sportsResetGameButton,
+    timedSport ? "重設本節" : "重設本局",
+    timedSport ? "Reset period" : "Reset game");
   setSportsControlCopy(elements.sportsResetMatchButton, "重設比賽", "Reset match");
   setSportsControlCopy(elements.sportsSummaryButton, "比賽結果", "Match result");
   setSportsControlCopy(elements.sportsEndButton, "結束並結算", "Finish and settle");
@@ -1643,17 +1682,20 @@ function renderScoreCards() {
     const card = $(".score-card", fragment);
     card.style.setProperty("--player-color", player.color);
     card.dataset.id = player.id;
-    $(".total-score", card).hidden = false;
+    const basketballScoreboard = sportRules && state.sportConfig.sportType === "basketball";
+    $(".total-score", card).hidden = basketballScoreboard;
     $(".player-index", card).textContent = String(index + 1).padStart(2, "0");
     $(".player-name", card).textContent = player.name;
     $(".score-number", card).textContent = player.score;
-    $(".score-label", card).textContent = t("本局", "Current");
+    $(".score-label", card).textContent = basketballScoreboard ? t("總分", "Total") : t("本局", "Current");
     $(".total-score strong", card).textContent = player.total;
     $(".total-score span", card).textContent = sportRules ? t("勝局", "Games won") : t("總分", "Total");
     const scoreDisplay = $(".score-display", card);
     scoreDisplay.setAttribute("aria-label", matchFinished
       ? t(`${player.name} 比賽已完成`, `${player.name}, match finished`)
-      : t(`${player.name} 現時 ${player.score} 分，按一下加一分`, `${player.name}, ${player.score} points. Tap to add one`));
+      : basketballScoreboard
+        ? t(`${player.name} 總分 ${player.score}，按一下加一分`, `${player.name}, total ${player.score} points. Tap to add one`)
+        : t(`${player.name} 現時 ${player.score} 分，按一下加一分`, `${player.name}, ${player.score} points. Tap to add one`));
     scoreDisplay.classList.toggle("is-disabled", matchFinished);
     scoreDisplay.disabled = matchFinished || (sportRules && state.sportGame.status !== "playing");
     $(".score-tap-hint", card).textContent = matchFinished ? t("比賽已完成", "Match finished") : t("按一下 ＋1", "Tap +1");
@@ -1711,7 +1753,7 @@ function toggleTimer() {
     state.timer.running = false;
     state.timer.startedAt = null;
   } else {
-    if (state.timer.countdown && state.timer.elapsed <= 0) state.timer.elapsed = state.sportConfig?.periodDurationSeconds || 600;
+    if (state.timer.countdown && state.timer.elapsed <= 0) state.timer.elapsed = sportTimerDuration() || 600;
     state.timer.running = true;
     state.timer.startedAt = Date.now();
   }
@@ -2126,7 +2168,7 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
   const drawRule = data.get("mahjongDrawDealerAction") === "pass"
     ? t("流局過莊", "dealer passes after a draw")
     : t("流局留莊", "dealer stays after a draw");
-  renderMahjongScoringTable(form, scoringMode);
+  renderMahjongScoringTable(form, scoringMode, { minimumFan, maxFan, basePoints, fanStep, maxPoints: data.get("mahjongMaxPoints") });
   const fanList = [...new Set([minimumFan, Math.max(minimumFan, 4), maxFan > 0 ? maxFan : Math.max(minimumFan, 13)])]
     .filter((fan) => fan >= minimumFan && (maxFan === 0 || fan <= maxFan))
     .sort((left, right) => left - right);
@@ -2136,32 +2178,60 @@ function updateMahjongQuickPreview(form, preview, capHelp) {
       ? t(`${fan}番計${result.multiplier}倍`, `${fan} fan = ×${result.multiplier}`)
       : t(`${fan}番計${Math.round(result.points)}分`, `${fan} fan = ${Math.round(result.points)} points`);
   });
-  const capText = maxFan > 0 ? t(`${maxFan}番封頂`, `${maxFan} fan cap`) : t("不設上限", "no fan cap");
+  const capText = maxFan > 0 ? t(`${maxFan}番爆棚`, `${maxFan}-fan cap`) : t("不設上限", "no fan cap");
   preview.textContent = t(
     `目前玩法：${minimumFan}番起糊，${capText}，${drawRule}；例如${examples.join("、")}。`,
     `Current rules: ${minimumFan} fan minimum, ${capText}, ${drawRule}; for example ${examples.join(", ")}.`,
   );
   if (capHelp) capHelp.textContent = maxFan > 0
-    ? t(`實際超過${maxFan}番，都會按${maxFan}番封頂。`, `Hands above ${maxFan} fan are scored at the ${maxFan}-fan cap.`)
-    : t("沿用舊設定：不設番數上限。", "Legacy rule: no fan cap.");
+    ? t("達到所選番數或以上，一律按該番數計算。", "At or above the selected fan total, the hand is scored at that fan total.")
+    : t("不設上限：有幾多番就按實際番數計算。", "No cap: every hand is scored at its actual fan total.");
 }
 
-function renderMahjongScoringTable(form, scoringMode) {
+function renderMahjongScoringTable(form, scoringMode, options = {}) {
   const body = $(".mahjong-score-table tbody", form);
   const help = $("[data-scoring-style-help]", form);
   if (!body) return;
-  const rows = scoringMode === "hk-half-spicy"
-    ? [["3番", "1倍"], ["4番", "2倍"], ["5番", "3倍"], ["6番", "4倍"], ["7番", "6倍"], ["8番", "8倍"], ["9番", "12倍"], ["10番", "16倍"], ["11番", "24倍"], ["12番", "32倍"], ["13番或以上", "48倍／封頂"]]
-    : scoringMode === "hk-full-spicy"
-      ? [["3番", "1倍"], ["4番", "2倍"], ["5番", "4倍"], ["6番", "8倍"], ["7番", "16倍"], ["8番", "32倍"], ["9番", "64倍"], ["10番", "128倍"], ["11番", "256倍"], ["12番", "512倍"], ["13番或以上", "1024倍／封頂"]]
-      : [["3番", "1倍"], ["4番", "2倍"], ["5–6番", "4倍"], ["7–9番", "8倍"], ["10–12番", "16倍"], ["13番或以上", "32倍／封頂"]];
-  body.replaceChildren(...rows.map(([fan, multiplier]) => {
+  const minimumFan = Math.max(1, Math.round(Number(options.minimumFan) || 3));
+  const maxFan = Math.max(0, Math.round(Number(options.maxFan) || 0));
+  const scoreOptions = {
+    minimumFan,
+    maxFan,
+    basePoints: Math.max(1, Number(options.basePoints) || 1),
+    fanStep: Math.max(1, Number(options.fanStep) || 2),
+    scoringMode,
+    maxPoints: Math.max(0, Number(options.maxPoints) || 0),
+  };
+  const formatValue = (fan) => {
+    const result = MahjongCore.scoreForFan({ ...scoreOptions, rawFan: fan });
+    return Number.isFinite(result.multiplier)
+      ? t(`${result.multiplier}倍`, `×${result.multiplier}`)
+      : t(`${Math.round(result.points)}分`, `${Math.round(result.points)} points`);
+  };
+  const rows = [];
+  if (maxFan > 0) {
+    for (let fan = minimumFan; fan < maxFan; fan += 1) rows.push({ fan: `${fan}番`, value: formatValue(fan), note: "" });
+    rows.push({ fan: `${maxFan}番或以上`, value: formatValue(maxFan), note: t("爆棚", "Cap") });
+  } else {
+    const previewLastFan = Math.max(13, minimumFan);
+    for (let fan = minimumFan; fan <= previewLastFan; fan += 1) rows.push({ fan: `${fan}番`, value: formatValue(fan), note: "" });
+    rows.push({ fan: `${previewLastFan + 1}番起`, value: t("按實際番數計算", "Score actual fan"), note: t("不設上限", "No cap") });
+  }
+  const header = $(".mahjong-score-table thead tr", form);
+  if (header) header.replaceChildren(...[t("番數計算級別", "Fan tier"), t("分數／倍數", "Points / multiplier"), t("說明", "Note")].map((text) => {
+    const cell = document.createElement("th");
+    cell.textContent = text;
+    return cell;
+  }));
+  body.replaceChildren(...rows.map((entry) => {
     const row = document.createElement("tr");
     const fanCell = document.createElement("td");
-    const multiplierCell = document.createElement("td");
-    fanCell.textContent = uiLanguage === "en" ? fan.replace("番或以上", " fan or more").replace("番", " fan") : fan;
-    multiplierCell.textContent = uiLanguage === "en" ? multiplier.replace("倍／封頂", "× / cap").replace("倍", "×") : multiplier;
-    row.append(fanCell, multiplierCell);
+    const valueCell = document.createElement("td");
+    const noteCell = document.createElement("td");
+    fanCell.textContent = uiLanguage === "en" ? entry.fan.replace("番或以上", " fan or more").replace("番起", "+ fan").replace("番", " fan") : entry.fan;
+    valueCell.textContent = entry.value;
+    noteCell.textContent = entry.note || "—";
+    row.append(fanCell, valueCell, noteCell);
     return row;
   }));
   if (help) help.textContent = scoringMode === "hk-half-spicy"
@@ -2264,7 +2334,9 @@ function updateMahjongPreview() {
     breakdown.push(`自摸${state.mahjong.selfDrawFan}番`);
   }
   const breakdownLine = breakdown.length ? `${breakdown.join("＋")}｜` : "";
-  const limitLine = result.cappedByLimit ? `（原計 ${result.rawFan} 番，封頂 ${result.fan} 番）` : "";
+  const limitLine = result.cappedByLimit
+    ? t(`（實際${result.rawFan}番，按${result.fan}番計分）`, ` (actual ${result.rawFan} fan, scored at ${result.fan} fan)`)
+    : "";
   const multiplierLine = Number.isFinite(result.multiplier) ? `${result.multiplier}倍・` : "";
   elements.mahjongPreview.textContent = `${breakdownLine}合共 ${result.fan} 番${limitLine}｜${multiplierLine}計分 ${Math.round(result.points)} 分｜${winnerLine}${payLine ? `｜${payLine}` : ""}`;
 }
@@ -2285,7 +2357,10 @@ function renderMahjongHistory() {
     titleStrong.textContent = round.handWindLabel || `${MahjongCore.WIND_SHORT_NAMES[round.wind] || "東"}風${MahjongCore.WIND_SHORT_NAMES[MahjongCore.WINDS[((round.handInCycle || 1) - 1) % 4]] || "東"}`;
     const titleSummary = document.createElement("span");
     const multiplierText = Number.isFinite(round.multiplier) ? `・${round.multiplier}倍` : "";
-    titleSummary.textContent = round.winType === "draw" ? "流局・0 分" : `${round.winType === "self" ? "自摸" : "出銃"}・${round.fan} 番${multiplierText}・${Math.round(round.points)} 分`;
+    const cappedText = round.cappedByLimit && Number.isFinite(round.rawFan)
+      ? t(`實際${round.rawFan}番，按${round.fan}番計分・`, `Actual ${round.rawFan} fan, scored at ${round.fan} fan · `)
+      : "";
+    titleSummary.textContent = round.winType === "draw" ? t("流局・0 分", "Draw · 0 points") : `${t(round.winType === "self" ? "自摸" : "出銃", round.winType === "self" ? "Self-draw" : "Discard win")}・${cappedText}${round.fan} ${t("番", "fan")}${multiplierText}・${Math.round(round.points)} ${t("分", "points")}`;
     title.append(titleStrong, titleSummary);
     const detail = document.createElement("p");
     const netLine = (round.net || []).map((entry) => `${entry.name} ${formatPoints(entry.amount)}`).join("　");
@@ -2350,7 +2425,7 @@ function recalculateMahjongHistory() {
       number: index + 1, handWindLabel, cycleNumber: session.completedCycles + 1, handInCycle: session.handsInCycle + 1, wind: currentWind,
       scores: state.participants.map((player) => ({ id: player.id, name: player.name, score: player.score })),
       winners: result.winner ? [result.winner.name] : [], winnerName: result.winner?.name || t("流局", "Draw"), winType: payload.winType,
-      fan: result.fan, multiplier: result.multiplier, points: result.points,
+      fan: result.fan, rawFan: result.rawFan, cappedByLimit: result.cappedByLimit, multiplier: result.multiplier, points: result.points,
       patternNames: patterns.map((pattern) => displayMahjongPatternLabel(pattern, currentWind)),
       net: state.participants.map((player) => ({ id: player.id, name: player.name, amount: Math.round(result.net[player.id] || 0) })), mahjong: payload,
     });
@@ -2479,7 +2554,10 @@ function viewArchivedMahjongRecord(recordId) {
   [...(record.history || [])].reverse().forEach((hand) => {
     const item = document.createElement("p");
     const windLabel = hand.handWindLabel || `${MahjongCore.WIND_SHORT_NAMES[hand.wind] || "東"}風${MahjongCore.WIND_SHORT_NAMES[MahjongCore.WINDS[((hand.handInCycle || 1) - 1) % 4]] || "東"}`;
-    item.textContent = `${windLabel}・${hand.winnerName || "流局"}・${hand.fan || 0} 番${Number.isFinite(hand.multiplier) ? `・${hand.multiplier}倍` : ""}・${Math.round(hand.points || 0)} 分`;
+    const capText = hand.cappedByLimit && Number.isFinite(hand.rawFan)
+      ? t(`・實際${hand.rawFan}番，按${hand.fan}番計分`, ` · actual ${hand.rawFan} fan, scored at ${hand.fan} fan`)
+      : "";
+    item.textContent = `${windLabel}・${hand.winnerName || "流局"}・${hand.fan || 0} 番${capText}${Number.isFinite(hand.multiplier) ? `・${hand.multiplier}倍` : ""}・${Math.round(hand.points || 0)} 分`;
     hands.appendChild(item);
   });
   if (!record.history?.length) {
@@ -2531,6 +2609,8 @@ function recordMahjongHand(event) {
     winnerName: result.winner?.name || "流局",
     winType: payload.winType,
     fan: result.fan,
+    rawFan: result.rawFan,
+    cappedByLimit: result.cappedByLimit,
     multiplier: result.multiplier,
     points: result.points,
     patternNames: state.mahjong.patterns.filter((pattern) => formData.getAll("patterns").includes(pattern.id)).map((pattern) => displayMahjongPatternLabel(pattern, currentWind)),
@@ -3205,6 +3285,7 @@ function sportsConfigFromForm(formData) {
         ...SportsRuleEngine.basketballPreset("single"),
         periodCount: formData.get("sportsPeriodCount"),
         periodDurationSeconds: Number(formData.get("sportsPeriodMinutes")) * 60,
+        overtimeDurationSeconds: Number(formData.get("sportsOvertimeMinutes")) * 60,
       });
     }
     const targetScore = setupTarget("sportsSingleTarget", "sportsSingleCustomTarget");
@@ -3256,12 +3337,13 @@ function updateSportsSetupFields() {
   $("#sportsSingleCustomTarget").hidden = $("#sportsSingleTarget").value !== "custom";
   $("#sportsCustomTargetValue").hidden = $("#sportsCustomTarget").value !== "custom";
   const customFormat = $("#sportsCustomFormat").value;
+  $("#sportsCustomFormat").closest("label").hidden = sportType === "basketball";
   const canUseDecider = sportType === "volleyball" && customFormat !== "single";
   $("#sportsUseDecider").closest("label").hidden = !canUseDecider;
   $("#sportsDeciderTargetField").hidden = !canUseDecider || !$("#sportsUseDecider").checked;
 
   const config = sportsConfigFromForm(new FormData(setupForm));
-  const format = config.timedMode ? t(`${config.periodCount}節・每節${Math.round(config.periodDurationSeconds / 60)}分鐘`, `${config.periodCount} periods · ${Math.round(config.periodDurationSeconds / 60)} min`) : config.matchFormat === "single" ? t("一局定勝負", "Single Game") : t(`${config.numberOfGames}局${config.gamesToWin}勝`, `Best of ${config.numberOfGames}`);
+  const format = config.timedMode ? t(`${config.periodCount}節・每節${Math.round(config.periodDurationSeconds / 60)}分鐘・加時${Math.round(config.overtimeDurationSeconds / 60)}分鐘`, `${config.periodCount} periods · ${Math.round(config.periodDurationSeconds / 60)} min · OT ${Math.round(config.overtimeDurationSeconds / 60)} min`) : config.matchFormat === "single" ? t("一局定勝負", "Single Game") : t(`${config.numberOfGames}局${config.gamesToWin}勝`, `Best of ${config.numberOfGames}`);
   const winRule = config.winBy > 1 ? t(`領先${config.winBy}分`, `win by ${config.winBy}`) : t("先到即完", "first to target wins");
   const cap = config.maxScore > 0 ? t(`最高${config.maxScore}分`, `cap ${config.maxScore}`) : t("不設上限", "no score cap");
   const decider = config.useDifferentDecidingGame ? t(`・決勝局${config.decidingGameTargetScore}分`, ` · deciding game ${config.decidingGameTargetScore}`) : "";
@@ -3767,16 +3849,19 @@ $("#brandHome").addEventListener("click", (event) => {
 $("#finishRoundButton").addEventListener("click", finishRound);
 elements.sportsResetGameButton.addEventListener("click", () => {
   if (!hasSportRuleEngine()) return;
+  const timed = state.sportConfig.timedMode;
   openConfirm({
-    title: t("重設目前一局？", "Reset current game?"),
-    message: t(`第 ${state.sportGame.currentGame} 局會回復 0–0；之前已完成嘅局數會保留。`, `Game ${state.sportGame.currentGame} will return to 0–0. Completed games are kept.`),
+    title: timed ? t("重設目前一節？", "Reset current period?") : t("重設目前一局？", "Reset current game?"),
+    message: timed
+      ? t(`${basketballPeriodLabel()}的得分會回復到開始時；之前節數嘅總分會保留。`, `${basketballPeriodLabel()} returns to its starting score; earlier periods remain in the total.`)
+      : t(`第 ${state.sportGame.currentGame} 局會回復 0–0；之前已完成嘅局數會保留。`, `Game ${state.sportGame.currentGame} will return to 0–0. Completed games are kept.`),
     cancelText: t("取消", "Cancel"),
-    acceptText: t("重設本局", "Reset game"),
+    acceptText: timed ? t("重設本節", "Reset period") : t("重設本局", "Reset game"),
     icon: "↻",
     action: () => {
       snapshot();
       state.sportGame = SportsRuleEngine.resetCurrentGame(state.sportConfig, state.sportGame);
-      if (state.sportConfig.timedMode) state.timer = { elapsed: state.sportConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true };
+      if (state.sportConfig.timedMode) state.timer = { elapsed: sportTimerDuration(), running: false, startedAt: null, countdown: true };
       syncSportStateToScoreboard();
       render();
       showToast(t("本局已重設", "Current game reset"));

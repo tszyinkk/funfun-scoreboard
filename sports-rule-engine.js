@@ -14,7 +14,7 @@
   }
 
   function baseConfig(sportType, preset, values) {
-    return { version: 2, sportType, preset, matchFormat: "single", numberOfGames: 1, gamesToWin: 1, targetScore: 21, winBy: 1, maxScore: 0, useDifferentDecidingGame: false, decidingGameTargetScore: 21, scoringMode: "rally-point", timedMode: false, periodCount: 0, periodDurationSeconds: 0, ...values };
+    return { version: 3, sportType, preset, matchFormat: "single", numberOfGames: 1, gamesToWin: 1, targetScore: 21, winBy: 1, maxScore: 0, useDifferentDecidingGame: false, decidingGameTargetScore: 21, scoringMode: "rally-point", timedMode: false, periodCount: 0, periodDurationSeconds: 0, overtimeDurationSeconds: 0, ...values };
   }
 
   function volleyballPreset(preset = "standard") {
@@ -37,7 +37,7 @@
 
   function basketballPreset(preset = "standard") {
     if (preset === "alternate") return baseConfig("basketball", preset, { targetScore: 20, scoringMode: "basketball-123" });
-    if (preset === "single") return baseConfig("basketball", preset, { matchFormat: "timed", targetScore: 0, scoringMode: "basketball-123", timedMode: true, periodCount: 4, periodDurationSeconds: 600 });
+    if (preset === "single") return baseConfig("basketball", preset, { matchFormat: "timed", targetScore: 0, scoringMode: "basketball-123", timedMode: true, periodCount: 4, periodDurationSeconds: 600, overtimeDurationSeconds: 300 });
     return baseConfig("basketball", preset === "custom" ? "custom" : "standard", { targetScore: 11, scoringMode: "basketball-123" });
   }
 
@@ -59,7 +59,7 @@
     const rawCap = timedMode ? 0 : cleanInteger(input.maxScore, defaults.maxScore, 0, 999);
     return {
       ...defaults,
-      version: 2,
+      version: 3,
       sportType,
       preset,
       matchFormat: timedMode ? "timed" : matchFormat,
@@ -74,6 +74,9 @@
       timedMode,
       periodCount: timedMode ? (Number(input.periodCount) === 2 ? 2 : 4) : 0,
       periodDurationSeconds: timedMode ? cleanInteger(input.periodDurationSeconds, defaults.periodDurationSeconds || 600, 60, 5940) : 0,
+      // Old saved timed games did not store a separate overtime length. Keep their
+      // scores and timer intact while giving every such game a safe 5-minute default.
+      overtimeDurationSeconds: timedMode ? cleanInteger(input.overtimeDurationSeconds, defaults.overtimeDurationSeconds || 300, 60, 5940) : 0,
     };
   }
 
@@ -90,14 +93,14 @@
 
   function createGameState(configInput) {
     const config = sanitizeConfig(configInput);
-    return { version: 2, status: "playing", currentGame: 1, currentScore: [0, 0], completedGames: [], gamesWon: [0, 0], winnerIndex: null, pointHistory: [], currentPeriod: 1, periodScores: [], periodStartScore: [0, 0], overtimeCount: 0, earlyEnded: false, noWinner: false, startedAt: new Date().toISOString(), finishedAt: null, lastSignal: config.timedMode ? "period-1" : "playing" };
+    return { version: 3, status: "playing", currentGame: 1, currentScore: [0, 0], completedGames: [], gamesWon: [0, 0], winnerIndex: null, pointHistory: [], currentPeriod: 1, periodScores: [], periodStartScore: [0, 0], overtimeCount: 0, earlyEnded: false, noWinner: false, startedAt: new Date().toISOString(), finishedAt: null, lastSignal: config.timedMode ? "period-1" : "playing" };
   }
 
   function cloneState(config, stateInput) {
     const fresh = createGameState(config);
     const state = stateInput && typeof stateInput === "object" ? stateInput : {};
     return {
-      ...fresh, ...state, version: 2,
+      ...fresh, ...state, version: 3,
       currentGame: cleanInteger(state.currentGame, 1, 1, Math.max(1, config.numberOfGames)),
       currentScore: [0, 1].map((index) => cleanInteger(state.currentScore?.[index], 0, 0, 99999)),
       completedGames: Array.isArray(state.completedGames) ? state.completedGames.map((game, index) => ({ number: cleanInteger(game.number, index + 1, 1, 99), scores: [0, 1].map((team) => cleanInteger(game.scores?.[team], 0, 0, 99999)), winnerIndex: game.winnerIndex === 1 ? 1 : 0, targetScore: cleanInteger(game.targetScore, Math.max(1, config.targetScore), 1, 999), completedAt: game.completedAt || null })).slice(0, 99) : [],
@@ -241,19 +244,29 @@
     return state;
   }
 
+  function settlementOutcome(configInput, gameStateInput, winnerMode = "score") {
+    const config = sanitizeConfig(configInput);
+    const state = cloneState(config, gameStateInput);
+    if (winnerMode === "none") return { winnerIndex: null, noWinner: true };
+    const primary = config.timedMode ? state.currentScore : state.gamesWon;
+    if (primary[0] !== primary[1]) return { winnerIndex: primary[0] > primary[1] ? 0 : 1, noWinner: false };
+    // A tied set score is resolved only by the current in-progress game's score.
+    // If that is tied too, there is intentionally no projected winner.
+    if (!config.timedMode && state.currentScore[0] !== state.currentScore[1]) {
+      return { winnerIndex: state.currentScore[0] > state.currentScore[1] ? 0 : 1, noWinner: false };
+    }
+    return { winnerIndex: null, noWinner: true };
+  }
+
   function finishMatch(configInput, gameStateInput, winnerMode = "score", createdAt = new Date().toISOString()) {
     const config = sanitizeConfig(configInput);
     const state = cloneState(config, gameStateInput);
     if (state.status === "finished") return state;
+    const outcome = settlementOutcome(config, state, winnerMode);
     state.status = "finished";
     state.earlyEnded = true;
-    state.noWinner = winnerMode === "none";
-    if (!state.noWinner) {
-      const first = config.timedMode ? state.currentScore[0] : state.gamesWon[0];
-      const second = config.timedMode ? state.currentScore[1] : state.gamesWon[1];
-      state.winnerIndex = first === second ? (state.currentScore[0] === state.currentScore[1] ? null : state.currentScore[0] > state.currentScore[1] ? 0 : 1) : first > second ? 0 : 1;
-      if (state.winnerIndex === null) state.noWinner = true;
-    } else state.winnerIndex = null;
+    state.noWinner = outcome.noWinner;
+    state.winnerIndex = outcome.winnerIndex;
     state.finishedAt = createdAt;
     return state;
   }
@@ -291,7 +304,7 @@
     return { sportType: config.sportType, preset: config.preset, timedMode: config.timedMode, status: state.status, earlyEnded: state.earlyEnded, noWinner: state.noWinner, winnerIndex: state.winnerIndex, gamesWon: [...state.gamesWon], currentScore: [...state.currentScore], completedGames: state.completedGames.map((game) => ({ ...game, scores: [...game.scores] })), periodScores: state.periodScores.map((period) => ({ ...period, scores: [...period.scores] })) };
   }
 
-  const api = { MATCH_FORMATS, SPORT_TYPES, volleyballPreset, badmintonPreset, tableTennisPreset, basketballPreset, presetForSport, sanitizeConfig, targetForGame, scoreWinsGame, evaluate, createGameState, sanitizeGameState, applyPoint, advanceGame, replayPoints, resetCurrentGame, resetMatch, reopenMatch, endPeriod, addOvertime, finishMatch, editCompletedGame, matchSummary };
+  const api = { MATCH_FORMATS, SPORT_TYPES, volleyballPreset, badmintonPreset, tableTennisPreset, basketballPreset, presetForSport, sanitizeConfig, targetForGame, scoreWinsGame, evaluate, createGameState, sanitizeGameState, applyPoint, advanceGame, replayPoints, resetCurrentGame, resetMatch, reopenMatch, endPeriod, addOvertime, settlementOutcome, finishMatch, editCompletedGame, matchSummary };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.SportsRuleEngine = api;
 })(typeof window === "undefined" ? globalThis : window);
