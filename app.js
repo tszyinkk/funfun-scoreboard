@@ -365,6 +365,7 @@ const STATIC_TRANSLATIONS = {
   "勝出條件": "Winning rule",
   "先到指定分數即完": "First to target wins",
   "必須領先2分": "Win by 2",
+  "填0代表不設上限。": "Enter 0 for no cap.",
   "幾局幾勝？": "Match format",
   "普通局目標分數": "Regular game target",
   "最高分上限": "Maximum score cap",
@@ -438,6 +439,15 @@ const STATIC_TRANSLATIONS = {
   "北圈": "North round",
   "一般玩法會直接用上方香港常用計分表。": "Normal games use the preview table above.",
   "比賽節數": "Periods",
+  "球類比賽設定": "Sports match settings",
+  "目前比賽設定": "Current match settings",
+  "目前運動": "Current sport",
+  "目前玩法": "Current format",
+  "目標分數": "Target score",
+  "局數／節數": "Games / periods",
+  "標準比賽": "Standard",
+  "另一預設玩法": "Alternative preset",
+  "單局／計時玩法": "Single / timed",
   "每節時間（分鐘）": "Minutes per period",
   "每次加時時間（分鐘）": "Minutes per overtime",
   "法定時間平手後，每次加時會使用這個時間。": "Each overtime uses this duration after a regulation tie.",
@@ -568,6 +578,17 @@ function applyLanguage() {
   $("#setupHomeTeamName").placeholder = t("主隊名稱", "Home team name");
   $("#setupAwayTeamName").placeholder = t("客隊名稱", "Away team name");
   elements.setupSportsRules.setAttribute("aria-label", t("運動比賽設定", "Sports match setup"));
+  $("#settingsSportsFields").setAttribute("aria-label", t("球類比賽設定", "Sports match settings"));
+  const sportSettingsType = $("[name='settingsSportType']");
+  if (sportSettingsType) {
+    [["volleyball", "排球", "Volleyball"], ["basketball", "籃球", "Basketball"], ["badminton", "羽毛球", "Badminton"], ["table-tennis", "乒乓球", "Table Tennis"]]
+      .forEach(([value, zh, en]) => { const option = $(`option[value='${value}']`, sportSettingsType); if (option) option.textContent = t(zh, en); });
+  }
+  const sportSettingsPreset = $("[name='settingsSportPreset']");
+  if (sportSettingsPreset) {
+    [["standard", "標準比賽", "Standard"], ["alternate", "另一預設玩法", "Alternative preset"], ["single", "單局／計時玩法", "Single / timed"], ["custom", "自訂玩法", "Custom rules"]]
+      .forEach(([value, zh, en]) => { const option = $(`option[value='${value}']`, sportSettingsPreset); if (option) option.textContent = t(zh, en); });
+  }
   $$('[data-fan-score-preview]').forEach((table) => table.setAttribute("aria-label", t("番數及分數預覽", "Fan and score preview")));
   elements.mahjongPatternSearch.placeholder = t("例如：清一色、對對糊", "e.g. Full flush, All pungs");
   $("#settingsButton").setAttribute("aria-label", t("計分設定", "Score settings"));
@@ -3140,6 +3161,13 @@ function openSettings() {
   if (totalModeInput) totalModeInput.checked = true;
   if (winnerRuleInput) winnerRuleInput.checked = true;
   settingsParticipantsDraft = state.participants.map((player) => ({ ...player }));
+  if (hasSportRuleEngine()) {
+    renderParticipantEditor();
+    updateSettingsModeFields();
+    renderSportsSettings();
+    openModal("settingsModal");
+    return;
+  }
   const rules = state.mahjong || defaultMahjongRules();
   $("#mahjongSettingsFields").open = false;
   $("#settingsMahjongQuickFields").hidden = state.kind !== "mahjong";
@@ -3189,7 +3217,72 @@ function updateSettingsModeFields() {
   $("#winnerRuleFields").hidden = special;
   $("#settingsMahjongQuickFields").hidden = state?.kind !== "mahjong";
   $("#mahjongSettingsFields").hidden = state?.kind !== "mahjong";
+  $("#settingsSportsFields").hidden = !hasSportRuleEngine();
   $("#addParticipantButton").hidden = state?.kind === "mahjong" || state?.kind === "bigtwo" || hasSportRuleEngine();
+}
+
+function sportsMatchHasProgress() {
+  if (!hasSportRuleEngine()) return false;
+  const game = state.sportGame;
+  const timerHasRun = state.sportConfig.timedMode
+    && (state.timer?.running || Number(state.timer?.elapsed) !== sportTimerDuration(state.sportConfig, game));
+  return game.pointHistory.length > 0 || game.completedGames.length > 0 || game.periodScores.length > 0 || game.status !== "playing" || timerHasRun;
+}
+
+function renderSportsSettings({ preserveDraft = false } = {}) {
+  if (!hasSportRuleEngine()) return;
+  const form = $("#settingsForm");
+  const draft = preserveDraft ? new FormData(form) : null;
+  const config = state.sportConfig;
+  const locked = sportsMatchHasProgress();
+  $("[name='settingsSportType']", form).value = config.sportType;
+  $("[name='settingsSportPreset']", form).value = ["standard", "alternate", "single", "custom"].includes(config.preset) ? config.preset : "custom";
+  $("[name='settingsSportTargetScore']", form).value = config.targetScore;
+  $("[name='settingsSportGameCount']", form).value = config.timedMode ? config.periodCount : config.numberOfGames;
+  $("[name='settingsSportWinBy']", form).value = String(config.winBy);
+  $("[name='settingsSportMaxScore']", form).value = config.maxScore;
+  $("[name='settingsSportPeriodMinutes']", form).value = Math.max(1, Math.round(config.periodDurationSeconds / 60));
+  $("[name='settingsSportOvertimeMinutes']", form).value = Math.max(1, Math.round(config.overtimeDurationSeconds / 60));
+  if (draft) {
+    $$('[name^="settingsSport"]', form).forEach((field) => {
+      if (draft.has(field.name)) field.value = draft.get(field.name);
+    });
+  }
+  $$("[name^='settingsSport']", form).forEach((field) => { field.disabled = locked; });
+  $$(".sports-timed-setting", form).forEach((field) => { field.hidden = !config.timedMode; });
+  $("#settingsSportsLockNote").textContent = locked
+    ? t("已有比分或已完成局／節；為保護紀錄，規則不能在此場更改。可修改名稱後儲存。", "This match already has scores or completed games/periods. Rules are locked to protect its record; names can still be saved.")
+    : t("未開始計分，可以修改玩法；儲存後會套用到這場比賽。", "No score has been recorded. You can change the format and save it for this match.");
+  $("#settingsSportsSummary").textContent = t(
+    `${sportName(config)}・${sportFormatLabel(config)}・${config.timedMode ? `${config.periodCount}節，每節${Math.round(config.periodDurationSeconds / 60)}分鐘，加時${Math.round(config.overtimeDurationSeconds / 60)}分鐘` : `${config.targetScore}分・${config.winBy > 1 ? `領先${config.winBy}分` : "先到即完"}${config.maxScore ? `・最高${config.maxScore}分` : "・不設上限"}`}`,
+    `${sportName(config)} · ${sportFormatLabel(config)} · ${config.timedMode ? `${config.periodCount} periods, ${Math.round(config.periodDurationSeconds / 60)} min each, overtime ${Math.round(config.overtimeDurationSeconds / 60)} min` : `${config.targetScore} points · ${config.winBy > 1 ? `win by ${config.winBy}` : "first to target"}${config.maxScore ? ` · cap ${config.maxScore}` : " · no cap"}`}`,
+  );
+}
+
+function sportsConfigFromSettings(formData) {
+  const requestedType = String(formData.get("settingsSportType") || state.sportConfig.sportType);
+  const requestedPreset = String(formData.get("settingsSportPreset") || state.sportConfig.preset);
+  const base = requestedType === state.sportConfig.sportType && requestedPreset === state.sportConfig.preset
+    ? { ...state.sportConfig }
+    : SportsRuleEngine.presetForSport(requestedType, requestedPreset);
+  const timed = base.timedMode;
+  const gameCount = Math.max(1, Math.min(99, Math.round(Number(formData.get("settingsSportGameCount")) || (timed ? base.periodCount : base.numberOfGames))));
+  const matchFormat = timed ? "timed" : ({ 1: "single", 3: "best-of-3", 5: "best-of-5", 7: "best-of-7" }[gameCount] || base.matchFormat);
+  return SportsRuleEngine.sanitizeConfig({
+    ...base,
+    sportType: requestedType,
+    preset: requestedPreset,
+    matchFormat,
+    numberOfGames: timed ? 1 : gameCount,
+    gamesToWin: timed ? 1 : Math.ceil(gameCount / 2),
+    targetScore: formData.get("settingsSportTargetScore"),
+    decidingGameTargetScore: base.useDifferentDecidingGame ? base.decidingGameTargetScore : formData.get("settingsSportTargetScore"),
+    winBy: formData.get("settingsSportWinBy"),
+    maxScore: formData.get("settingsSportMaxScore"),
+    periodCount: timed ? gameCount : base.periodCount,
+    periodDurationSeconds: timed ? Number(formData.get("settingsSportPeriodMinutes")) * 60 : base.periodDurationSeconds,
+    overtimeDurationSeconds: timed ? Number(formData.get("settingsSportOvertimeMinutes")) * 60 : base.overtimeDurationSeconds,
+  });
 }
 
 function isMahjongEarly(session) {
@@ -3813,6 +3906,7 @@ elements.languageToggle.addEventListener("click", () => {
   if (elements.mahjongAnalyzerModal.classList.contains("is-open")) renderMahjongAnalyzer();
   if (elements.bigTwoRoundModal.classList.contains("is-open")) renderBigTwoRoundForm(elements.bigTwoWinner.value);
   if (elements.setupModal.classList.contains("is-open")) updateSportsSetupFields();
+  if (elements.settingsModal.classList.contains("is-open") && hasSportRuleEngine()) renderSportsSettings({ preserveDraft: true });
   if (elements.sportsSummaryModal.classList.contains("is-open")) renderSportsSummary();
 });
 $("#homeModeGrid").addEventListener("click", (event) => {
@@ -4025,6 +4119,24 @@ $("#settingsForm").addEventListener("submit", (event) => {
     if (player) player.name = $("input", row).value.trim().slice(0, 18) || `玩家 ${index + 1}`;
   });
   state.participants = settingsParticipantsDraft.map((player) => ({ ...player }));
+  if (hasSportRuleEngine()) {
+    if (!sportsMatchHasProgress()) {
+      const nextConfig = sportsConfigFromSettings(form);
+      const configChanged = JSON.stringify(nextConfig) !== JSON.stringify(state.sportConfig);
+      if (configChanged) {
+        state.sportConfig = nextConfig;
+        state.sportGame = SportsRuleEngine.createGameState(nextConfig);
+        state.timer = nextConfig.timedMode
+          ? { elapsed: nextConfig.periodDurationSeconds, running: false, startedAt: null, countdown: true }
+          : { elapsed: 0, running: false, startedAt: null, countdown: false };
+      }
+    }
+    syncSportStateToScoreboard();
+    closeModal("settingsModal");
+    render();
+    showToast(t("設定已儲存", "Settings saved"));
+    return;
+  }
   if (state.kind === "mahjong") {
     state.mahjong = sanitizeMahjongRules({
       prevailingWind: form.get("mahjongPrevailingWind"),

@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=55" />
+    <link rel="stylesheet" href="style.css?v=56" />
   </head>
   <body>
     <div class="app-shell">
@@ -678,6 +678,37 @@
             <button class="outline-button wide" id="addParticipantButton" type="button">＋ 加一位／一隊</button>
           </fieldset>
 
+          <section class="sports-settings" id="settingsSportsFields" hidden aria-label="球類比賽設定">
+            <div class="sports-setup-heading"><div><span>SPORTS SETTINGS</span><h3>目前比賽設定</h3></div><small id="settingsSportsLockNote"></small></div>
+            <p class="sports-setup-preview" id="settingsSportsSummary" aria-live="polite"></p>
+            <div class="settings-grid sports-settings-grid">
+              <label class="field-label">目前運動
+                <select class="text-input" name="settingsSportType"><option value="volleyball">排球 Volleyball</option><option value="basketball">籃球 Basketball</option><option value="badminton">羽毛球 Badminton</option><option value="table-tennis">乒乓球 Table Tennis</option></select>
+              </label>
+              <label class="field-label">目前玩法
+                <select class="text-input" name="settingsSportPreset"><option value="standard">標準比賽</option><option value="alternate">另一預設玩法</option><option value="single">單局／計時玩法</option><option value="custom">自訂玩法</option></select>
+              </label>
+              <label class="field-label">目標分數
+                <input class="text-input" name="settingsSportTargetScore" type="number" min="1" max="999" inputmode="numeric" />
+              </label>
+              <label class="field-label">局數／節數
+                <input class="text-input" name="settingsSportGameCount" type="number" min="1" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label">勝出條件
+                <select class="text-input" name="settingsSportWinBy"><option value="1">先到指定分數即完</option><option value="2">必須領先2分</option></select>
+              </label>
+              <label class="field-label">最高分上限
+                <input class="text-input" name="settingsSportMaxScore" type="number" min="0" max="999" inputmode="numeric" /><small class="settings-help">填0代表不設上限。</small>
+              </label>
+              <label class="field-label sports-timed-setting">每節時間（分鐘）
+                <input class="text-input" name="settingsSportPeriodMinutes" type="number" min="1" max="99" inputmode="numeric" />
+              </label>
+              <label class="field-label sports-timed-setting">每次加時時間（分鐘）
+                <input class="text-input" name="settingsSportOvertimeMinutes" type="number" min="1" max="99" inputmode="numeric" />
+              </label>
+            </div>
+          </section>
+
           <section class="mahjong-setup" id="settingsMahjongQuickFields" hidden aria-label="香港麻雀快速設定">
             <div class="mahjong-setup-heading">
               <h3>快速設定</h3>
@@ -983,10 +1014,10 @@
       </article>
     </template>
 
-    <script src="sports-rule-engine.js?v=55" defer></script>
-    <script src="mahjong-core.js?v=55" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=55" defer></script>
-    <script src="big-two-core.js?v=55" defer></script>
-    <script src="app.js?v=55" defer></script>
+    <script src="sports-rule-engine.js?v=56" defer></script>
+    <script src="mahjong-core.js?v=56" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=56" defer></script>
+    <script src="big-two-core.js?v=56" defer></script>
+    <script src="app.js?v=56" defer></script>
   </body>
 </html>

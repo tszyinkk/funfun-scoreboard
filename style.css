@@ -2101,6 +2101,9 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-inline-custom { margin-top: 7px; }
 .sports-decider-toggle { align-self: center; margin-top: 22px; }
 .sports-setup-preview { padding: 13px 15px; border-radius: 13px; background: var(--ink); color: white; font-size: 12px; font-weight: 800; line-height: 1.55; }
+.sports-settings { display: grid; gap: 13px; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.64); }
+.sports-settings .sports-setup-heading { margin: 0; }
+.sports-settings [disabled] { cursor: not-allowed; opacity: .58; }
 .sports-match-status { flex: 1 1 100%; margin: 3px 0 0; color: var(--orange); font-size: 13px; font-weight: 950; }
 .score-display.is-disabled { cursor: default; filter: saturate(.55); }
 .sports-summary-modal { width: min(560px, 100%); }
@@ -2216,11 +2219,11 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 
 .sports-landscape-center::before { left: -1vw; }
 .sports-landscape-center::after { right: -1vw; }
-.sports-landscape-actions { display: flex; justify-content: center; }
-.sports-landscape-actions .top-actions { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 5px; }
+.sports-landscape-actions { position: relative; z-index: 3; display: flex; justify-content: center; }
+.sports-landscape-actions .top-actions { display: grid; grid-template-columns: repeat(2, 44px); justify-items: center; gap: 5px; }
 .sports-landscape-actions .connection-badge { display: none; }
 .sports-landscape-actions .icon-button,
-.sports-landscape-actions .home-button { width: 40px; min-width: 40px; min-height: 40px; height: 40px; padding: 0; border-color: var(--line); border-radius: 12px; background: white; color: var(--ink); }
+.sports-landscape-actions .home-button { position: relative; z-index: 1; width: 44px; min-width: 44px; min-height: 44px; height: 44px; padding: 0; touch-action: manipulation; border-color: var(--line); border-radius: 12px; background: white; color: var(--ink); }
 .sports-landscape-actions .home-button { display: grid; place-items: center; font-size: 0; }
 .sports-landscape-actions .home-button-label { display: none; }
 .sports-landscape-actions .home-button .lucide-icon { width: 19px; height: 19px; }
@@ -2333,7 +2336,7 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-forced-landscape .sports-landscape-actions .icon-button,
 .sports-forced-landscape .sports-landscape-actions .home-button,
 .sports-forced-landscape .sports-landscape-center .timer-toggle,
-.sports-forced-landscape .sports-landscape-center #matchControls button { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
+.sports-forced-landscape .sports-landscape-center #matchControls button { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
 .sports-forced-landscape .sports-landscape-actions .lucide-icon,
 .sports-forced-landscape .sports-landscape-center #matchControls .lucide-icon { width: 16px; height: 16px; }
 .sports-forced-landscape .sports-landscape-center .timer-actions { gap: 3px; }
@@ -2360,7 +2363,7 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 @media (orientation: landscape) and (max-height: 520px) {
   .sports-landscape-board { grid-template-columns: minmax(0, 1fr) minmax(152px, 20vw) minmax(0, 1fr); gap: 5px; padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
   .sports-landscape-center { gap: 4px; }
-  .sports-landscape-actions .icon-button, .sports-landscape-actions .home-button { width: 32px; min-width: 32px; min-height: 32px; height: 32px; }
+  .sports-landscape-actions .icon-button, .sports-landscape-actions .home-button { width: 44px; min-width: 44px; min-height: 44px; height: 44px; }
   .sports-landscape-actions .lucide-icon { width: 16px; height: 16px; }
   .sports-landscape-center .timer-actions { gap: 3px; }
   .sports-landscape-center .timer-toggle { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }

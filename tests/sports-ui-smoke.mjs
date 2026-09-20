@@ -118,6 +118,47 @@ await evaluate(`(() => {
   assert.deepEqual(value.bigtwo, { panel: true, cards: 4, sportsControls: false });
 });
 
+await evaluate(`(() => {
+  const cases = [
+    ["volleyball", "standard"],
+    ["basketball", "standard"],
+    ["basketball", "single"],
+    ["badminton", "standard"],
+    ["table-tennis", "standard"],
+  ];
+  return cases.map(([sportType, preset]) => {
+    beginNewActivity("sports");
+    const type = document.querySelector("[name='sportType']");
+    type.value = sportType;
+    type.dispatchEvent(new Event("change", { bubbles: true }));
+    document.querySelector("input[name='sportPreset'][value='" + preset + "']").click();
+    document.querySelector("#setupForm").requestSubmit();
+    document.querySelector("#settingsButton").click();
+    const beforeScore = [...state.sportGame.currentScore];
+    const dialogOpened = document.querySelector("#settingsModal").classList.contains("is-open");
+    const visible = !document.querySelector("#settingsSportsFields").hidden;
+    const sportValue = document.querySelector("[name='settingsSportType']").value;
+    closeModal("settingsModal");
+    document.querySelector("#sportsLandscapeLeft .score-display").click();
+    document.querySelector("#settingsButton").click();
+    const rulesLocked = document.querySelector("[name='settingsSportTargetScore']").disabled;
+    document.querySelector("#settingsName").value = sportType + " test";
+    document.querySelector("#settingsForm").requestSubmit();
+    return { sportType, preset, dialogOpened, visible, sportValue, beforeScore, scoreAfterNameSave: [...state.sportGame.currentScore], rulesLocked, savedTitle: state.title };
+  });
+})()`).then((results) => {
+  assert.equal(results.length, 5);
+  results.forEach((result) => {
+    assert.equal(result.dialogOpened, true);
+    assert.equal(result.visible, true);
+    assert.equal(result.sportValue, result.sportType);
+    assert.deepEqual(result.beforeScore, [0, 0]);
+    assert.deepEqual(result.scoreAfterNameSave, [1, 0]);
+    assert.equal(result.rulesLocked, true);
+    assert.equal(result.savedTitle, `${result.sportType} test`);
+  });
+});
+
 await command("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 3, mobile: true, screenOrientation: { type: "portraitPrimary", angle: 0 } });
 await evaluate(`(() => {
   beginNewActivity("sports");
