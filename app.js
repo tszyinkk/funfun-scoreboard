@@ -1586,9 +1586,17 @@ function render() {
   const sportsLandscape = document.body.classList.contains("sports-landscape-active");
   elements.matchTitle.textContent = state.title;
   if (hasSportRuleEngine()) syncSportStateToScoreboard();
+  const sportRoundLabel = hasSportRuleEngine()
+    ? state.sportConfig.timedMode
+      ? basketballPeriodLabel()
+      : state.sportConfig.sportType === "basketball"
+        ? t("單局決勝", "Single Game")
+        : t(`第${state.sportGame.currentGame}局`, `Game ${state.sportGame.currentGame}`)
+    : t(`第${state.round}局`, `Round ${state.round}`);
   elements.roundLabel.textContent = hasSportRuleEngine()
-    ? `${sportName()}・${state.sportConfig.timedMode ? basketballPeriodLabel() : t(`第 ${state.sportGame.currentGame} 局`, `Game ${state.sportGame.currentGame}`)}`
-    : t(`第 ${state.round} 局`, `Round ${state.round}`);
+    ? `${sportName()}${t("・", " · ")}${sportRoundLabel}`
+    : sportRoundLabel;
+  elements.roundLabel.setAttribute("aria-label", elements.roundLabel.textContent);
   elements.playerCountLabel.textContent = state.kind === "chooser"
     ? t("多人手指抽籤", "Multi-touch draw")
     : state.kind === "mahjong" ? `${state.participants.length} ${t("位玩家", "players")}` : `${state.participants.length} ${t("個計分格", "score panels")}`;
