@@ -568,6 +568,7 @@ function applyLanguage() {
   $("#setupHomeTeamName").placeholder = t("主隊名稱", "Home team name");
   $("#setupAwayTeamName").placeholder = t("客隊名稱", "Away team name");
   elements.setupSportsRules.setAttribute("aria-label", t("運動比賽設定", "Sports match setup"));
+  $$('[data-fan-score-preview]').forEach((table) => table.setAttribute("aria-label", t("番數及分數預覽", "Fan and score preview")));
   elements.mahjongPatternSearch.placeholder = t("例如：清一色、對對糊", "e.g. Full flush, All pungs");
   $("#settingsButton").setAttribute("aria-label", t("計分設定", "Score settings"));
   $("#settingsButton").title = t("計分設定", "Score settings");

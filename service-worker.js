@@ -1,13 +1,13 @@
-const CACHE_NAME = "funfun-scoreboard-v53";
+const CACHE_NAME = "funfun-scoreboard-v54";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=53",
-  "./sports-rule-engine.js?v=53",
-  "./mahjong-core.js?v=53",
-  "./mahjong-hand-analyzer.js?v=53",
-  "./big-two-core.js?v=53",
-  "./app.js?v=53",
+  "./style.css?v=54",
+  "./sports-rule-engine.js?v=54",
+  "./mahjong-core.js?v=54",
+  "./mahjong-hand-analyzer.js?v=54",
+  "./big-two-core.js?v=54",
+  "./app.js?v=54",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",
