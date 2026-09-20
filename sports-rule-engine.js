@@ -258,6 +258,30 @@
     return { winnerIndex: null, noWinner: true };
   }
 
+  // Basketball records show cumulative points; other sports show games won.
+  // Older records can fall back to the scores kept on the saved participants.
+  function recordScore(configInput, gameStateInput, participants = []) {
+    const config = sanitizeConfig(configInput);
+    const raw = gameStateInput && typeof gameStateInput === "object" ? gameStateInput : {};
+    const scoreFrom = (value) => Array.isArray(value) && value.length >= 2
+      && value.slice(0, 2).every((score) => Number.isFinite(Number(score)))
+      ? value.slice(0, 2).map((score) => cleanInteger(score, 0, 0, 99999)) : null;
+    if (config.sportType === "basketball") {
+      const current = scoreFrom(raw.currentScore);
+      if (current) return current;
+      const pointHistory = Array.isArray(raw.pointHistory) ? raw.pointHistory : [];
+      if (pointHistory.length) return pointHistory.reduce((total, point) => {
+        const team = point?.teamIndex === 1 ? 1 : 0;
+        total[team] += cleanInteger(point?.points, 1, 1, 20);
+        return total;
+      }, [0, 0]);
+      const participantScores = scoreFrom(participants.map((player) => player?.score));
+      if (participantScores) return participantScores;
+      return [0, 0];
+    }
+    return scoreFrom(raw.gamesWon) || [0, 0];
+  }
+
   function finishMatch(configInput, gameStateInput, winnerMode = "score", createdAt = new Date().toISOString()) {
     const config = sanitizeConfig(configInput);
     const state = cloneState(config, gameStateInput);
@@ -304,7 +328,7 @@
     return { sportType: config.sportType, preset: config.preset, timedMode: config.timedMode, status: state.status, earlyEnded: state.earlyEnded, noWinner: state.noWinner, winnerIndex: state.winnerIndex, gamesWon: [...state.gamesWon], currentScore: [...state.currentScore], completedGames: state.completedGames.map((game) => ({ ...game, scores: [...game.scores] })), periodScores: state.periodScores.map((period) => ({ ...period, scores: [...period.scores] })) };
   }
 
-  const api = { MATCH_FORMATS, SPORT_TYPES, volleyballPreset, badmintonPreset, tableTennisPreset, basketballPreset, presetForSport, sanitizeConfig, targetForGame, scoreWinsGame, evaluate, createGameState, sanitizeGameState, applyPoint, advanceGame, replayPoints, resetCurrentGame, resetMatch, reopenMatch, endPeriod, addOvertime, settlementOutcome, finishMatch, editCompletedGame, matchSummary };
+  const api = { MATCH_FORMATS, SPORT_TYPES, volleyballPreset, badmintonPreset, tableTennisPreset, basketballPreset, presetForSport, sanitizeConfig, targetForGame, scoreWinsGame, evaluate, createGameState, sanitizeGameState, applyPoint, advanceGame, replayPoints, resetCurrentGame, resetMatch, reopenMatch, endPeriod, addOvertime, settlementOutcome, finishMatch, editCompletedGame, matchSummary, recordScore };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.SportsRuleEngine = api;
 })(typeof window === "undefined" ? globalThis : window);

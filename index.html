@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="style.css?v=52" />
+    <link rel="stylesheet" href="style.css?v=53" />
   </head>
   <body>
     <div class="app-shell">
@@ -30,17 +30,17 @@
         <div class="top-actions">
           <button class="language-toggle" id="languageToggle" type="button" aria-label="Switch to English">EN</button>
           <button class="home-button" id="homeButton" type="button" aria-label="返回主頁" title="返回主頁">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z" /></svg>
+            <span class="lucide-icon icon-house" aria-hidden="true"></span>
             <span class="home-button-label">主頁</span>
           </button>
           <span class="connection-badge" id="connectionBadge" role="status">
             <span></span><span id="connectionLabel">離線可用</span>
           </span>
           <button class="icon-button" id="undoButton" type="button" aria-label="撤銷上一步" title="撤銷上一步" disabled>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7H5v-4M5.5 7.5A8 8 0 1 1 4 15"/></svg>
+            <span class="lucide-icon icon-undo-2" aria-hidden="true"></span>
           </button>
           <button class="icon-button" id="settingsButton" type="button" aria-label="計分設定" title="計分設定">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.96 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H3v-4h.08A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V3h4v.08A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9 1.7 1.7 0 0 0 21 10v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+            <span class="lucide-icon icon-sliders-horizontal" aria-hidden="true"></span>
           </button>
         </div>
       </header>
@@ -148,7 +148,7 @@
           </div>
           <div class="timer-actions">
             <button class="timer-toggle" id="timerToggleButton" type="button" aria-label="開始計時" title="開始計時" aria-pressed="false">
-              <span class="timer-toggle-icon" aria-hidden="true">▶</span>
+              <span class="lucide-icon icon-play timer-toggle-icon" aria-hidden="true"></span>
               <span id="timerToggleLabel">開始計時</span>
             </button>
           </div>
@@ -276,35 +276,35 @@
 
         <section class="score-grid" id="scoreGrid" aria-label="計分區"></section>
 
-        <section class="match-controls" id="matchControls" aria-label="本局控制">
+        <section class="match-controls" id="matchControls" aria-label="比賽控制">
           <button class="primary-button" id="finishRoundButton" type="button" aria-label="完成並結束本局" title="完成並結束本局">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
+            <span class="lucide-icon icon-check" aria-hidden="true"></span>
             <span class="landscape-control-label">完成本局</span>
           </button>
           <button class="secondary-button" id="sportsResetGameButton" type="button" hidden aria-label="重設目前一局" title="重設目前一局">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6" /></svg>
+            <span class="lucide-icon icon-refresh-cw" aria-hidden="true"></span>
             <span class="landscape-control-label">重設本局</span>
           </button>
           <button class="secondary-button" id="sportsResetMatchButton" type="button" hidden aria-label="重設整場比賽" title="重設整場比賽">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6.4 6.4l2.1 2.1m7 7 2.1 2.1m0-11.2-2.1 2.1m-7 7-2.1 2.1" /><circle cx="12" cy="12" r="4" /></svg>
+            <span class="lucide-icon icon-trash" aria-hidden="true"></span>
             <span class="landscape-control-label">重設比賽</span>
           </button>
           <button class="primary-button" id="sportsSummaryButton" type="button" hidden aria-label="查看比賽結果" title="查看比賽結果">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4a5 5 0 0 1-10 0V3Z" /><path d="M7 5H4v2a4 4 0 0 0 4 4m9-6h3v2a4 4 0 0 1-4 4M12 12v5m-4 4h8m-6-4h4" /></svg>
+            <span class="lucide-icon icon-trophy" aria-hidden="true"></span>
             <span class="landscape-control-label">比賽結果</span>
           </button>
           <button class="secondary-button" id="sportsEndButton" type="button" hidden aria-label="提早結束並結算" title="提早結束並結算">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            <span class="lucide-icon icon-flag" aria-hidden="true"></span>
             <span class="landscape-control-label">結束並結算</span>
           </button>
           <button class="primary-button" id="sportsNextGameButton" type="button" hidden aria-label="開始下一局" title="開始下一局">
-            <span aria-hidden="true">→</span><span class="landscape-control-label">開始下一局</span>
+            <span class="lucide-icon icon-skip-forward" aria-hidden="true"></span><span class="landscape-control-label">開始下一局</span>
           </button>
           <button class="secondary-button" id="sportsPeriodButton" type="button" hidden aria-label="完成本節" title="完成本節">
-            <span aria-hidden="true">◷</span><span class="landscape-control-label">完成本節</span>
+            <span class="lucide-icon icon-check" aria-hidden="true"></span><span class="landscape-control-label">完成本節</span>
           </button>
           <button class="secondary-button" id="sportsResetClockButton" type="button" hidden aria-label="重設本節計時" title="重設本節計時">
-            <span aria-hidden="true">↻</span><span class="landscape-control-label">重設計時</span>
+            <span class="lucide-icon icon-timer-reset" aria-hidden="true"></span><span class="landscape-control-label">重設計時</span>
           </button>
         </section>
 
@@ -947,7 +947,7 @@
             <span>1–7 張 ×1・8–9 張起炒 ×2・10–12 張雙炒 ×3・13 張三炒 ×4</span>
           </div>
           <p class="mahjong-preview" id="bigTwoPreview">填寫剩牌數後會顯示今鋪分數。</p>
-          <button class="primary-button wide" type="submit">記錄今鋪</button>
+          <button class="primary-button wide" id="bigTwoRoundSubmit" type="submit">記錄今鋪</button>
         </form>
       </div>
     </div>
@@ -983,10 +983,10 @@
       </article>
     </template>
 
-    <script src="sports-rule-engine.js?v=52" defer></script>
-    <script src="mahjong-core.js?v=52" defer></script>
-    <script src="mahjong-hand-analyzer.js?v=52" defer></script>
-    <script src="big-two-core.js?v=52" defer></script>
-    <script src="app.js?v=52" defer></script>
+    <script src="sports-rule-engine.js?v=53" defer></script>
+    <script src="mahjong-core.js?v=53" defer></script>
+    <script src="mahjong-hand-analyzer.js?v=53" defer></script>
+    <script src="big-two-core.js?v=53" defer></script>
+    <script src="app.js?v=53" defer></script>
   </body>
 </html>

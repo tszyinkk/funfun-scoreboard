@@ -99,6 +99,18 @@ test("籃球加時時間可自訂，並可連續進入下一次加時", () => {
   assert.deepEqual([state.currentPeriod, state.overtimeCount], [6, 2]);
 });
 
+test("儲存籃球紀錄使用累積總分；其他球類仍使用勝局", () => {
+  const basketball = Engine.basketballPreset("single");
+  let basketballState = Engine.createGameState(basketball);
+  basketballState = Engine.applyPoint(basketball, basketballState, 0, 3).state;
+  basketballState = Engine.applyPoint(basketball, basketballState, 1, 3).state;
+  assert.deepEqual(Engine.recordScore(basketball, basketballState), [3, 3]);
+  assert.deepEqual(Engine.recordScore(basketball, { pointHistory: [{ teamIndex: 0, points: 2 }, { teamIndex: 1, points: 3 }] }, [{ score: 0 }, { score: 0 }]), [2, 3]);
+  assert.deepEqual(Engine.recordScore(basketball, {}, [{ score: 3 }, { score: 3 }]), [3, 3]);
+  const volleyball = Engine.volleyballPreset("standard");
+  assert.deepEqual(Engine.recordScore(volleyball, { gamesWon: [2, 1], currentScore: [26, 24] }), [2, 1]);
+});
+
 test("提早結算預測與最終結算使用同一勝方判定", () => {
   const volleyball = Engine.volleyballPreset("standard");
   let state = Engine.createGameState(volleyball);

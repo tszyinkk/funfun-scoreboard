@@ -1,17 +1,30 @@
-const CACHE_NAME = "funfun-scoreboard-v52";
+const CACHE_NAME = "funfun-scoreboard-v53";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=52",
-  "./sports-rule-engine.js?v=52",
-  "./mahjong-core.js?v=52",
-  "./mahjong-hand-analyzer.js?v=52",
-  "./big-two-core.js?v=52",
-  "./app.js?v=52",
+  "./style.css?v=53",
+  "./sports-rule-engine.js?v=53",
+  "./mahjong-core.js?v=53",
+  "./mahjong-hand-analyzer.js?v=53",
+  "./big-two-core.js?v=53",
+  "./app.js?v=53",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./assets/icons/lucide/house.svg",
+  "./assets/icons/lucide/undo-2.svg",
+  "./assets/icons/lucide/sliders-horizontal.svg",
+  "./assets/icons/lucide/play.svg",
+  "./assets/icons/lucide/pause.svg",
+  "./assets/icons/lucide/timer-reset.svg",
+  "./assets/icons/lucide/refresh-cw.svg",
+  "./assets/icons/lucide/trash.svg",
+  "./assets/icons/lucide/trophy.svg",
+  "./assets/icons/lucide/flag.svg",
+  "./assets/icons/lucide/check.svg",
+  "./assets/icons/lucide/skip-forward.svg",
+  "./assets/icons/lucide/pencil.svg",
 ];
 
 self.addEventListener("install", (event) => {

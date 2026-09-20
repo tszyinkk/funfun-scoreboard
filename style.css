@@ -221,15 +221,34 @@ button,
   transform: none;
 }
 
-.icon-button svg,
-.match-controls svg {
+.lucide-icon {
+  --lucide-icon: none;
+  display: inline-block;
   width: 21px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  height: 21px;
+  flex: 0 0 auto;
+  background: currentColor;
+  -webkit-mask: var(--lucide-icon) center / contain no-repeat;
+  mask: var(--lucide-icon) center / contain no-repeat;
 }
+.icon-house { --lucide-icon: url("assets/icons/lucide/house.svg"); }
+.icon-undo-2 { --lucide-icon: url("assets/icons/lucide/undo-2.svg"); }
+.icon-sliders-horizontal { --lucide-icon: url("assets/icons/lucide/sliders-horizontal.svg"); }
+.icon-play { --lucide-icon: url("assets/icons/lucide/play.svg"); }
+.icon-pause { --lucide-icon: url("assets/icons/lucide/pause.svg"); }
+.icon-timer-reset { --lucide-icon: url("assets/icons/lucide/timer-reset.svg"); }
+.icon-refresh-cw { --lucide-icon: url("assets/icons/lucide/refresh-cw.svg"); }
+.icon-trash { --lucide-icon: url("assets/icons/lucide/trash.svg"); }
+.icon-trophy { --lucide-icon: url("assets/icons/lucide/trophy.svg"); }
+.icon-flag { --lucide-icon: url("assets/icons/lucide/flag.svg"); }
+.icon-check { --lucide-icon: url("assets/icons/lucide/check.svg"); }
+.icon-skip-forward { --lucide-icon: url("assets/icons/lucide/skip-forward.svg"); }
+.icon-pencil { --lucide-icon: url("assets/icons/lucide/pencil.svg"); }
+
+.icon-button:focus-visible,
+.home-button:focus-visible,
+.match-controls button:focus-visible,
+.timer-toggle:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
 
 .match-heading {
   display: flex;
@@ -391,7 +410,6 @@ p {
 
 .timer-toggle-icon {
   color: var(--lime);
-  font-size: 12px;
 }
 
 .score-grid {
@@ -1348,6 +1366,7 @@ legend,
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.home-button .lucide-icon { width: 16px; height: 16px; }
 
 .home-button:hover { border-color: var(--ink); color: var(--ink); background: #fbfcfc; }
 
@@ -2158,6 +2177,8 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-end-actions { display: grid; gap: 9px; margin-top: 18px; }
 .sports-summary-games li { gap: 9px; }
 .sports-summary-games .sports-edit-game { margin-left: auto; }
+.text-button.with-icon { display: inline-flex; align-items: center; gap: 5px; }
+.text-button.with-icon .lucide-icon { width: 15px; height: 15px; }
 .big-two-history-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .big-two-history-item > div:first-child { min-width: 0; display: grid; gap: 4px; }
 .big-two-history-item small { color: var(--ink-soft); overflow-wrap: anywhere; }
@@ -2202,9 +2223,11 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-landscape-actions .home-button { width: 40px; min-width: 40px; min-height: 40px; height: 40px; padding: 0; border-color: var(--line); border-radius: 12px; background: white; color: var(--ink); }
 .sports-landscape-actions .home-button { display: grid; place-items: center; font-size: 0; }
 .sports-landscape-actions .home-button-label { display: none; }
-.sports-landscape-actions .home-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sports-landscape-actions .home-button .lucide-icon { width: 19px; height: 19px; }
 .sports-landscape-center .match-heading { display: block; padding: 0; text-align: center; }
-.sports-landscape-center .match-heading .eyebrow { margin: 0; color: var(--orange); font-size: 9px; }
+.sports-landscape-center .match-heading .eyebrow { display: flex; align-items: center; justify-content: center; min-width: 0; margin: 0; color: var(--orange); font-size: 9px; line-height: 1.2; white-space: nowrap; }
+.sports-landscape-center .match-heading .live-dot { flex: 0 0 auto; }
+.sports-landscape-center #roundLabel { display: inline-block; min-width: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sports-landscape-center .match-heading h1,
 .sports-landscape-center .heading-meta { display: none; }
 .sports-landscape-center .sports-match-status { max-width: 72px; margin: 4px auto 0; color: var(--ink); font-size: 9px; line-height: 1.25; }
@@ -2216,12 +2239,12 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-landscape-center .timer-actions { display: grid; grid-template-columns: 1fr; justify-items: center; width: 100%; gap: 5px; }
 .sports-landscape-center .timer-toggle { display: grid; place-items: center; width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: 12px; }
 .sports-landscape-center #timerToggleLabel { display: none; }
-.sports-landscape-center .timer-toggle-icon { font-size: 15px; }
+.sports-landscape-center .timer-toggle-icon { width: 15px; height: 15px; }
 .sports-landscape-center .landscape-control-label { display: none; }
 .sports-landscape-center #matchControls { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 7px; padding: 0; }
 .sports-landscape-center #matchControls button { display: grid; place-items: center; width: 40px; min-width: 40px; min-height: 40px; height: 40px; padding: 0; border-radius: 12px; font-size: 0; }
 .sports-landscape-center #matchControls .secondary-button { color: var(--ink); }
-.sports-landscape-center #matchControls svg { display: block; width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sports-landscape-center #matchControls .lucide-icon { width: 19px; height: 19px; }
 
 .rotate-prompt {
   position: fixed;
@@ -2311,8 +2334,8 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
 .sports-forced-landscape .sports-landscape-actions .home-button,
 .sports-forced-landscape .sports-landscape-center .timer-toggle,
 .sports-forced-landscape .sports-landscape-center #matchControls button { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
-.sports-forced-landscape .sports-landscape-actions .home-button svg,
-.sports-forced-landscape .sports-landscape-center #matchControls svg { width: 16px; height: 16px; }
+.sports-forced-landscape .sports-landscape-actions .lucide-icon,
+.sports-forced-landscape .sports-landscape-center #matchControls .lucide-icon { width: 16px; height: 16px; }
 .sports-forced-landscape .sports-landscape-center .timer-actions { gap: 3px; }
 .sports-forced-landscape .sports-landscape-center #matchControls { gap: 4px; }
 .sports-forced-landscape .modal-backdrop {
@@ -2338,12 +2361,12 @@ html[lang="en"] .mahjong-pattern-choices { grid-template-columns: repeat(2, minm
   .sports-landscape-board { grid-template-columns: minmax(0, 1fr) minmax(68px, 7.5vw) minmax(0, 1fr); gap: 5px; padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
   .sports-landscape-center { gap: 4px; }
   .sports-landscape-actions .icon-button, .sports-landscape-actions .home-button { width: 32px; min-width: 32px; min-height: 32px; height: 32px; }
-  .sports-landscape-actions .home-button svg { width: 16px; height: 16px; }
+  .sports-landscape-actions .lucide-icon { width: 16px; height: 16px; }
   .sports-landscape-center .timer-actions { gap: 3px; }
   .sports-landscape-center .timer-toggle { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
   .sports-landscape-center #matchControls { gap: 4px; }
   .sports-landscape-center #matchControls button { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
-  .sports-landscape-center #matchControls svg { width: 16px; height: 16px; }
+  .sports-landscape-center #matchControls .lucide-icon { width: 16px; height: 16px; }
   .sports-landscape-side .card-header { padding-top: 8px; }
   .sports-landscape-side .score-actions { padding-bottom: 7px; }
   .sports-landscape-side .score-actions button { min-height: 32px; }

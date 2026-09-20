@@ -137,6 +137,8 @@ const elements = {
   bigTwoOpenRoundButton: $("#bigTwoOpenRoundButton"),
   bigTwoRoundModal: $("#bigTwoRoundModal"),
   bigTwoRoundForm: $("#bigTwoRoundForm"),
+  bigTwoRoundTitle: $("#bigTwoRoundTitle"),
+  bigTwoRoundSubmit: $("#bigTwoRoundSubmit"),
   bigTwoWinner: $("#bigTwoWinner"),
   bigTwoRemainingList: $("#bigTwoRemainingList"),
   bigTwoPreview: $("#bigTwoPreview"),
@@ -563,6 +565,9 @@ function applyLanguage() {
     const input = $(`[name="${name}"]`, $("#setupForm"));
     if (input) input.placeholder = t(zh, en);
   });
+  $("#setupHomeTeamName").placeholder = t("主隊名稱", "Home team name");
+  $("#setupAwayTeamName").placeholder = t("客隊名稱", "Away team name");
+  elements.setupSportsRules.setAttribute("aria-label", t("運動比賽設定", "Sports match setup"));
   elements.mahjongPatternSearch.placeholder = t("例如：清一色、對對糊", "e.g. Full flush, All pungs");
   $("#settingsButton").setAttribute("aria-label", t("計分設定", "Score settings"));
   $("#settingsButton").title = t("計分設定", "Score settings");
@@ -1053,7 +1058,8 @@ function gameRecordMeta(game) {
   if (game.kind === "sports" && game.sportConfig && game.sportGame) {
     const status = game.sportGame.status === "finished" ? t("已完成", "Finished") : t("進行中", "In progress");
     const sport = sportName(game.sportConfig);
-    return `${sport}・${status}・${game.sportGame.gamesWon?.[0] || 0}–${game.sportGame.gamesWon?.[1] || 0}${updated ? `・${updated}` : ""}`;
+    const score = SportsRuleEngine.recordScore(game.sportConfig, game.sportGame, game.participants);
+    return `${sport}・${status}・${score[0]}–${score[1]}${updated ? `・${updated}` : ""}`;
   }
   return uiLanguage === "en"
     ? `${game.participants.length} teams · ${game.history.length} rounds completed${updated ? ` · ${updated}` : ""}`
@@ -1414,9 +1420,13 @@ function renderSportsSummary() {
     if (!summary.timedMode) {
       const edit = document.createElement("button");
       edit.type = "button";
-      edit.className = "text-button sports-edit-game";
+      edit.className = "text-button with-icon sports-edit-game";
       edit.dataset.editSportGame = String(game.number - 1);
-      edit.textContent = t("修改", "Edit");
+      edit.setAttribute("aria-label", t(`修改第${game.number}局賽果`, `Edit game ${game.number}`));
+      const icon = document.createElement("span");
+      icon.className = "lucide-icon icon-pencil";
+      icon.setAttribute("aria-hidden", "true");
+      edit.append(icon, document.createTextNode(t("修改", "Edit")));
       item.appendChild(edit);
     }
     games.appendChild(item);
@@ -1449,14 +1459,18 @@ function requestSportsEnd() {
   const predicted = outcome.noWinner
     ? t("平手／未能分出勝負", "Tied / no winner can be determined")
     : t(`${outcome.winnerIndex === 0 ? home.name : away.name}勝出`, `${outcome.winnerIndex === 0 ? home.name : away.name} wins`);
+  const settleButton = $("#sportsEndWithWinner");
+  const isDraw = outcome.noWinner;
+  settleButton.textContent = isDraw ? t("以平手結算", "Finish as a draw") : t("按目前比分結算", "Finish using current score");
+  settleButton.setAttribute("aria-label", settleButton.textContent);
   $("#sportsEndMessage").textContent = state.sportConfig.timedMode
     ? t(
-      `目前總分：${home.name}${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}${away.name}\n目前：${basketballPeriodLabel()}\n按目前賽果結算：${predicted}\n\n你可以按目前比分結算，或者只保存比分。`,
-      `Current total: ${home.name} ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]} ${away.name}\nCurrent: ${basketballPeriodLabel()}\nProjected result: ${predicted}\n\nSettle using the current score, or save the score without a winner.`,
+      `目前總分：${home.name}${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}${away.name}\n目前：${basketballPeriodLabel()}\n按目前賽果結算：${predicted}\n\n${isDraw ? "目前未能分出勝負；可按平手結算，或者只保存比分。" : "你可以按目前比分結算，或者只保存比分。"}`,
+      `Current total: ${home.name} ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]} ${away.name}\nCurrent: ${basketballPeriodLabel()}\nProjected result: ${predicted}\n\n${isDraw ? "No winner can be determined. Finish as a draw, or save without a winner." : "Finish using the current score, or save the score without a winner."}`,
     )
     : t(
-      `勝局：${home.name}${state.sportGame.gamesWon[0]}：${state.sportGame.gamesWon[1]}${away.name}\n目前一局：${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}\n按目前賽果結算：${predicted}\n\n你可以按目前比分結算，或者只保存比分。`,
-      `Games won: ${home.name} ${state.sportGame.gamesWon[0]}–${state.sportGame.gamesWon[1]} ${away.name}\nCurrent game: ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]}\nProjected result: ${predicted}\n\nSettle using the current score, or save the score without a winner.`,
+      `勝局：${home.name}${state.sportGame.gamesWon[0]}：${state.sportGame.gamesWon[1]}${away.name}\n目前一局：${state.sportGame.currentScore[0]}：${state.sportGame.currentScore[1]}\n按目前賽果結算：${predicted}\n\n${isDraw ? "目前未能分出勝負；可按平手結算，或者只保存比分。" : "你可以按目前比分結算，或者只保存比分。"}`,
+      `Games won: ${home.name} ${state.sportGame.gamesWon[0]}–${state.sportGame.gamesWon[1]} ${away.name}\nCurrent game: ${state.sportGame.currentScore[0]}–${state.sportGame.currentScore[1]}\nProjected result: ${predicted}\n\n${isDraw ? "No winner can be determined. Finish as a draw, or save without a winner." : "Finish using the current score, or save the score without a winner."}`,
     );
   openModal("sportsEndModal");
 }
@@ -1586,14 +1600,14 @@ function render() {
   elements.matchControls.hidden = specialMode;
   elements.sportsMatchStatus.hidden = !hasSportRuleEngine();
   elements.sportsMatchStatus.textContent = sportStatusCopy();
-  elements.matchControls.setAttribute("aria-label", t("本局控制", "Match controls"));
+  const timedSport = hasSportRuleEngine() && state.sportConfig.timedMode;
+  elements.matchControls.setAttribute("aria-label", timedSport ? t("本節控制", "Period controls") : t("比賽控制", "Match controls"));
   $("#finishRoundButton").hidden = hasSportRuleEngine();
   elements.sportsResetGameButton.hidden = !hasSportRuleEngine() || state.sportGame.status === "finished";
   elements.sportsResetMatchButton.hidden = !hasSportRuleEngine();
   elements.sportsSummaryButton.hidden = !hasSportRuleEngine() || (state.sportGame.status !== "finished" && state.sportGame.completedGames.length === 0 && state.sportGame.periodScores.length === 0);
   elements.sportsEndButton.hidden = !hasSportRuleEngine() || state.sportGame.status === "finished";
   elements.sportsNextGameButton.hidden = !hasSportRuleEngine() || state.sportGame.status !== "game-complete";
-  const timedSport = hasSportRuleEngine() && state.sportConfig.timedMode;
   elements.sportsPeriodButton.hidden = !timedSport || state.sportGame.status === "finished";
   elements.sportsResetClockButton.hidden = !timedSport || state.sportGame.status === "finished";
   const setSportsControlCopy = (button, zh, en) => {
@@ -1743,7 +1757,8 @@ function updateTimerDisplay() {
   elements.timerToggleButton.setAttribute("aria-label", timerActionLabel);
   elements.timerToggleButton.title = timerActionLabel;
   elements.timerToggleLabel.textContent = timerActionLabel;
-  $(".timer-toggle-icon", elements.timerToggleButton).textContent = state.timer.running ? "Ⅱ" : "▶";
+  const timerIcon = $(".timer-toggle-icon", elements.timerToggleButton);
+  timerIcon.className = `lucide-icon timer-toggle-icon ${state.timer.running ? "icon-pause" : "icon-play"}`;
 }
 
 function toggleTimer() {
@@ -2746,6 +2761,10 @@ function updateBigTwoPreview() {
 function renderBigTwoRoundForm(winnerId = "") {
   const previous = Object.fromEntries($$("[data-bigtwo-player-id]", elements.bigTwoRemainingList).map((input) => [input.dataset.bigtwoPlayerId, input.value]));
   const currentWinner = winnerId || elements.bigTwoWinner.value || state.participants[0]?.id;
+  const editing = editingBigTwoRoundIndex >= 0;
+  const handNumber = editingBigTwoRoundIndex + 1;
+  elements.bigTwoRoundTitle.textContent = editing ? t(`修改第${handNumber}鋪`, `Edit Hand ${handNumber}`) : t("今鋪鋤大D計分", "Score this Big Two hand");
+  elements.bigTwoRoundSubmit.textContent = editing ? t("儲存修改", "Save Changes") : t("記錄今鋪", "Save hand");
   elements.bigTwoWinner.replaceChildren();
   state.participants.forEach((player) => {
     const option = document.createElement("option");
@@ -2840,9 +2859,11 @@ function renderBigTwoHistory() {
     info.append(title, details);
     const actions = document.createElement("div");
     const edit = document.createElement("button");
-    edit.type = "button"; edit.className = "text-button"; edit.dataset.editBigTwo = String(hand.number - 1); edit.textContent = t("修改", "Edit");
+    edit.type = "button"; edit.className = "text-button with-icon"; edit.dataset.editBigTwo = String(hand.number - 1); edit.setAttribute("aria-label", t(`修改第${hand.number}鋪`, `Edit Hand ${hand.number}`));
+    const editIcon = document.createElement("span"); editIcon.className = "lucide-icon icon-pencil"; editIcon.setAttribute("aria-hidden", "true"); edit.append(editIcon, document.createTextNode(t("修改", "Edit")));
     const remove = document.createElement("button");
-    remove.type = "button"; remove.className = "text-button danger-text"; remove.dataset.deleteBigTwo = String(hand.number - 1); remove.textContent = t("刪除", "Delete");
+    remove.type = "button"; remove.className = "text-button with-icon danger-text"; remove.dataset.deleteBigTwo = String(hand.number - 1); remove.setAttribute("aria-label", t(`刪除第${hand.number}鋪`, `Delete Hand ${hand.number}`));
+    const deleteIcon = document.createElement("span"); deleteIcon.className = "lucide-icon icon-trash"; deleteIcon.setAttribute("aria-hidden", "true"); remove.append(deleteIcon, document.createTextNode(t("刪除", "Delete")));
     actions.append(edit, remove); item.append(info, actions); elements.bigTwoHistoryList.appendChild(item);
   });
 }
@@ -2873,8 +2894,9 @@ function recordBigTwoRound(event) {
   if (!round.valid) return showToast(t("請檢查每位輸家嘅剩牌數", "Check each losing player's remaining cards"));
   const winner = state.participants.find((player) => player.id === round.winnerId);
   snapshot();
+  const editedIndex = editingBigTwoRoundIndex;
   const record = {
-    number: editingBigTwoRoundIndex >= 0 ? editingBigTwoRoundIndex + 1 : state.round,
+    number: editedIndex >= 0 ? editedIndex + 1 : state.round,
     winnerId: round.winnerId,
     winners: [winner.name],
     winnerName: winner.name,
@@ -2882,13 +2904,13 @@ function recordBigTwoRound(event) {
     remaining: state.participants.map((player) => ({ id: player.id, name: player.name, ...(round.penalties[player.id] || { cards: 0, multiplier: 1, points: 0 }) })),
     createdAt: new Date().toISOString(),
   };
-  if (editingBigTwoRoundIndex >= 0) state.history[editingBigTwoRoundIndex] = record;
+  if (editedIndex >= 0) state.history[editedIndex] = record;
   else state.history.push(record);
   editingBigTwoRoundIndex = -1;
   recalculateBigTwoHistory();
   closeModal("bigTwoRoundModal");
   render();
-  showToast(t("今鋪鋤大D分數已記錄", "Big Two hand saved"));
+  showToast(editedIndex >= 0 ? t(`第${editedIndex + 1}鋪紀錄已更新`, `Hand ${editedIndex + 1} has been updated`) : t("今鋪鋤大D分數已記錄", "Big Two hand saved"));
 }
 
 function cancelChooserCountdown() {
@@ -3321,15 +3343,14 @@ function updateSportsSetupFields() {
   }
   const preset = $("input[name='sportPreset']:checked", setupForm)?.value || "standard";
   const labels = {
-    volleyball: [["休閒三局兩勝", "25／25／15・領先2分"], ["正式五局三勝", "25／25／25／25／15・領先2分"], ["單局決勝", "15／21／25／30分"], ["自訂玩法", "自訂局數、目標分及勝出條件"]],
-    basketball: [["街場11分", "先到11分・＋1／＋2／＋3"], ["街場20分", "先到20分・＋1／＋2／＋3"], ["計時比賽", "2節或4節・自訂每節時間"], ["自訂街場玩法", "自訂完場分數及領先規則"]],
-    badminton: [["三局兩勝", "21分・領先2分・30分封頂"], ["單局21分", "一局決勝・30分封頂"], ["單局決勝", "自選目標分數"], ["自訂玩法", "自訂局數及目標分數"]],
-    "table-tennis": [["五局三勝", "11分・領先2分"], ["三局兩勝", "11分・領先2分"], ["單局決勝", "11分或21分"], ["自訂玩法", "三／五／七局及自訂分數"]],
+    volleyball: [["休閒三局兩勝", "25／25／15・領先2分", "Casual Best of 3", "25 / 25 / 15 · win by 2"], ["正式五局三勝", "25／25／25／25／15・領先2分", "Official Best of 5", "25 / 25 / 25 / 25 / 15 · win by 2"], ["單局決勝", "15／21／25／30分", "Single Game", "15 / 21 / 25 / 30 points"], ["自訂玩法", "自訂局數、目標分及勝出條件", "Custom", "Custom games, target score and winning conditions"]],
+    basketball: [["街場11分", "先到11分・＋1／＋2／＋3", "Street 11", "First to 11 · +1 / +2 / +3"], ["街場20分", "先到20分・＋1／＋2／＋3", "Street 20", "First to 20 · +1 / +2 / +3"], ["計時比賽", "2節或4節・自訂每節時間", "Timed Game", "2 or 4 periods · custom period time"], ["自訂街場玩法", "自訂完場分數及領先規則", "Custom Street Game", "Custom target score and win rule"]],
+    badminton: [["三局兩勝", "21分・領先2分・30分封頂", "Best of 3", "21 points · win by 2 · cap at 30"], ["單局21分", "一局決勝・30分封頂", "Single 21", "One game · cap at 30"], ["單局決勝", "自選目標分數", "Single Game", "Choose a target score"], ["自訂玩法", "自訂局數及目標分數", "Custom", "Custom games and target score"]],
+    "table-tennis": [["五局三勝", "11分・領先2分", "Best of 5", "11 points · win by 2"], ["三局兩勝", "11分・領先2分", "Best of 3", "11 points · win by 2"], ["單局決勝", "11分或21分", "Single Game", "11 or 21 points"], ["自訂玩法", "三／五／七局及自訂分數", "Custom", "Best of 3 / 5 / 7 and custom score"]],
   }[sportType];
-  const englishTitles = { volleyball: ["Casual Best of 3", "Official Best of 5", "Single Game", "Custom"], basketball: ["Street 11", "Street 20", "Timed Game", "Custom Street Game"], badminton: ["Best of 3", "Single 21", "Single Game", "Custom"], "table-tennis": ["Best of 5", "Best of 3", "Single Game", "Custom"] }[sportType];
   labels.forEach((copy, index) => {
-    $(`#sportsPresetTitle${index + 1}`).textContent = t(copy[0], englishTitles[index]);
-    $(`#sportsPresetHelp${index + 1}`).textContent = copy[1];
+    $(`#sportsPresetTitle${index + 1}`).textContent = t(copy[0], copy[2]);
+    $(`#sportsPresetHelp${index + 1}`).textContent = t(copy[1], copy[3]);
   });
   $("#sportsSingleFields").hidden = preset !== "single" || sportType === "basketball";
   $("#sportsTimedFields").hidden = !(sportType === "basketball" && preset === "single");
@@ -3353,7 +3374,7 @@ function updateSportsSetupFields() {
   );
 }
 
-function updateSetupFromPreset() {
+function updateSetupFromPreset({ preserveValues = false } = {}) {
   const preset = $("input[name='preset']:checked", $("#setupForm")).value;
   const isMahjong = preset === "mahjong";
   const isBigTwo = preset === "bigtwo";
@@ -3377,10 +3398,12 @@ function updateSetupFromPreset() {
   nameInput.placeholder = isMahjong
     ? t("例如：星期五雀局", "e.g. Friday Mahjong")
     : isBigTwo ? t("例如：今晚鋤大D", "e.g. Big Two Tonight") : nameInput.placeholder;
-  if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
-  if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤", "今晚鋤大D"].includes(nameInput.value)) nameInput.value = "今晚開枱";
-  if (preset === "bigtwo" && ["今晚開波", "今晚開枱", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚鋤大D";
-  if (preset === "chooser" && ["今晚開波", "今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "首家抽籤";
+  if (!preserveValues) {
+    if (preset === "sports" && ["今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "今晚開波";
+    if (["cards", "mahjong"].includes(preset) && ["今晚開波", "自訂比賽", "首家抽籤", "今晚鋤大D"].includes(nameInput.value)) nameInput.value = "今晚開枱";
+    if (preset === "bigtwo" && ["今晚開波", "今晚開枱", "自訂比賽", "首家抽籤"].includes(nameInput.value)) nameInput.value = "今晚鋤大D";
+    if (preset === "chooser" && ["今晚開波", "今晚開枱", "自訂比賽"].includes(nameInput.value)) nameInput.value = "首家抽籤";
+  }
   $("#countOutput").textContent = customCount;
   if (preset === "custom" && ["今晚開波", "今晚開枱"].includes(nameInput.value)) nameInput.value = "自訂比賽";
   updateSportsSetupFields();
@@ -3772,13 +3795,15 @@ elements.languageToggle.addEventListener("click", () => {
   uiLanguage = uiLanguage === "en" ? "zh" : "en";
   try { localStorage.setItem(LANGUAGE_KEY, uiLanguage); } catch { /* Language still changes for this session. */ }
   applyLanguage();
-  updateSetupFromPreset();
+  // Only re-render copy while a form is open; do not reset its selected values or typed names.
+  updateSetupFromPreset({ preserveValues: elements.setupModal.classList.contains("is-open") });
   if (state) render();
   updateConnectionStatus();
   if (elements.gameLibraryModal.classList.contains("is-open")) renderGameLibrary();
   if (elements.mahjongScoringModal.classList.contains("is-open")) renderMahjongEntry();
   if (elements.mahjongAnalyzerModal.classList.contains("is-open")) renderMahjongAnalyzer();
   if (elements.bigTwoRoundModal.classList.contains("is-open")) renderBigTwoRoundForm(elements.bigTwoWinner.value);
+  if (elements.setupModal.classList.contains("is-open")) updateSportsSetupFields();
   if (elements.sportsSummaryModal.classList.contains("is-open")) renderSportsSummary();
 });
 $("#homeModeGrid").addEventListener("click", (event) => {
